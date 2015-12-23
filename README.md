@@ -1,4 +1,4 @@
-#Tangiable Holographic Sketch
+#Tangible Holographic Sketch
 This is a WIP project <br/>
 if you encounter a problem, email Arc.
 #Build and Dependencies
@@ -7,7 +7,7 @@ if you encounter a problem, email Arc.
 * Leap Motion
 * Kinect 2 for Windows/XBox One
 
-##Platform/Compilier
+##Platform/Compiler
 * Windows 8.1+
 * Visual Studio 2015 (VC++ 14)
 
@@ -23,7 +23,7 @@ if you encounter a problem, email Arc.
 + tinyObjLoader (included)
 + GSL (included)
 
-##Define following MARCOS in [Envirument Variable](http://superuser.com/questions/949560/how-do-i-set-system-environment-variables-in-windows-10) $(PATH) 
+##Define following MARCOS in [Enviroment Variable](http://superuser.com/questions/949560/how-do-i-set-system-environment-variables-in-windows-10) $(PATH) 
 * $(LeapSDK_Root) D:\SDKs\LeapSDK
 * $(BOOST_ROOT) D:\SDKs\boost_1_59_0
 * $(KINECTSDK20_DIR) C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\
