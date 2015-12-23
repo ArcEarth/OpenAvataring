@@ -1,0 +1,12 @@
+# Blender MTL File: 'mug.mtl'
+# Material Count: 1
+
+newmtl Material
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.850000 0.850000 0.850000
+map_Kd wod_no6_1.jpg
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2

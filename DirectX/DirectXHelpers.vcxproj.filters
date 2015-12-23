@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Src\DeviceResources.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DXGIFormatHelper.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Material.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Models.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\pch_directX.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PrimitiveVisualizer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ShadowMapEffect.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SkyDome.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Textures.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\tiny_obj_loader.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ShadowMapGenerationEffect.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PostProcessingEffect.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\HUD.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\ConstantBuffer.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DeviceBuffers.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DeviceResources.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DirectXHelper.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DirectXMathExtend.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DXGIFormatHelper.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Locatable.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Material.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialData.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MeshData.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Models.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PrimitiveVisualizer.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Renderable.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ShaderEffect.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ShadowMapEffect.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SkyDome.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StepTimer.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Textures.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\tiny_obj_loader.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\pch_directX.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ShadowMapGenerationEffect.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DirectXMathExtend.inl">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PostProcessingEffect.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\HierarchicalTransform.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\HUD.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AlignedVector.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\VertexTraits.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{041b7d3a-83ac-4c04-90d1-bf6f29533e55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{1f7fa7d4-2044-4cee-839c-367ba101cd61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{83b715af-8ad0-4f25-84a6-103cb7b9a3ae}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Src\Shaders\CompileShaders.cmd">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Src\Shaders\ShadowMapEffectStructures.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Src\Shaders\ShadowMapEffectCBuffer.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Src\Shaders\Common.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Src\Shaders\BlurEffect.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\QuadVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapEffectPS.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapEffectVS.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapGen.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>

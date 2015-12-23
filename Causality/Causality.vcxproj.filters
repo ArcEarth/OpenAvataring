@@ -1,0 +1,314 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Algorithms">
+      <UniqueIdentifier>{44536f00-dc05-4878-85a0-187d635fc8c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Armature Animation">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Input Parsers Settings">
+      <UniqueIdentifier>{ef18e4a1-36f9-4d50-b941-dc6ccc628b98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility Foundation">
+      <UniqueIdentifier>{88b13495-8580-4d4d-b7b9-d542ac7088be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility Foundation\gsl">
+      <UniqueIdentifier>{f7bc6025-df95-4e14-887e-2c5386be59f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Devices">
+      <UniqueIdentifier>{6ffe4126-f094-4295-adf6-79684fe63ecb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene Objects">
+      <UniqueIdentifier>{adda2fad-ab3e-4ac0-ac7d-6c09c3042549}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform Application Logic">
+      <UniqueIdentifier>{b64aebbb-698d-4d0a-9fd0-86c726d4be67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dlls">
+      <UniqueIdentifier>{902576ed-1a7b-45ba-a4ff-5168de47f59d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HUD">
+      <UniqueIdentifier>{1f8cd33e-39cb-494e-9b7e-856d80ff79c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ArSketch Objects">
+      <UniqueIdentifier>{1ba06f40-366b-4381-8afb-6282dd7a5f57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Serialization">
+      <UniqueIdentifier>{3e944cf1-fadf-4432-a24f-fdafb822bdd5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="NativeWindow.cpp">
+      <Filter>Platform Application Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="OculusRift.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="LeapMotion.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="Kinect.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="Animations.cpp">
+      <Filter>Armature Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Armature.cpp">
+      <Filter>Armature Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraObject.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetDictionary.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneParser.cpp">
+      <Filter>Input Parsers Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxParser.cpp">
+      <Filter>Input Parsers Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings.cpp">
+      <Filter>Input Parsers Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="SkinningModelFromFbx.cpp">
+      <Filter>Input Parsers Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneObject.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LightObject.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="VisualObject.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="SkyDome.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="pch_bcl.cpp">
+      <Filter>Utility Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Platform Application Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicKeyboardMouseControlLogic.cpp">
+      <Filter>Platform Application Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="CausalityApplication.cpp">
+      <Filter>Platform Application Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="TrackedObjectControl.cpp">
+      <Filter>ArSketch Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="FloatHud.cpp">
+      <Filter>HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="PenModeler.cpp">
+      <Filter>ArSketch Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialization.cpp">
+      <Filter>Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixVisualizer.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="CharacterBehavier.cpp">
+      <Filter>Armature Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Vicon.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="StreamDevice.cpp" />
+    <ClCompile Include="TrackerdPen.cpp">
+      <Filter>ArSketch Objects</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NativeWindow.h">
+      <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="OculusRift.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\OculusDisortionRenderer.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="LeapMotion.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="Kinect.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="Armature.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="GSL\array_view.h">
+      <Filter>Utility Foundation\gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="GSL\fail_fast.h">
+      <Filter>Utility Foundation\gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="GSL\gsl.h">
+      <Filter>Utility Foundation\gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="GSL\string_view.h">
+      <Filter>Utility Foundation\gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="BCL.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="pch_bcl.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="String.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Math3D.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartPointers.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Events.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="EigenExtension.h">
+      <Filter>Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderSystemDecl.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Filter.h">
+      <Filter>Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderFlags.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CompositeFlag.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LightObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SkyDome.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\stride_range.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\tree.h">
+      <Filter>Utility Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetDictionary.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Animations.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxParser.h">
+      <Filter>Input Parsers Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneParser.h">
+      <Filter>Input Parsers Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings.h">
+      <Filter>Input Parsers Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingsRegisteration.h">
+      <Filter>Input Parsers Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="BasicKeyboardMouseControlLogic.h">
+      <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="CausalityApplication.h">
+      <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Interactive.h">
+      <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="FloatHud.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="TrackedObjectControl.h">
+      <Filter>ArSketch Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="PenModeler.h">
+      <Filter>ArSketch Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialization.h">
+      <Filter>Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Asset.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixVisualizer.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterBehavier.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Vicon.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamDevice.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="TrackerdPen.h">
+      <Filter>ArSketch Objects</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="libfftw3f-3.dll">
+      <Filter>Dlls</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Causality.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="manifest.xml">
+      <Filter>Platform Application Logic</Filter>
+    </Xml>
+    <Xml Include="App.xml">
+      <Filter>Resource Files</Filter>
+    </Xml>
+    <Xml Include="..\Assets\ArSketch.xml">
+      <Filter>Resource Files</Filter>
+    </Xml>
+  </ItemGroup>
+</Project>

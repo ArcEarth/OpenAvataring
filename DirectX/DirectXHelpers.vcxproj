@@ -1,0 +1,290 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C6D38A30-8097-4CA4-A1CB-1273CE21EAAF}</ProjectGuid>
+    <RootNamespace>DirectXHelpers</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="UserMacros">
+    <TinyXml2Dir>..\tinyxml2</TinyXml2Dir>
+    <DirectXTKDir>..\DirectXTK</DirectXTKDir>
+    <SrcDir>.\Src</SrcDir>
+    <ShaderBtyeCodeDir>$(SrcDir)\Shaders\Windows</ShaderBtyeCodeDir>
+    <CdToSrcShaders>cd Src\Shaders\</CdToSrcShaders>
+    <CompileShaderCmd>CompileShaders.cmd</CompileShaderCmd>
+    <FxConfig Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">debug windows</FxConfig>
+    <FxConfig Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">debug windows</FxConfig>
+    <FxConfig Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">windows</FxConfig>
+    <FxConfig Condition="'$(Configuration)|$(Platform)'=='Release|x64'">windows</FxConfig>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IncludePath>$(DirectXTKDir)\Inc;$(ProjectDir)Inc;$(BOOST_ROOT)\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <SourcePath>$(ProjectDir)Src;$(ProjectDir)Src\Shaders;$(SourcePath)</SourcePath>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <SourcePath>$(ProjectDir)Src;$(ProjectDir)Src\Shaders;$(SourcePath)</SourcePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    <SourcePath>$(ProjectDir)Src;$(ProjectDir)Src\Shaders;$(SourcePath)</SourcePath>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    <SourcePath>$(ProjectDir)Src;$(ProjectDir)Src\Shaders;$(SourcePath)</SourcePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\AlignedVector.h" />
+    <ClInclude Include="Inc\DirectXMathExtend.inl">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClCompile Include="Src\HUD.cpp" />
+    <ClCompile Include="Src\pch_directX.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Src\DeviceResources.cpp" />
+    <ClCompile Include="Src\DXGIFormatHelper.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Src\PostProcessingEffect.cpp" />
+    <ClCompile Include="Src\ShadowMapGenerationEffect.cpp" />
+    <ClCompile Include="Src\tiny_obj_loader.cc">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Src\Material.cpp" />
+    <ClCompile Include="Src\Models.cpp" />
+    <ClCompile Include="Src\PrimitiveVisualizer.cpp" />
+    <ClCompile Include="Src\SkyDome.cpp" />
+    <ClCompile Include="Src\Textures.cpp" />
+    <ClCompile Include="Src\ShadowMapEffect.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\ConstantBuffer.h" />
+    <ClInclude Include="Inc\DeviceBuffers.h" />
+    <ClInclude Include="Inc\DeviceResources.h" />
+    <ClInclude Include="Inc\DirectXHelper.h" />
+    <ClInclude Include="Inc\DirectXMathExtend.h" />
+    <ClInclude Include="Inc\DXGIFormatHelper.h" />
+    <ClInclude Include="Inc\HierarchicalTransform.h" />
+    <ClInclude Include="Inc\HUD.h" />
+    <ClInclude Include="Inc\PostProcessingEffect.h" />
+    <ClInclude Include="Inc\ShadowMapGenerationEffect.h" />
+    <ClInclude Include="Inc\VertexTraits.h" />
+    <ClInclude Include="Src\tiny_obj_loader.h" />
+    <ClInclude Include="Inc\Locatable.h" />
+    <ClInclude Include="Inc\Material.h" />
+    <ClInclude Include="Inc\MaterialData.h" />
+    <ClInclude Include="Inc\Models.h" />
+    <ClInclude Include="Src\pch_directX.h" />
+    <ClInclude Include="Inc\PrimitiveVisualizer.h" />
+    <ClInclude Include="Inc\Renderable.h" />
+    <ClInclude Include="Inc\ShaderEffect.h" />
+    <ClInclude Include="Inc\MeshData.h" />
+    <ClInclude Include="Inc\SkyDome.h" />
+    <ClInclude Include="Inc\StepTimer.h" />
+    <ClInclude Include="Inc\Textures.h" />
+    <ClInclude Include="Inc\ShadowMapEffect.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Src\Shaders\BlurEffect.hlsl">
+      <FileType>Document</FileType>
+      <Command>$(CdToSrcShaders)
+        $(CompileShaderCmd) BlurEffect $(FxConfig)
+      </Command>
+      <Outputs>$(ShaderBtyeCodeDir)\BlurEffect_AlphaAsDepthPassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_Blur.inc;$(ShaderBtyeCodeDir)\BlurEffect_Combination.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3Ex.inc;$(ShaderBtyeCodeDir)\BlurEffect_UpScale.inc;</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ShaderBtyeCodeDir)\BlurEffect_AlphaAsDepthPassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_PassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_Blur.inc;$(ShaderBtyeCodeDir)\BlurEffect_Combination.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3Ex.inc;$(ShaderBtyeCodeDir)\BlurEffect_UpScale.inc</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ShaderBtyeCodeDir)\BlurEffect_AlphaAsDepthPassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_PassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_Blur.inc;$(ShaderBtyeCodeDir)\BlurEffect_Combination.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3Ex.inc;$(ShaderBtyeCodeDir)\BlurEffect_UpScale.inc</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ShaderBtyeCodeDir)\BlurEffect_AlphaAsDepthPassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_PassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_Blur.inc;$(ShaderBtyeCodeDir)\BlurEffect_Combination.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3Ex.inc;$(ShaderBtyeCodeDir)\BlurEffect_UpScale.inc</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ShaderBtyeCodeDir)\BlurEffect_AlphaAsDepthPassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_PassBy.inc;$(ShaderBtyeCodeDir)\BlurEffect_Blur.inc;$(ShaderBtyeCodeDir)\BlurEffect_Combination.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3.inc;$(ShaderBtyeCodeDir)\BlurEffect_DownScale3x3Ex.inc;$(ShaderBtyeCodeDir)\BlurEffect_UpScale.inc</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\QuadVertexShader.hlsl">
+      <FileType>Document</FileType>
+      <Command>$(CdToSrcShaders)
+        $(CompileShaderCmd) QuadVertexShader $(FxConfig)
+      </Command>
+      <Outputs>$(ShaderBtyeCodeDir)\QuadVertexShader_QuadVertexShader.inc</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapEffectPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <FileType>Document</FileType>
+      <Command>$(CdToSrcShaders)
+        $(CompileShaderCmd) ShadowMapEffectPS $(FxConfig)</Command>
+      <Outputs>$(ShaderBtyeCodeDir)\ShadowMapEffectPS_PS_OneLightNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectPS_PS_OneLightTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectPS_PS_ScreenSpaceNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectPS_PS_ScreenSpaceTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectPS_PS_ScreenSpaceTexBump.inc</Outputs>
+      <AdditionalInputs>$(SrcDir)\Shaders\ShadowMapEffectStructures.hlsli;$(SrcDir)\Shaders\ShadowMapEffectCBuffer.hlsli</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapEffectVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <FileType>Document</FileType>
+      <Command>$(CdToSrcShaders)
+        $(CompileShaderCmd) ShadowMapEffectVS $(FxConfig)
+      </Command>
+      <Outputs>$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_BinaryOneLightFourBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_BinaryOneLightFourBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_BinaryOneLightNoBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_BinaryOneLightNoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_OneLightFourBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_OneLightFourBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_OneLightNoBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_OneLightNoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceFourBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceFourBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceOneBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceOneBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceNoBoneNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceNoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceFourBoneTexBump.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneTexBump.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceOneBoneTexBump.inc;$(ShaderBtyeCodeDir)\ShadowMapEffectVS_VS_ScreenSpaceNoBoneTexBump.inc</Outputs>
+      <AdditionalInputs>$(SrcDir)\Shaders\ShadowMapEffectStructures.hlsli;$(SrcDir)\Shaders\ShadowMapEffectCBuffer.hlsli;$(SrcDir)\Shaders\Common.hlsli</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\ShadowMapGen.hlsl">
+      <FileType>Document</FileType>
+      <Command>$(CdToSrcShaders)
+        $(CompileShaderCmd) ShadowMapGen $(FxConfig)
+      </Command>
+      <Outputs>$(ShaderBtyeCodeDir)\ShadowMapGen_PS_ColorNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_ColorTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_DepthNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_DepthTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_FourBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_FourBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_TwoBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_TwoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_OneBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_OneBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_NoBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_NoBoneTex.inc</Outputs>
+      <AdditionalInputs>$(SrcDir)\Shaders\Common.hlsli</AdditionalInputs>
+    </CustomBuild>
+    <None Include="Src\Shaders\CompileShaders.cmd" />
+    <None Include="Src\Shaders\Common.hlsli" />
+    <None Include="Src\Shaders\ShadowMapEffectCBuffer.hlsli" />
+    <None Include="Src\Shaders\ShadowMapEffectStructures.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DirectXTK\DirectXTK_Desktop_2015.vcxproj">
+      <Project>{e0b52ae7-e160-4d32-bf3f-910b785e5a8e}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

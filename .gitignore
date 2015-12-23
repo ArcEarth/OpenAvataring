@@ -194,3 +194,12 @@ FakesAssemblies/
 
 # Visual Studio 6 workspace options file
 *.opt
+
+# Compiled Shader Files
+DirectXTK/Src/Shaders/Compiled/*.inc
+DirectX/Src/Shaders/windows/*.inc
+
+# Visual C++ source database
+*.VC.db
+*.Vc.opendb
+Output-Build.txt

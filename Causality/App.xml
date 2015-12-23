@@ -1,0 +1,11 @@
+<application>
+	<kinect enable="false"></kinect>
+	<leap enable="false"></leap>
+	<vicon sever_ip="172.21.12.17" enable="true" verbose="false" scale="0.001"></vicon>
+
+	<assets path="..\Assets\"></assets>
+	<scenes path="ArSketch.xml"></scenes>
+
+	<window width="1920" height="1080" fullscreen="false"></window>
+	<console width="640" height="720"></console>
+</application>
