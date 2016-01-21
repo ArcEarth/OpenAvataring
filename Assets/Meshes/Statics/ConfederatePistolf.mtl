@@ -1,0 +1,40 @@
+# Blender MTL File: 'None'
+# Material Count: 4
+
+newmtl Mat.1
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.524731 0.524731 0.524731
+Ks 1.000000 1.000000 1.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd wod_no6_1.jpg
+map_Bump wod_no6_1bampmap.jpg
+
+newmtl Metal_-_Brass
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.705882 0.596078 0.495686
+Ks 0.784314 1.000000 0.941176
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Metal_-_Iron_Cast
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.282353 0.313726 0.313726
+Ks 1.000000 1.000000 1.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Metal_-_Stainless_Steel_Polished
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.369483 0.373087 0.378494
+Ks 1.000000 1.000000 1.000000
+Ni 1.000000
+d 1.000000
+illum 2
