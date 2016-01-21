@@ -1,15 +1,16 @@
-#include "pch_bcl.h"
+#include "pch.h"
 #include <PrimitiveVisualizer.h>
 #include <fstream>
 #include <algorithm>
 #include <ppl.h>
-#include <boost\filesystem.hpp>
+#include <filesystem>
+#include <Models.h>
+//#include <boost\filesystem.hpp>
 //#include <random>
 //#include <unsupported\Eigen\fft>
 //#pragma warning (disable:4554)
 //#include <unsupported\Eigen\CXX11\Tensor>
-#include "CCA.h"
-#include "EigenExtension.h"
+
 #include "GaussianProcess.h"
 //#include "QudraticAssignment.h"
 
@@ -17,11 +18,13 @@
 #include "ClipMetric.h"
 
 #include "PlayerProxy.h"
-#include "Scene.h"
 #include "ArmatureTransforms.h"
-#include "Settings.h"
-#include "CameraObject.h"
-#include <Models.h>
+#include "Cca.h"
+#include "EigenExtension.h"
+#include "Causality\Scene.h"
+#include "Causality\Settings.h"
+#include "Causality\CameraObject.h"
+
 
 
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
@@ -37,7 +40,8 @@ using namespace ArmaturePartFeatures;
 REGISTER_SCENE_OBJECT_IN_PARSER(player_controller, PlayerProxy);
 REGISTER_SCENE_OBJECT_IN_PARSER(kinect_visualizer, KinectVisualizer);
 
-using boost::filesystem::path;
+//using boost::filesystem::path;
+using experimental::filesystem::path;
 
 path g_LogRootDir = "Log";
 static const char*  DefaultAnimationSet = "walk";
@@ -192,7 +196,7 @@ PlayerProxy::PlayerProxy()
 	m_CurrentIdx(-1),
 	current_time(0),
 	m_mapTaskOnGoing(false),
-	m_EnableOverShoulderCam(false),
+	m_EnableOverShoulderCam(true),
 	m_DefaultCameraFlag(true),
 	m_updateCounter(0),
 	m_updateTime(0),
@@ -303,7 +307,7 @@ void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmatur
 	auto pCcaTrans = dynamic_cast<const BlockizedCcaArmatureTransform*>(pTrans);
 	auto pPartTrans = dynamic_cast<const PartilizedTransformer*>(pTrans);
 
-	auto& cparts = controller.Character().Behavier().ArmatureParts();
+	auto& cparts = controller.ArmatureParts();
 	auto& colors = HumanBoneColors;
 
 	//auto& carmature = controller.Character().Armature();
@@ -544,6 +548,7 @@ CharacterController & PlayerProxy::CurrentController() {
 		if (c.ID == m_CurrentIdx)
 			return c;
 	}
+	throw;
 }
 
 const CharacterController & PlayerProxy::GetController(int state) const {
@@ -552,6 +557,7 @@ const CharacterController & PlayerProxy::GetController(int state) const {
 		if (c.ID == state)
 			return c;
 	}
+	throw;
 }
 
 CharacterController & PlayerProxy::GetController(int state)
@@ -561,6 +567,7 @@ CharacterController & PlayerProxy::GetController(int state)
 		if (c.ID == state)
 			return c;
 	}
+	throw;
 }
 
 void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
@@ -849,7 +856,7 @@ void PlayerProxy::UpdateSelfMotionBinder(const Causality::time_seconds & time_de
 		//}
 
 		// Add motion to non-active joints that visualize more about errors for active joints
-		//target_frame = frame;
+		target_frame = frame;
 		//AddNoise(frame, .1f);
 		controller.SelfBinding().Transform(target_frame, frame, last_frame, time_delta.count());
 	}
@@ -976,7 +983,7 @@ void DrawControllerHandle(const CharacterController& controller)
 	g_PrimitiveDrawer.SetWorld(XMMatrixIdentity());
 	XMMATRIX world = controller.Character().GlobalTransformMatrix();
 
-	auto& barmature = controller.Character().Behavier().ArmatureParts();
+	auto& barmature = controller.ArmatureParts();
 	auto& frame = controller.Character().GetCurrentFrame();
 
 	for (auto& block : barmature)

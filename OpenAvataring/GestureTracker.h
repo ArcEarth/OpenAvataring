@@ -1,6 +1,6 @@
 #pragma once
 #include <Eigen\Core>
-#include "Animations.h"
+#include "Causality\Animations.h"
 #include "ArmatureParts.h"
 
 namespace Causality

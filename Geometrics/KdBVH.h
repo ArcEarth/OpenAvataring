@@ -8,10 +8,10 @@
 // We need AlignedBox 
 #include <Eigen\Core>
 #include <Eigen\src\Geometry\AlignedBox.h>
-
-#include <boost\range\iterator_range_core.hpp>
+#include <iterator_range.h>
 
 namespace Geometrics {
+	using std::iterator_range;
 
 	//concept ExtBVH
 	//{
@@ -55,8 +55,6 @@ namespace Geometrics {
 			}
 		};
 	} // end namespace internal
-
-	using boost::iterator_range;
 
 	// A subtree indicate a node in the tree
 	// It also have the interface for this sub-tree that rooted with that node

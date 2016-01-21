@@ -2,12 +2,12 @@
 #include "BCL.h"
 #include <filesystem>
 #include "RenderSystemDecl.h"
-#include <boost\range\adaptor\map.hpp>
+//#include <boost\range\adaptor\map.hpp>
 
 //#include <ppltasks.h>
 #include <typeindex>
 #include <unordered_map>
-#include <boost\any.hpp>
+//#include <boost\any.hpp>
 #include "Serialization.h"
 
 
@@ -20,7 +20,7 @@
 namespace Causality
 {
 	class AssetDictionary;
-	namespace adaptors = boost::adaptors;
+	//namespace adaptors = boost::adaptors;
 	//using concurrency::task;
 
 	class ArmatureFrameAnimation;
@@ -32,7 +32,7 @@ namespace Causality
 	{
 	public:
 		using path = std::tr2::sys::path;
-		using any = boost::any;
+		//using any = boost::any;
 
 		using mesh_type = IModelNode;
 		using texture_type = Texture;
@@ -42,7 +42,7 @@ namespace Causality
 		using armature_type = StaticArmature;
 		using effect_type = IEffect;
 		using material_type = IMaterial;
-		using any_type = any;
+		//using any_type = any;
 
 		AssetDictionary();
 		~AssetDictionary();
@@ -112,8 +112,12 @@ namespace Causality
 		{
 			return effects[key];
 		}
+		armature_type*				GetArmature(const string& key)
+		{
+			return armatures[key];
+		}
 
-		sptr<material_type>			GetMaterial(const string& key) const;
+		sptr<material_type>			GetMaterial(const string& key);
 
 		template<typename VertexType>
 		const cptr<ID3D11InputLayout>& GetInputLayout(IEffect* pEffct = nullptr);
@@ -131,6 +135,17 @@ namespace Causality
 		{
 			materials[key] = pMaterial;
 			return pMaterial.get();
+		}
+
+		bool AddEffect(const string& key, effect_type* pEffect)
+		{
+			auto itr = effects.find(key);
+			if (itr != effects.end())
+			{
+				return false;
+			}
+			effects[key] = pEffect;
+			return true;
 		}
 
 		//template<typename TAsset>
@@ -171,7 +186,8 @@ namespace Causality
 		map<string, audio_clip_type*>		audios;
 		map<string, effect_type*>			effects;
 		map<string, behavier_type*>			behaviers;
-		mutable map<string, sptr<material_type>>	materials;
+		map<string, armature_type*>			armatures;
+		map<string, sptr<material_type>>	materials;
 
 		sptr<IEffect>				default_effect;
 		sptr<IEffect>				default_skinned_effect;
@@ -182,13 +198,13 @@ namespace Causality
 		map<std::type_index, cptr<ID3D11InputLayout>> layouts;
 
 		// other assets
-		map<string, any_type>		m_assets;
+		//map<string, any_type>		m_assets;
 
 	public:
 
 		auto GetEffects()
 		{
-			return adaptors::values(effects);
+			return effects;
 		}
 	};
 

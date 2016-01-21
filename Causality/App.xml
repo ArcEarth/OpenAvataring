@@ -1,10 +1,10 @@
 <application>
-	<kinect enable="false"></kinect>
+	<kinect enable="true"></kinect>
 	<leap enable="false"></leap>
-	<vicon sever_ip="172.21.12.17" enable="true" verbose="false" scale="0.001"></vicon>
+	<vicon sever_ip="172.21.12.17" enable="false" verbose="false" scale="0.001"></vicon>
 
 	<assets path="..\Assets\"></assets>
-	<scenes path="ArSketch.xml"></scenes>
+	<scenes path="AvataringTest.xml"></scenes>
 
 	<window width="1920" height="1080" fullscreen="false"></window>
 	<console width="640" height="720"></console>

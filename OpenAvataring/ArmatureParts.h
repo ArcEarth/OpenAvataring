@@ -1,8 +1,8 @@
 #pragma once
-#include "Armature.h"
 #include <Eigen\Core>
 #include <memory>
 #include "Common\tree.h"
+#include "Causality\Armature.h"
 
 //#include "GaussianProcess.h"
 //#include "PcaCcaMap.h"

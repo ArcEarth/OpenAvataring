@@ -1,8 +1,39 @@
-#include "pch_bcl.h"
+#include "pch.h"
 #include "GaussianProcess.h"
 #include <dlib\optimization\optimization.h>
 
+//#include <unsupported/Eigen/NonLinearOptimization>
+//#include <unsupported/Eigen/NumericalDiff>
+
 using namespace Causality;
+
+double g_paramMin = 1e-7;
+double g_paramMax = 1e7;
+double g_paramWeight = 1;
+
+// Generic functor
+template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
+struct Functor
+{
+	typedef _Scalar Scalar;
+	enum {
+		InputsAtCompileTime = NX,
+		ValuesAtCompileTime = NY
+	};
+	typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
+	typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
+	typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
+
+	int m_inputs, m_values;
+
+	Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+	Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+
+	int inputs() const { return m_inputs; }
+	int values() const { return m_values; }
+
+};
+
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
 
@@ -93,7 +124,72 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	auto invCov = ldltCov.solve(MatrixType::Identity(z.size(), z.size())).eval();
 	auto detCov = ldltCov.vectorD().prod();
 
-	auto f = [this,&cZ, &invCov](const dlib_vector& _x) -> double
+	struct ObsvExpectionFunctor : public Functor<double>
+	{
+		const RowVectorType& cZ;
+		const Eigen::MatrixXd& invCov;
+		const gaussian_process_regression& _this;
+
+		ObsvExpectionFunctor(const gaussian_process_regression& gpr,const RowVectorType& _cZ,const Eigen::MatrixXd& _invCov)
+			: _this(gpr),cZ(_cZ),invCov(_invCov), Functor<double>(_cZ.size(),1)
+		{
+		}
+
+		int operator()(const ColVectorType& _x, ColVectorType& fvec)
+		{
+			RowVectorType x = _x.transpose();
+			//auto x = RowVectorType::Map(_x.begin(), _x.end() - _x.begin());
+
+			ColVectorType Kx = (x.replicate(_this.N, 1) - _this.X).cwiseAbs2().rowwise().sum();
+			Kx.array() = ((-0.5*_this.gamma()) * Kx.array()).exp() * _this.alpha();
+
+			ColVectorType iKkx = _this.iK * Kx;//ldltK.solve(Kx);
+			double cov = Kx.transpose() * iKkx;
+			double varX = _this.alpha() + 1.0 / _this.beta() - cov;
+			varX = std::max(varX, 1e-5);
+			assert(varX > 0);
+			RowVectorType dxCz = x - cZ;
+			double value = 0.5 * _this.D * log(varX) + 0.5 * dxCz * invCov * dxCz.transpose();
+
+			fvec(0) = value;
+			//return value;
+			return 0;
+		};
+
+		int df(const ColVectorType& _x, Eigen::MatrixXd& fjac)
+		{
+			//auto x = RowVectorType::Map(_x.begin(), _x.end() - _x.begin());
+			RowVectorType x = _x.transpose();
+
+			// N x d
+			MatrixType dx = x.replicate(_this.N, 1) - _this.X;
+			// N x 1
+			ColVectorType Kx = dx.cwiseAbs2().rowwise().sum();
+			Kx = ((-0.5*_this.gamma()) * Kx.array()).exp() * _this.alpha();
+			// N x d
+			MatrixType dKxx = dx.array() * Kx.replicate(1, dx.cols()).array();
+
+			ColVectorType iKkx = _this.iK * Kx;//ldltK.solve(Kx);
+			double cov = Kx.transpose() * iKkx;
+			double varX = _this.alpha() + 1.0 / _this.beta() - cov;
+
+			RowVectorType derv = iKkx.transpose() * dKxx;
+			derv = -_this.D / varX * derv + (x - cZ) * invCov; // / varZ;
+
+			fjac = derv;
+			return 0;
+			//return derv.transpose();
+			//dlib_vector _dx(derv.cols());
+			//for (int i = 0; i < derv.cols(); i++)
+			//{
+			//	_dx(i) = derv(i);
+			//}
+
+			//return _dx;
+		};
+	} functor(*this,cZ,invCov);
+
+	auto f = [this, &cZ, &invCov](const dlib_vector& _x) -> double
 	{
 		auto x = RowVectorType::Map(_x.begin(), _x.end() - _x.begin());
 
@@ -129,7 +225,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 
 		RowVectorType derv = iKkx.transpose() * dKxx;
 		derv = -D / varX * derv + (x - cZ) * invCov; // / varZ;
-		
+
 		dlib_vector _dx(derv.cols());
 		for (int i = 0; i < derv.cols(); i++)
 		{
@@ -145,6 +241,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	{
 		_x(i) = X(i) - uX(i);
 	}
+	//ColVectorType _x = X - uX.transpose();
 
 	//// Test anaylatic derivative
 	//auto numberic_diff = dlib::derivative(f)(_x);
@@ -154,6 +251,9 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	//std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
 	//	<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
 
+	//Eigen::LevenbergMarquardt<ObsvExpectionFunctor,double> lm(functor);
+	//lm.minimize(_x);
+	//double likelihood = lm.fvec(0);
 	double likelihood = dlib::find_min(
 			dlib::bfgs_search_strategy(),
 			dlib::objective_delta_stop_strategy(1e-3),
@@ -161,6 +261,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 			_x,
 			std::numeric_limits<double>::min());
 
+	//RowVectorType eX = _x.transpose() + uX;
 	RowVectorType eX = RowVectorType::Map(_x.begin(), _x.end() - _x.begin()) + uX; 
 
 	//std::cout << "Optimzation over L(X|Z=" << z << "), yield E(X) = " << eX << ", -Log(L) = " << likelihood << std::endl;
@@ -184,7 +285,7 @@ double gaussian_process_regression::get_expectation_and_likelihood(const RowVect
 
 	ColVectorType iKkx = iK * Kx;//ldltK.solve(Kx);
 	double cov = Kx.transpose() * iKkx;
-	varX = std::max(1e-5,varX-cov);
+	varX = abs(varX-cov);
 
 	assert(varX > 0);
 
@@ -318,8 +419,8 @@ double gaussian_process_regression::likelihood(const ParamType & param)
 	update_kernal(param);
 
 	//it's log detK
-	double lndetK = ldltK.vectorD().array().abs().log().sum();
-	double L = 0.5* D *lndetK + param.array().abs().log().sum();
+	double lndetK = (ldltK.vectorD().array().abs() + g_paramMin).log().sum();
+	double L = 0.5* D *lndetK + g_paramWeight * param.array().abs().log().sum();
 
 	// L += tr(Y' * iK * Y) = tr(iK * Y * Y') = tr(iK * YY') = sum(iK .* YY') = sum (Y .* iKY)
 
@@ -330,7 +431,7 @@ double gaussian_process_regression::likelihood(const ParamType & param)
 	//	L += 0.5 * Y.col(i).transpose() * iKY.col(i); // Yi' * K^-1 * Yi
 	//}
 
-	assert(!isnan(L));
+	assert(!isnan(L) && !isinf(L));
 	return L;
 }
 
@@ -355,9 +456,9 @@ gaussian_process_regression::ParamType gaussian_process_regression::likelihood_d
 
 	ParamType grad(param.rows(), param.cols());
 	// There is the space for improve as tr(A*B) can be simplifed to O(N^2)
-	grad[0] = R.cwiseProduct(dKalpha.transpose()).sum() +1.0 / alpha; // (R * dKa).trace() = sum(R .* dKa') 
-	grad[1] = -(R.trace()) / (beta*beta) + 1.0 / beta; // note, d(K)/d(beta) = I
-	grad[2] = R.cwiseProduct(dKgamma.transpose()).sum() + 1.0 / gamma;
+	grad[0] = R.cwiseProduct(dKalpha.transpose()).sum() + g_paramWeight / alpha; // (R * dKa).trace() = sum(R .* dKa') 
+	grad[1] = -(R.trace()) / (beta*beta) + g_paramWeight / beta; // note, d(K)/d(beta) = I
+	grad[2] = R.cwiseProduct(dKgamma.transpose()).sum() + g_paramWeight / gamma;
 
 	return grad;
 }
@@ -365,6 +466,33 @@ gaussian_process_regression::ParamType gaussian_process_regression::likelihood_d
 double gaussian_process_regression::optimze_parameters(const ParamType & initial_param)
 {
 	update_kernal(initial_param);
+
+	struct ParamTuneFunctor : Functor<double>
+	{
+		ParamTuneFunctor(gaussian_process_regression& gpr)
+			:_this(gpr), Functor<double>(ParamType::SizeAtCompileTime, ParamType::SizeAtCompileTime)
+		{}
+		gaussian_process_regression& _this;
+		int operator()(const ColVectorType& param, ValueType& fvec)
+		{
+			fvec.setZero();
+			fvec(0) = _this.likelihood(param);
+			return 0;
+		}
+
+		int df(const ColVectorType& param, JacobianType& fjac)
+		{
+			fjac.setZero();
+			fjac.col(0) = _this.likelihood_derivative(param);
+			return 0;
+		}
+	} functor(*this);
+
+	//ColVectorType param = initial_param;
+	
+	//Eigen::LevenbergMarquardt<ParamTuneFunctor, double> lm(functor);
+	//lm.minimize(param);
+	//double min_likelihood = lm.fvec(0);
 
 	dlib_vector param(3);
 	param(0) = initial_param(0);
@@ -381,16 +509,24 @@ double gaussian_process_regression::optimze_parameters(const ParamType & initial
 	//std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
 	//	<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
 
-	double min_likelihood =
-		dlib::find_min_box_constrained(
-			//dlib::find_min(
-			dlib::bfgs_search_strategy(),
-			dlib::objective_delta_stop_strategy(1e-5),
-			f, df,//dlib::derivative(f),//df,
-			param, 1e-7, 1e7);
+	double min_likelihood = 0;
+	try
+	{
+		min_likelihood =
+			dlib::find_min_box_constrained(
+				//dlib::find_min(
+				dlib::bfgs_search_strategy(),
+				dlib::objective_delta_stop_strategy(1e-5),
+				f, df,//dlib::derivative(f),//df,
+				param, g_paramMin, g_paramMax);
 
+		std::cout << "Minimum of likelihood = " << min_likelihood << ", with alpha = " << param(0) << ", beta = " << param(1) << ", gamma = " << param(2) << std::endl;
+	}
+	catch(...)
+	{
+		std::cout << "!!! Fail in optimization" << std::endl;
+	}
 
-	std::cout << "Minimum of likelihood = " << min_likelihood << ", with alpha = " << param(0) << ", beta = " << param(1) << ", gamma = " << param(2) << std::endl;
 
 	lparam(0) = param(0);
 	lparam(1) = param(1);
@@ -402,15 +538,20 @@ double gaussian_process_regression::optimze_parameters(const ParamType & initial
 double gaussian_process_regression::optimze_parameters()
 {
 	// Use adjactive difference instead of overall varience
-	auto varX = sqrtf((X.bottomRows(N - 1) - X.topRows(N - 1)).cwiseAbs2().sum() / (N -2));
-	//sqrt((X.cwiseAbs2().sum() / (N - 1)));
+	auto adjvarX = sqrtf((X.bottomRows(N - 1) - X.topRows(N - 1)).cwiseAbs2().sum() / (N -2));
+	auto varX = sqrt((X.cwiseAbs2().sum() / (N - 1)));
 	assert(!isnan(varX));
 
 	ParamType param;
 
-	std::vector<double> alphas = { 0.1, 0.5 , 0.8, 1.0, 1.2, 1.5, 10.0 };
-	std::vector<double> betas = {0.1 * varX, varX, 10.0 * varX};
-	std::vector<double> gemmas = { 0.01 / varX, 0.05 / varX ,0.1 / varX ,0.5 / varX ,1.0 / varX ,5 / varX ,10 / varX };
+	std::vector<double> alphas = { 0.1, 0.5 , 0.8, 1.0, 1.2, 1.5 };
+	std::vector<double> betas = {0.1, 1.0, 10.0};
+	std::vector<double> gemmas(10);
+	for (size_t i = 0; i < gemmas.size(); i++)
+	{
+		double t = i / (double)(gemmas.size() - 1);
+		gemmas[i] = 1.0 / (adjvarX * (1 - t) + varX * t);
+	}
 
 	ParamType bestParam;
 	double bestLikelihood = std::numeric_limits<double>::max();

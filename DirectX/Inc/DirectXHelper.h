@@ -94,12 +94,6 @@ namespace DirectX
 		}
 	}
 #endif
-
-
-
-
-
-
 	// simliar to std::lock_guard for exception-safe Direct3D 11 resource locking
 	class MapGuard : public D3D11_MAPPED_SUBRESOURCE
 	{
@@ -170,39 +164,48 @@ namespace DirectX
 	//	}
 	//}
 
+#if !defined (__cplusplus_winrt)
+	// Function that reads from a binary file into a vector of byte.
+	inline std::vector<byte> ReadData(const std::wstring& filename)
+	{
+		std::ifstream fin;
+		//auto current = std::tr2::sys::current_path<std::tr2::sys::wpath>();
+		//auto dir = current.directory_string();
+		fin.open(filename, std::ios::in | std::ios::binary);
+		if (fin.is_open())
+		{
+			return std::vector<byte>((std::istreambuf_iterator<char>(fin)), std::istreambuf_iterator<char>());
+		}
+		else
+		{
+			throw std::exception("File not found exception.");
+		}
+	}
+#endif
+
 	// Function that reads from a binary file asynchronously.
 	inline Concurrency::task<std::vector<byte>> ReadDataAsync(const std::wstring& filename)
 	{
-		Concurrency::task<std::vector<byte>> RetriveDateTask([filename]()->std::vector < byte > {
-			std::ifstream fin;
-			//auto current = std::tr2::sys::current_path<std::tr2::sys::wpath>();
-			//auto dir = current.directory_string();
-			fin.open(filename, std::ios::in | std::ios::binary);
-			if (fin.is_open())
-			{
-				return std::vector<byte>((std::istreambuf_iterator<char>(fin)), std::istreambuf_iterator<char>());
-			}
-			else
-			{
-				throw std::exception("File not found exception.");
-			}
+#if defined (__cplusplus_winrt)
+		using namespace Windows::Storage;
+		using namespace Concurrency;
+
+		auto folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
+
+		return create_task(folder->GetFileAsync(Platform::StringReference(filename.c_str()))).then([] (StorageFile^ file) 
+		{
+			return FileIO::ReadBufferAsync(file);
+		}).then([] (Streams::IBuffer^ fileBuffer) -> std::vector<byte> 
+		{
+			std::vector<byte> returnBuffer;
+			returnBuffer.resize(fileBuffer->Length);
+			Streams::DataReader::FromBuffer(fileBuffer)->ReadBytes(Platform::ArrayReference<byte>(returnBuffer.data(), fileBuffer->Length));
+			return returnBuffer;
 		});
+#else
+		Concurrency::task<std::vector<byte>> RetriveDateTask(std::bind(DirectX::ReadData, filename));
 		return RetriveDateTask;
-		//using namespace Windows::Storage;
-		//using namespace Concurrency;
-
-		//auto folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
-
-		//return create_task(folder->GetFileAsync(Platform::StringReference(filename.c_str()))).then([] (StorageFile^ file) 
-		//{
-		//	return FileIO::ReadBufferAsync(file);
-		//}).then([] (Streams::IBuffer^ fileBuffer) -> std::vector<byte> 
-		//{
-		//	std::vector<byte> returnBuffer;
-		//	returnBuffer.resize(fileBuffer->Length);
-		//	Streams::DataReader::FromBuffer(fileBuffer)->ReadBytes(Platform::ArrayReference<byte>(returnBuffer.data(), fileBuffer->Length));
-		//	return returnBuffer;
-		//});
+#endif
 	}
 
 	// Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
@@ -300,7 +303,7 @@ namespace DirectX
 		DirectX::ThrowIfFailed(
 			pDevice->CreateInputLayout(
 			&pInputDescription->at(0),
-			pInputDescription->size(),
+			(UINT)pInputDescription->size(),
 			vertexShaderBytecode,
 			bytecodeLength,
 			&pLayout));

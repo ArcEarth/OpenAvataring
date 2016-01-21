@@ -15,7 +15,7 @@ using namespace Causality;
 using namespace std::tr2::sys;
 using namespace DirectX;
 using namespace DirectX::Scene;
-using boost::any;
+//using boost::any;
 
 AssetDictionary::AssetDictionary()
 {
@@ -379,10 +379,23 @@ AssetDictionary::texture_type * AssetDictionary::LoadTexture(const string & key,
 
 AssetDictionary::armature_type * AssetDictionary::LoadArmature(const string & key, const string & fileName)
 {
-	std::ifstream file((mesh_directory / fileName).wstring());
-	auto pArmature = new armature_type(file);
-	m_assets[key] = pArmature;
-	return pArmature;
+	bool result = false;
+	path filepath = animation_directory / fileName;
+	if (!exists(filepath))
+		filepath = mesh_directory / fileName;
+
+	if (exists(filepath))
+	{
+		FbxParser fbxparser;
+		auto result = fbxparser.ImportArmature(filepath.string());
+		auto pArmature = fbxparser.GetArmature();
+		armatures[key] = pArmature;
+		return pArmature;
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 AssetDictionary::animation_clip_type* AssetDictionary::LoadAnimation(const string & key, const string & fileName)
@@ -400,7 +413,15 @@ AssetDictionary::animation_clip_type* AssetDictionary::LoadAnimation(const strin
 BehavierSpace * AssetDictionary::LoadBehavierFbx(const string & key, const string & fileName)
 {
 	FbxParser fbxparser;
-	auto result = fbxparser.ImportBehavier((mesh_directory / fileName).string());
+	path filepath;
+	bool result = false;
+	filepath = animation_directory / fileName;
+	if (!exists(filepath))
+		filepath = mesh_directory / fileName;
+
+	if (exists(filepath))
+		result = fbxparser.ImportBehavier(filepath.string());
+
 	BehavierSpace* behavier = nullptr;
 	if (result)
 	{
@@ -413,7 +434,12 @@ BehavierSpace * AssetDictionary::LoadBehavierFbx(const string & key, const strin
 AssetDictionary::behavier_type * AssetDictionary::LoadBehavierFbxs(const string & key, const string & armature, list<std::pair<string, string>>& animations)
 {
 	FbxParser fbxparser;
-	auto result = fbxparser.ImportArmature((mesh_directory / armature).string());
+	auto result = false;
+	path filepath = animation_directory / armature;
+	if (!exists(filepath))
+		filepath = mesh_directory / armature;
+	if (exists(filepath))
+		result = fbxparser.ImportArmature(filepath.string());
 	BehavierSpace* behavier = nullptr;
 	if (result)
 	{
@@ -450,11 +476,11 @@ AssetDictionary::audio_clip_type* AssetDictionary::GetAudio(const string & key)
 	return nullptr;// GetAsset<audio_clip_type>(key);
 }
 
-sptr<AssetDictionary::material_type> Causality::AssetDictionary::GetMaterial(const string & key) const
+sptr<AssetDictionary::material_type> AssetDictionary::GetMaterial(const string & key)
 {
 	auto itr = materials.find(key);
 	if (itr != materials.end())
-		*itr;
+		return itr->second;
 	else
 		return default_material;
 }
@@ -523,7 +549,7 @@ void AssetDictionary::SetMeshDirectory(const path & dir)
 void AssetDictionary::SetAssetDirectory(const path & dir)
 {
 	asset_directory = dir;
-	mesh_directory = asset_directory / "Models";
+	mesh_directory = asset_directory / "Meshes";
 	texture_directory = asset_directory / "Textures";
 	animation_directory = asset_directory / "Animations";
 

@@ -1,10 +1,37 @@
 #pragma once
-#include "Armature.h"
+#include "Causality\Armature.h"
 
 namespace Causality
 {
 	namespace BoneFeatures
 	{
+		struct LclRotEulerAngleFeature
+		{
+			static const size_t Dimension = 3;
+
+			template <class Derived>
+			inline static void Get(_Out_ Eigen::DenseBase<Derived>& fv, _In_ const Bone& bone)
+			{
+				XM_ALIGNATTR Vector3 qs;
+				DirectX::XMVECTOR q = XMLoadA(bone.LclRotation);
+				q = DirectX::XMQuaternionEulerAngleYawPitchRoll(q);
+				//q *= bone.GblLength;
+				XMStoreA(qs, q);
+				fv = Eigen::Vector3f::Map(&qs.x);
+			}
+
+			template <class Derived>
+			inline static void Set(_Out_ Bone& bone, _In_ const Eigen::DenseBase<Derived>& fv)
+			{
+				// ensure continious storage
+				Eigen::Vector3f cfv = fv;
+				DirectX::XMVECTOR q = DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3 *>(cfv.data()));
+				//q /= bone.GblLength;
+				q = DirectX::XMQuaternionRotationRollPitchYawFromVector(q);
+				XMStoreA(bone.LclRotation, q);
+			}
+		};
+
 		struct LclRotLnQuatFeature //: concept BoneFeature 
 		{
 			static const size_t Dimension = 3;
@@ -17,7 +44,7 @@ namespace Causality
 				q = DirectX::XMQuaternionLn(q);
 				//q *= bone.GblLength;
 				XMStoreA(qs,q);
-				fv = Eigen::Vector3f::MapAligned(&qs.x);
+				fv = Eigen::Vector3f::Map(&qs.x);
 			}
 
 			template <class Derived>
@@ -49,8 +76,8 @@ namespace Causality
 				//! IMPORTANT
 				q *= bone.GblLength;
 
-				fv.segment<3>(0) = Eigen::Vector3f::MapAligned(q.m128_f32);
-				fv.segment<3>(3) = Eigen::Vector3f::MapAligned(&bone.LclTranslation.x);
+				fv.segment<3>(0) = Eigen::Vector3f::Map(q.m128_f32);
+				fv.segment<3>(3) = Eigen::Vector3f::Map(&bone.LclTranslation.x);
 			}
 
 			inline static VectorType Get(_In_ const Bone& bone)
@@ -92,8 +119,8 @@ namespace Causality
 				//! IMPORTANT
 				q *= bone.GblLength;
 
-				fv.segment<3>(0) = Eigen::Vector3f::MapAligned(q.m128_f32);
-				fv.segment<3>(3) = Eigen::Vector3f::MapAligned(&bone.GblTranslation.x);
+				fv.segment<3>(0) = Eigen::Vector3f::Map(q.m128_f32);
+				fv.segment<3>(3) = Eigen::Vector3f::Map(&bone.GblTranslation.x);
 			}
 
 			inline static VectorType Get(_In_ const Bone& bone)
@@ -126,14 +153,14 @@ namespace Causality
 			template <class Derived>
 			inline static void Get(_Out_ Eigen::DenseBase<Derived>& fv, _In_ const Bone& bone)
 			{
-				fv = Eigen::Vector3f::MapAligned(&bone.GblTranslation.x);
+				fv = Eigen::Vector3f::Map(&bone.GblTranslation.x);
 			}
 
 			template <class Derived>
 			inline static void Set(_Out_ Bone& bone, _In_ const Eigen::DenseBase<Derived>& fv)
 			{
 				// ensure continious storage
-				Eigen::Vector3f::MapAligned(&bone.GblTranslation.x) = fv;
+				Eigen::Vector3f::Map(&bone.GblTranslation.x) = fv;
 			}
 		};
 
@@ -145,7 +172,7 @@ namespace Causality
 			inline static void Get(_Out_ Eigen::DenseBase<Derived>& fv, _In_ const Bone& bone)
 			{
 				auto& pos = bone.GblTranslation;
-				fv.segment<3>(0) = Eigen::Vector3f::MapAligned(&pos.x);
+				fv.segment<3>(0) = Eigen::Vector3f::Map(&pos.x);
 				fv[3] = pos.x * pos.x;
 				fv[4] = pos.y * pos.y;
 				fv[5] = pos.z * pos.z;
@@ -158,7 +185,7 @@ namespace Causality
 			inline static void Set(_Out_ Bone& bone, _In_ const Eigen::DenseBase<Derived>& fv)
 			{
 				// ensure continious storage
-				Eigen::Vector3f::MapAligned(&bone.GblTranslation.x) = fv.segment<3>(0);
+				Eigen::Vector3f::Map(&bone.GblTranslation.x) = fv.segment<3>(0);
 			}
 		};
 	}

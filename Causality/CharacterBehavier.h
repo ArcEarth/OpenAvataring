@@ -31,7 +31,7 @@ namespace Causality
 		bool Contains(const std::string& name) const;
 #pragma endregion
 
-		void					UpdateArmatureParts();
+		//void					UpdateArmatureParts();
 
 		const IArmature&		Armature() const;
 		IArmature&				Armature();

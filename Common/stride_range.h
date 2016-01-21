@@ -6,10 +6,10 @@
 #include <iterator>
 #include <cstdint>
 #include <type_traits>
-#include <boost\range\iterator_range_core.hpp>
+#include "iterator_range.h"
 
 namespace stdx {
-	using boost::iterator_range;
+	using std::iterator_range;
 
 	template <class T>
 	class stride_range;
@@ -234,6 +234,14 @@ namespace stdx {
 		}
 
 	};
-
 }
+
+#ifdef STDX_STRIDE_RANGE_IMPORT_TO_STD
+namespace std
+{
+	using stdx::stride_iterator;
+	using stdx::stride_range;
+}
+#endif
+
 #endif

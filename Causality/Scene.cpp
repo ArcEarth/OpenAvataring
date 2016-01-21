@@ -81,7 +81,7 @@ void Scene::UpdateRenderViewCache()
 
 	auto& aseffects = m_assets->GetEffects();
 	for (auto pe : aseffects)
-		m_effects.push_back(pe);
+		m_effects.push_back(pe.second);
 
 	for (auto& obj : m_sceneRoot->nodes())
 	{
@@ -138,13 +138,31 @@ std::mutex & Scene::ContentMutex() { return content_mutex; }
 
 void Scene::Render(IRenderContext * context)
 {
+	using namespace DirectX;
 	// if (!is_loaded) return;
 	lock_guard<mutex> guard(content_mutex);
 
-	SetupEffectsLights(nullptr);
-
 	std::vector<IVisual*> visibles;
 	visibles.reserve(m_renderables.size());
+
+	// Build light param cache
+	XMVECTOR ambient = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
+	static const int MaxLights = IEffectLights::MaxDirectionalLights;
+	Internal::LightParam Lps[MaxLights];
+	for (int i = 0; i < std::min((int)m_lights.size(), MaxLights); i++)
+	{
+		auto pLight = m_lights[i];
+		Lps[i].color = pLight->GetColor();
+		Lps[i].direction = pLight->GetFocusDirection();
+		Lps[i].shadow = pLight->GetShadowMap();
+		auto pView = pLight->AsViewControl();
+		if (pView)
+		{
+			Lps[i].view = pView->GetViewMatrix();
+			Lps[i].proj = pView->GetProjectionMatrix();
+			Lps[i].bias = 0.0005f;
+		}
+	}
 
 	// Render 3D Scene
 	for (auto pCamera : m_cameras) // cameras
@@ -172,7 +190,10 @@ void Scene::Render(IRenderContext * context)
 			{
 				auto pRenderer = pCamera->GetViewRenderer(view, pass);
 				auto pEffect = pRenderer->GetRenderEffect();
+
 				SetupEffectsViewProject(pEffect, v, p);
+				SetupEffectLight(pEffect, ambient, Lps);
+
 				pRenderer->Begin(context);
 				for (auto& pVisible : visibles) // visible objects
 				{
@@ -216,67 +237,33 @@ void Scene::SetupEffectsViewProject(DirectX::IEffect* pEffect, const DirectX::XM
 	}
 }
 
-void Scene::SetupEffectsLights(DirectX::IEffect * pEffect)
+void Scene::SetupEffectLight(IEffect * &pEff, const DirectX::XMVECTOR &ambient, Internal::LightParam  *Lps)
 {
 	using namespace DirectX;
-
-	XM_ALIGNATTR
-	struct LightParam
-	{
-		XMVECTOR color;
-		XMVECTOR direction;
-		XMMATRIX view;
-		XMMATRIX proj;
-		float	 bias;
-		ID3D11ShaderResourceView* shadow;
-	};
-
-	XMVECTOR ambient = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
-
 	static const int MaxLights = IEffectLights::MaxDirectionalLights;
-	LightParam Lps[MaxLights];
+	auto pELS = dynamic_cast<DirectX::IEffectLightsShadow*>(pEff);
+	auto pEL = dynamic_cast<DirectX::IEffectLights*>(pEff);
 
-	for (int i = 0; i < std::min((int)m_lights.size(), MaxLights); i++)
+	if (pEL)
 	{
-		auto pLight = m_lights[i];
-		Lps[i].color = pLight->GetColor();
-		Lps[i].direction = pLight->GetFocusDirection();
-		Lps[i].shadow = pLight->GetShadowMap();
-		auto pView = pLight->AsViewControl();
-		if (pView)
+		pEL->SetAmbientLightColor(ambient);
+
+		for (int i = 0; i < std::min((int)m_lights.size(), MaxLights); i++)
 		{
-			Lps[i].view = pView->GetViewMatrix();
-			Lps[i].proj = pView->GetProjectionMatrix();
-			Lps[i].bias = 0.0005f;
-		}
-	}
+			auto pLight = m_lights[i];
+			pEL->SetLightEnabled(i, true);
+			pEL->SetLightDiffuseColor(i, Lps[i].color);
+			pEL->SetLightSpecularColor(i, Lps[i].color);
+			pEL->SetLightDirection(i, Lps[i].direction);
 
-	for (auto pEff : m_effects)
-	{
-		auto pELS = dynamic_cast<DirectX::IEffectLightsShadow*>(pEff);
-		auto pEL = dynamic_cast<DirectX::IEffectLights*>(pEff);
-
-		if (pEL)
-		{
-			pEL->SetAmbientLightColor(ambient);
-
-			for (int i = 0; i < std::min((int)m_lights.size(), MaxLights); i++)
+			if (pELS != nullptr)
 			{
-				auto pLight = m_lights[i];
-				pEL->SetLightEnabled(i, true);
-				pEL->SetLightDiffuseColor(i, Lps[i].color);
-				pEL->SetLightSpecularColor(i, Lps[i].color);
-				pEL->SetLightDirection(i, Lps[i].direction);
-
-				if (pELS != nullptr)
-				{
-					pELS->SetLightShadowMap(i, Lps[i].shadow);
-					pELS->SetLightView(i, Lps[i].view);
-					pELS->SetLightProjection(i, Lps[i].proj);
-					pELS->SetLightShadowMapBias(i, Lps[i].bias);
-				}
-
+				pELS->SetLightShadowMap(i, Lps[i].shadow);
+				pELS->SetLightView(i, Lps[i].view);
+				pELS->SetLightProjection(i, Lps[i].proj);
+				pELS->SetLightShadowMapBias(i, Lps[i].bias);
 			}
+
 		}
 	}
 }

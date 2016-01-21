@@ -4,7 +4,6 @@
 #include <wrl\client.h>
 #include <memory>
 #include "Textures.h"
-#include <boost\any.hpp>
 #include "MaterialData.h"
 
 namespace DirectX
@@ -51,110 +50,110 @@ namespace DirectX
 			TransparencyOn = 4,
 		};
 
-		class PropertyMap : private std::map<std::string, boost::any>
-		{
-		public:
-			typedef std::map<std::string, boost::any> base_type;
-			template <typename T>
-			T	Get(const std::string& key) const
-			{
-				auto itr = find(key);
-				if (itr != end())
-					return boost::any_cast<T>(itr->second);
-				else
-					return T();
-			}
+		//class PropertyMap : private std::map<std::string, void*>
+		//{
+		//public:
+		//	typedef std::map<std::string, void*> base_type;
+		//	template <typename T>
+		//	T	Get(const std::string& key) const
+		//	{
+		//		auto itr = find(key);
+		//		if (itr != end())
+		//			return reinterpret_cast<T>(itr->second);
+		//		else
+		//			return T();
+		//	}
 
-			template <typename T>
-			void Set(const std::string& key, const T& value)
-			{
-				base_type::operator[](key) = value;
-			}
+		//	template <typename T>
+		//	void Set(const std::string& key, const T& value)
+		//	{
+		//		base_type::operator[](key) = value;
+		//	}
 
-			using base_type::operator[];
+		//	using base_type::operator[];
 
-			bool HasProperty(const std::string& key) const
-			{
-				return find(key) != end();
-			}
+		//	bool HasProperty(const std::string& key) const
+		//	{
+		//		return find(key) != end();
+		//	}
 
-			using base_type::begin;
-			using base_type::end;
-			using base_type::size;
+		//	using base_type::begin;
+		//	using base_type::end;
+		//	using base_type::size;
 
-			size_t Size() const { return size(); }
+		//	size_t Size() const { return size(); }
 
-			const std::map<std::string, boost::any>& Properties() const
-			{
-				return *this;
-			}
-		};
+		//	const std::map<std::string, void*>& Properties() const
+		//	{
+		//		return *this;
+		//	}
+		//};
 
-		class Material : public IMaterial, public PropertyMap
-		{
-		public:
-			std::string RequstedEffectName;
+		//class Material : public IMaterial, public PropertyMap
+		//{
+		//public:
+		//	std::string RequstedEffectName;
 
-			Color		GetColor(const std::string& key) const
-			{
-				return Get<Color>(key);
-			}
-			float		GetFloat(const std::string& key) const
-			{
-				return Get<float>(key);
-			}
-			int			GetInt(const std::string& key) const
-			{
-				return Get<int>(key);
-			}
-			Vector4		GetVector4(const std::string& key) const
-			{
-				return Get<Vector4>(key);
-			}
-			std::string	GetString(const std::string& key) const
-			{
-				return Get<std::string>(key);
-			}
-			const Texture&	GetTexture(const std::string& key) const
-			{
-				return *Get<const Texture*>(key);
-			}
+		//	Color		GetColor(const std::string& key) const
+		//	{
+		//		return Get<Color>(key);
+		//	}
+		//	float		GetFloat(const std::string& key) const
+		//	{
+		//		return Get<float>(key);
+		//	}
+		//	int			GetInt(const std::string& key) const
+		//	{
+		//		return Get<int>(key);
+		//	}
+		//	Vector4		GetVector4(const std::string& key) const
+		//	{
+		//		return Get<Vector4>(key);
+		//	}
+		//	std::string	GetString(const std::string& key) const
+		//	{
+		//		return Get<std::string>(key);
+		//	}
+		//	const Texture&	GetTexture(const std::string& key) const
+		//	{
+		//		return *Get<const Texture*>(key);
+		//	}
 
-			Color		                GetAmbientColor() const { return GetColor("AmbientColor"); }
-			Color		                GetDiffuseColor() const { return GetColor("DiffuseColor"); }
-			Color		                GetSpecularColor() const { return GetColor("SpecularColor"); }
-			float		                GetSpecularPower() const { return GetFloat("SpecularPower"); }
-			float		                GetOpacity() const { return GetFloat("Opacity"); }
-			ID3D11ShaderResourceView*	GetDiffuseMap() const { return GetTexture("DiffuseMap"); }
-			ID3D11ShaderResourceView*	GetNormalMap() const { return GetTexture("NormalMap"); }
-			ID3D11ShaderResourceView*	GetDisplaceMap() const { return GetTexture("DisplaceMap"); }
-			ID3D11ShaderResourceView*	GetSpecularMap() const { return GetTexture("SpecularMap"); }
+		//	Color		                GetAmbientColor() const { return GetColor("AmbientColor"); }
+		//	Color		                GetDiffuseColor() const { return GetColor("DiffuseColor"); }
+		//	Color		                GetSpecularColor() const { return GetColor("SpecularColor"); }
+		//	float		                GetSpecularPower() const { return GetFloat("SpecularPower"); }
+		//	float		                GetOpacity() const { return GetFloat("Opacity"); }
+		//	ID3D11ShaderResourceView*	GetDiffuseMap() const { return GetTexture("DiffuseMap"); }
+		//	ID3D11ShaderResourceView*	GetNormalMap() const { return GetTexture("NormalMap"); }
+		//	ID3D11ShaderResourceView*	GetDisplaceMap() const { return GetTexture("DisplaceMap"); }
+		//	ID3D11ShaderResourceView*	GetSpecularMap() const { return GetTexture("SpecularMap"); }
 
-			void		SetColor(const std::string& key, const Color& value)
-			{
-				Set(key, value);
-			}
-			void		SetFloat(const std::string& key, float value)
-			{
-				Set(key, value);
-			}
-			void		SetInt(const std::string& key, int value)
-			{
-				Set(key, value);
-			}
-			void		SetString(const std::string& key, const std::string& value)
-			{
-				Set(key, value);
-			}
-			void		SetTexture(const std::string& key, Texture& texture)
-			{
-				Set(key, &texture);
-			}
-			void		SetVector4(const std::string& key, const Vector4 value)
-			{
-				Set(key, value);
-			}
-		};
+		//	void		SetColor(const std::string& key, const Color& value)
+		//	{
+		//		Set(key, value);
+		//	}
+		//	void		SetFloat(const std::string& key, float value)
+		//	{
+		//		Set(key, value);
+		//	}
+		//	void		SetInt(const std::string& key, int value)
+		//	{
+		//		Set(key, value);
+		//	}
+		//	void		SetString(const std::string& key, const std::string& value)
+		//	{
+		//		Set(key, value);
+		//	}
+		//	void		SetTexture(const std::string& key, Texture& texture)
+		//	{
+		//		Set(key, &texture);
+		//	}
+		//	void		SetVector4(const std::string& key, const Vector4 value)
+		//	{
+		//		Set(key, value);
+		//	}
+		//};
 
 		class PhongMaterial : public IMaterial, public PhongMaterialData
 		{

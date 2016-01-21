@@ -1,8 +1,9 @@
 #pragma once
-#include "Animations.h"
-#include "CCA.h"
+#include "Causality\Animations.h"
 #include <vector>
 #include <map>
+
+#include "CCA.h"
 #include "RegressionModel.h"
 #include "PcaCcaMap.h"
 #include "ArmatureParts.h"

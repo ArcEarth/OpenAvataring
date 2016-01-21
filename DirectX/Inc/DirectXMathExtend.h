@@ -579,58 +579,56 @@ namespace DirectX
 		return rot;
 	}
 
-	enum AxisEnum
-	{
-		AxisX = 0,
-		AxisY = 1,
-		AxisZ = 2,
-	};
-
-	template <unsigned X, unsigned Y, unsigned Z>
 	// Caculate Left handed eular angles with 
-	// rotation sequence R(X)-R(Y)-R(Z)
-	XMVECTOR XM_CALLCONV XMQuaternionEulerAngleABC(FXMVECTOR q);
-
-	template <>
-	// Caculate Left handed eular angles with 
-	// rotation sequence R(Z)-R(Y)-R(X)
-	inline XMVECTOR XM_CALLCONV XMQuaternionEulerAngleABC<2, 1, 0>(FXMVECTOR q)
+	// rotation sequence R(Z)-R(Y)-R(X), where patch is Y
+	// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+	inline XMVECTOR XM_CALLCONV XMQuaternionEulerAngleZYX(FXMVECTOR q)
 	{
 #if defined(_XM_NO_INTRINSICS_)
-		float q0 = q.vector4_f32[3], q1 = q.vector4_f32[1], q2 = q.vector4_f32[2], q3 = q.vector4_f32[3];
+		float q0 = q.vector4_f32[3], q1 = q.vector4_f32[0], q2 = q.vector4_f32[1], q3 = q.vector4_f32[2];
 		XMVECTOR euler;
 		euler.vector4_f32[0] = atan2(2 * (q0*q1 + q2*q3), 1 - 2 * (q1*q1 + q2*q2));
 		euler.vector4_f32[1] = asinf(2 * (q0*q2 - q3*q1));
 		euler.vector4_f32[2] = atan2(2 * (q0*q3 + q2*q1), 1 - 2 * (q2*q2 + q3*q3));
+		euler.vector4_f32[3] = 0;
 		return euler;
 #elif defined(_XM_SSE_INTRINSICS_) || defined(_XM_ARM_NEON_INTRINSICS_)
 
-		XMVECTOR q20 = XMVectorSwizzle<1, 1, 3, 3>(q);
-		XMVECTOR q13 = XMVectorSwizzle<0, 0, 2, 2>(q);
+		//float q0 = q.m128_f32[3], q1 = q.m128_f32[0], q2 = q.m128_f32[1], q3 = q.m128_f32[2];
+		//XMVECTOR euler;
+		//euler.m128_f32[0] = atan2(2 * (q0*q1 + q2*q3), 1 - 2 * (q1*q1 + q2*q2));
+		//euler.m128_f32[1] = asinf(2 * (q0*q2 - q3*q1));
+		//euler.m128_f32[2] = atan2(2 * (q0*q3 + q2*q1), 1 - 2 * (q2*q2 + q3*q3));
+		//euler.m128_f32[3] = 0;
+		//return euler;
 
-		// eular X - Roll
-		XMVECTOR X = XMVector4Dot(q20, q13);
-		XMVECTOR Y = XMVectorMergeXY(q13, q20);
-		Y = XMVector4Dot(Y, Y);
-		Y = XMVectorSubtract(g_XMOne.v, Y);
+		XMVECTOR q02 = XMVectorSwizzle<3, 3, 1, 1>(q); // q0022
+		XMVECTOR q13 = XMVectorSwizzle<0, 0, 2, 2>(q); // q1133
+
+													   // eular X - Roll
+		XMVECTOR Y = XMVector4Dot(q02, q13);	// 2 * (q2*q1+q0*q3)
+		XMVECTOR X = XMVectorSwizzle<0, 0, 1, 1>(q); // q2121
+		X = XMVector4Dot(X, X);					// 2 * (q2*q2+q1*q1)
+		X = XMVectorSubtract(g_XMOne.v, X);		// 1 - 2 * (q2*q2+q1*q1)
 		XMVECTOR vResult = XMVectorATan2(Y, X);
 
-		// eular Z - X
-		q13 = XMVectorSwizzle<2, 2, 0, 0>(q); // now 3311
-		X = XMVector4Dot(q20, q13);
-		Y = XMVectorMergeXY(q13, q20);
-		Y = XMVector4Dot(Y, Y);
-		Y = XMVectorSubtract(g_XMOne.v, Y);
-		Y = XMVectorATan2(Y, X);
+		// eular Y - Y
+		q13 = XMVectorSwizzle<2, 2, 0, 0>(q); // now q3311
+		Y = XMVector4Dot(q02, q13);			  // now 3311 dot 0022 = q3*q0 + q1*q2
+		X = XMVectorSwizzle<1, 1, 2, 2>(q);		  // now q3232
+		X = XMVector4Dot(X, X);				  // now 2 * (q3*q3+q2*q2)
+		X = XMVectorSubtract(g_XMOne.v, X);	  // now 1 - 2 * (q3*q3+q2*q2)
+		X = XMVectorATan2(Y, X);
 
-		// eular Y - Patch
-		X = XMVectorSwizzle<2, 3, 0, 1>(q);
-		X = XMVectorMultiply(X, g_XMNegtiveXZ.v);
-		X = XMVector4Dot(X, q);
+		// eular X - Patch
+		Y = XMVectorSwizzle<2, 3, 0, 1>(q); // now q3 q0 q1 q2 
+		Y = XMVectorMultiply(Y, g_XMNegtiveXZ.v); // now -q3 q0 -q1 q2
+		Y = XMVector4Dot(Y, q); // now -q1*q3 + q2*q0 - q3*q1 + q0*q2
+		Y = XMVectorASin(Y);
 
 		// merge result
-		Y = XMVectorMergeXY(Y, X);
-		vResult = XMVectorSelect(Y, vResult, g_XMSelect1000.v);
+		X = XMVectorMergeXY(X, Y);
+		vResult = XMVectorSelect(X, vResult, g_XMSelect1000.v);
 		vResult = XMVectorAndInt(vResult, g_XMMask3.v);
 		return vResult;
 #endif
@@ -1168,6 +1166,7 @@ namespace DirectX
 		using float4x4 = Matrix4x4;
 		using float4x3 = XMFLOAT3X4;
 		using float3x3 = XMFLOAT3X3;
+		using matrix = float4x4;
 	}
 
 #ifdef _MSC_VER
@@ -1176,43 +1175,20 @@ namespace DirectX
 
 	namespace Internal
 	{
+		// 3 Permuation contains 2-Permutation (XY)(YZ)(ZX), which are self-inverse
+		// Identity (XYZ) are also self-inverse,Special case (YZX) and (ZXY) list below
 		template <unsigned _X, unsigned _Y, unsigned _Z>
 		struct SwizzleInverse
 		{
-		};
-		template <>
-		struct SwizzleInverse<0, 1, 2>
-		{
-			static const unsigned X = 0;
-			static const unsigned Y = 1;
-			static const unsigned Z = 2;
+			static const unsigned X = _X;
+			static const unsigned Y = _Y;
+			static const unsigned Z = _Z;
 		};
 		template <>
 		struct SwizzleInverse<1, 2, 0>
 		{
 			static const unsigned X = 2;
 			static const unsigned Y = 0;
-			static const unsigned Z = 1;
-		};
-		template <>
-		struct SwizzleInverse<2, 1, 0>
-		{
-			static const unsigned X = 2;
-			static const unsigned Y = 1;
-			static const unsigned Z = 0;
-		};
-		template <>
-		struct SwizzleInverse<1, 0, 2>
-		{
-			static const unsigned X = 1;
-			static const unsigned Y = 0;
-			static const unsigned Z = 2;
-		};
-		template <>
-		struct SwizzleInverse<0, 2, 1>
-		{
-			static const unsigned X = 0;
-			static const unsigned Y = 2;
 			static const unsigned Z = 1;
 		};
 		template <>
@@ -1224,6 +1200,22 @@ namespace DirectX
 		};
 	}
 
+	enum AxisEnum
+	{
+		AxisX = 0,
+		AxisY = 1,
+		AxisZ = 2,
+		AxisPatch = AxisX,
+		AxisYaw = AxisY,
+		AxisRoll = AxisZ
+	};
+
+	template <unsigned X, unsigned Y, unsigned Z>
+	// Caculate Left handed eular angles with 
+	// rotation sequence R(X)-R(Y)-R(Z)
+	XMVECTOR XM_CALLCONV XMQuaternionEulerAngleABC(FXMVECTOR q);
+
+
 	template <unsigned X, unsigned Y, unsigned Z >
 	// Caculate Left handed eular angles with 3 different rotation axis
 	// rotation sequence R(X)-R(Y)-R(Z)	
@@ -1231,8 +1223,8 @@ namespace DirectX
 	{
 		static_assert(X <= 2 && Y <= 2 && Z <= 2 && X != Y && Z != Y && X != Z, "X-Y-Z must be different Axis");
 
-		XMVECTOR qs = XMVectorSwizzle<Z, Y, X, 3>(q);
-		qs = XMQuaternionEulerAngleABC<2, 1, 0>(qs);
+		XMVECTOR qs = XMVectorSwizzle<X, Y, Z, 3>(q);
+		qs = XMQuaternionEulerAngleZYX(qs);
 		using InvS = Internal::SwizzleInverse<X, Y, Z>;
 		qs = XMVectorSwizzle<InvS::X, InvS::Y, InvS::Z, 3>(qs);
 		return qs;
@@ -1258,6 +1250,24 @@ namespace DirectX
 	inline XMVECTOR XM_CALLCONV XMQuaternionEulerAngleYawPitchRoll(FXMVECTOR q)
 	{
 		return XMQuaternionEulerAngleABC<AxisY, AxisX, AxisZ>(q);
+	}
+
+	// Rotate along Y-axis
+	inline XMVECTOR XMQuaternionRotationYaw(float yaw)
+	{
+		return XMQuaternionRotationNormal(g_XMIdentityR1.v, yaw);
+	}
+
+	// Rotate along X-axis
+	inline XMVECTOR XMQuaternionRotationPatch(float patch)
+	{
+		return XMQuaternionRotationNormal(g_XMIdentityR0.v, patch);
+	}
+
+	// Rotate along Z-axis
+	inline XMVECTOR XMQuaternionRotationRoll(float roll)
+	{
+		return XMQuaternionRotationNormal(g_XMIdentityR2.v, roll);
 	}
 
 #ifdef _MSC_VER
@@ -2102,40 +2112,44 @@ namespace DirectX
 // Extending std lib for output
 #ifdef _OSTREAM_
 #include <iomanip>
-
+namespace DirectX
+{
 	inline std::ostream& operator << (std::ostream& lhs, const DirectX::XMFLOAT2& rhs)
 	{
 		lhs << '(' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.x
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y << ')';
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y << ')';
 		return lhs;
 	};
 
 	inline std::ostream& operator << (std::ostream& lhs, const DirectX::XMFLOAT3& rhs)
 	{
 		lhs << '(' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.x
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.z << ')';
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.z << ')';
 		return lhs;
 	};
 
 	inline std::ostream& operator << (std::ostream& lhs, const DirectX::XMFLOAT4& rhs)
 	{
 		lhs << '(' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.x
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.z
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.w << ')';
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.y
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.z
+			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.w << ')';
 		return lhs;
 	};
 
 	inline std::ostream& operator << (std::ostream& lhs, const DirectX::Quaternion& rhs)
 	{
+		lhs << (const Vector4&)(rhs);
+
 		float theta = std::acosf(rhs.w) * 2 / DirectX::XM_PI;
 		DirectX::Vector3 axis(rhs);
 		axis.Normalize();
-		lhs << '(' << axis
-			<< "," << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << theta << "*Pi)";
+		lhs << "[axis=(" << axis
+			<< "),ang=" << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << theta << "*Pi]";
 		return lhs;
 	};
+}
 
 #endif
 

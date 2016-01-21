@@ -3,7 +3,6 @@
 
 using namespace Causality;
 using namespace DirectX;
-using namespace Eigen;
 using namespace std;
 
 size_t Causality::CLIP_FRAME_COUNT = 90U;

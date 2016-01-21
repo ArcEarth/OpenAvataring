@@ -1,5 +1,5 @@
 #pragma once
-#include "stride_range.h"
+#include <stride_range.h>
 #include "DirectXHelper.h"
 #include "DXGIFormatHelper.h"
 #include <vector>

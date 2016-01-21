@@ -345,6 +345,7 @@ namespace Causality
 		void SetFrameCallback(const FrameEventFunctionType& callback);
 		void SetPlayerChangeCallback(const PlayerEventFunctionType& callback);
 
+		static const size_t szi = sizeof(std::list<function<void(void*)>>::const_reverse_iterator);
 		void OnPlayerTracked(TrackedBody& body);
 		void OnPlayerLost(TrackedBody& body);
 		void ReSelectFromAllTrackedBodies();

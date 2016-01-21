@@ -3,8 +3,8 @@
 #include "Math3D.h"
 #include "Common\tree.h"
 #include "String.h"
-#include <istream>
-#include <boost\range\adaptor\transformed.hpp>
+#include <iosfwd>
+//#include <boost\range\adaptor\transformed.hpp>
 
 namespace Causality
 {
@@ -382,19 +382,18 @@ namespace Causality
 			return TopologyOrder;
 		}
 
-		auto joints() const //-> decltype(adaptors::transform(TopologyOrder,function<const Joint&(int)>()))
-		{
-			using namespace boost::adaptors;
-			function<const Joint&(int)> func = [this](int idx)->const joint_type& {return Joints[idx]; };
-			return transform(TopologyOrder, func);
-		}
+		//auto joints() const //-> decltype(adaptors::transform(TopologyOrder,function<const Joint&(int)>()))
+		//{
+		//	function<const Joint&(int)> func = [this](int idx)->const joint_type& {return Joints[idx]; };
+		//	return transform(TopologyOrder, func);
+		//}
 
-		auto joints() //-> decltype(adaptors::transform(TopologyOrder, function<Joint&(int)>()))
-		{
-			using namespace boost::adaptors;
-			function<Joint&(int)> func = [this](int idx)->joint_type&{ return Joints[idx]; };
-			return transform(TopologyOrder, func);
-		}
+		//auto joints() //-> decltype(adaptors::transform(TopologyOrder, function<Joint&(int)>()))
+		//{
+		//	using namespace boost::adaptors;
+		//	function<Joint&(int)> func = [this](int idx)->joint_type&{ return Joints[idx]; };
+		//	return transform(TopologyOrder, func);
+		//}
 
 
 		using IArmature::operator[];

@@ -2,11 +2,10 @@
 #include <atomic>
 #include <Eigen\Dense>
 #include "ArmatureParts.h"
-#include "Animations.h"
 //#include <ppltasks.h>
 #include <mutex>
-#include <gsl.h>
 #include "CCA.h"
+#include "Causality\Animations.h"
 //#include <boost\icl\interval_set.hpp>
 
 namespace std
@@ -89,9 +88,9 @@ namespace Causality
 		void							Prepare(const ShrinkedArmature& parts, int clipLength = -1, int flag = ComputeAll);
 		void							SetComputationFlags(int flags);
 
-		void							AnalyzeSequence(gsl::array_view<ArmatureFrame> frames, double sequenceTime);
+		void							AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime);
 
-		void							SetFeatureMatrix(gsl::array_view<ArmatureFrame> frames, double duration, bool cyclic);
+		void							SetFeatureMatrix(array_view<ArmatureFrame> frames, double duration, bool cyclic);
 		void							SetFeatureMatrix(const Eigen::MatrixXf& X) { m_inited = false; m_X = X; }
 		void							SetFeatureMatrix(Eigen::MatrixXf&& X) { m_inited = false; m_X = std::move(X); }
 		Eigen::MatrixXf&				SetFeatureMatrix() { m_inited = false; return m_X; }
@@ -173,7 +172,7 @@ namespace Causality
 
 		auto							GetPartsDifferenceSequence(int pi, int pj) const
 		{
-			assert(m_partDim[pi] == m_partDim[pj]);
+			//assert(m_partDim[pi] == m_partDim[pj]);
 			return GetPartSequence(pi) - GetPartSequence(pj);
 		}
 
@@ -245,7 +244,7 @@ namespace Causality
 
 		void Initialize(const ShrinkedArmature& parts);
 
-		void AnalyzeSequence(gsl::array_view<ArmatureFrame> frames, double sequenceTime);
+		void AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime);
 
 		explicit CharacterClipinfo(const ShrinkedArmature& parts);
 

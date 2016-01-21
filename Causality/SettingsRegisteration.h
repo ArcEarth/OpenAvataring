@@ -3,7 +3,7 @@ SETTING_REGISTERATION(bool, UsePersudoPhysicsWalk, false)
 SETTING_REGISTERATION(int, PhaseMatchingInterval, 1)
 
 SETTING_REGISTERATION(float, MaxCharacterSpeed, 0.5)
-SETTING_REGISTERATION(bool, EnableDebugLogging, true)
+SETTING_REGISTERATION(int, EnableDebugLogging, 1)
 SETTING_REGISTERATION(bool, EnableRecordLogging, false)
 
 SETTING_REGISTERATION(bool, StepFrame, false)

@@ -1,0 +1,143 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 06.12.2015 18:09:16
+
+newmtl Tree1
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_01.png
+	map_Kd Tree_01.png
+
+newmtl Tree2
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_02.png
+	map_Kd Tree_02.png
+
+newmtl Tree3
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_03.png
+	map_Kd Tree_03.png
+
+newmtl tree4
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_04.png
+	map_Kd Tree_04.png
+
+newmtl tree6
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_06.png
+	map_Kd Tree_06.png
+
+newmtl tree7
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_07.png
+	map_Kd Tree_07.png
+
+newmtl tree10_T
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_10_Tree.png
+	map_Kd Tree_10_Tree.png
+
+newmtl tree10_H
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_10_House.png
+	map_Kd Tree_10_House.png
+
+newmtl tree5
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka Tree_05.png
+	map_Kd Tree_05.png
+
+newmtl Material__58
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 1.0000 1.0000
+	Kd 1.0000 1.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka BackGround_Tree.png
+	map_Kd BackGround_Tree.png
+
+newmtl wire_229166215
+	Ns 32
+	d 0.8
+	Tf 1 1 1
+	illum 2
+	Ka 0.6510 0.6510 0.8431
+	Kd 0.6510 0.6510 0.8431
+	Ks 0.3500 0.3500 0.3500
+	map_Ka BackGround_Tree.png
+	map_Kd BackGround_Tree.png

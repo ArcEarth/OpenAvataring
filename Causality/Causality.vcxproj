@@ -22,16 +22,16 @@
     <ProjectGuid>{BFB8F213-CF2C-4DB3-B94F-BC40B35DA49D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Causality</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Label="UserMacros">
     <TinyXml2Dir>..\tinyxml2</TinyXml2Dir>
     <DirectXTKDir>..\DirectXTK</DirectXTKDir>
     <Bullet3Dir>..\bullet3</Bullet3Dir>
     <DirectXHelperDir>..\DirectX</DirectXHelperDir>
-    <DLibDir>..\dlib-18.17\</DLibDir>
+    <DLibDir>..\dlib\</DLibDir>
     <EigenDir>..\Eigen\</EigenDir>
-    <FftwDir>..\fftw-dll64-3.3.4</FftwDir>
+    <FftwDir>..\fftw\</FftwDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -81,29 +81,29 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(BOOST_ROOT);$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;..\DirectX\Inc\;$(DLibDir);$(EigenDir);$(FftwDir);..\GSL\include;..\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(BOOST_ROOT)\stage\$(PlatformToolset)\$(PlatformTarget)\lib;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath)</LibraryPath>
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(BOOST_ROOT);$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;..\DirectX\Inc\;$(DLibDir);$(EigenDir);$(FftwDir);..\GSL\include;..\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(BOOST_ROOT)\stage\$(PlatformToolset)\$(PlatformTarget)\lib;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir);$(LibraryPath)</LibraryPath>
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(FftwDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(BOOST_ROOT);$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;..\DirectX\Inc\;$(DLibDir);$(EigenDir);$(FftwDir);..\GSL\include;..\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(BOOST_ROOT)\stage\$(PlatformToolset)\$(PlatformTarget)\lib;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath)</LibraryPath>
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(BOOST_ROOT);$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;..\DirectX\Inc\;$(DLibDir);$(EigenDir);$(FftwDir);..\GSL\include;..\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(BOOST_ROOT)\stage\$(PlatformToolset)\$(PlatformTarget)\lib;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath);$(FftwDir);</LibraryPath>
+    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath);$(FftwDir);</LibraryPath>
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);$(FftwDir);</ExecutablePath>
   </PropertyGroup>
@@ -114,9 +114,8 @@
       <Optimization>Disabled</Optimization>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <AdditionalOptions>/D_SCL_SECURE_NO_WARNINGS /Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <PrecompiledHeaderFile>pch_bcl.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
       <DisableSpecificWarnings>4267</DisableSpecificWarnings>
@@ -144,9 +143,8 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\leap.dll "$(OutDir)"</Command>
       <Optimization>Disabled</Optimization>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <AdditionalOptions>/D_SCL_SECURE_NO_WARNINGS /Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <PrecompiledHeaderFile>pch_bcl.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
       <DisableSpecificWarnings>4267</DisableSpecificWarnings>
@@ -174,7 +172,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\leap.dll "$(OutDir)"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <AdditionalOptions>/D_SCL_SECURE_NO_WARNINGS /Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4_1__;__SSE4_2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -208,7 +206,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <AdditionalOptions>/D_SCL_SECURE_NO_WARNINGS /Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4_1__;__SSE4_2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -235,10 +233,125 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="BasicKeyboardMouseControlLogic.cpp" />
     <ClCompile Include="CameraObject.cpp" />
-    <ClCompile Include="CharacterBehavier.cpp" />
+    <ClCompile Include="CharacterBehavier.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="CharacterObject.cpp" />
     <ClCompile Include="FloatHud.cpp" />
+    <ClCompile Include="InverseKinematics.cpp" />
     <ClCompile Include="LightObject.cpp" />
     <ClCompile Include="MatrixVisualizer.cpp" />
     <ClCompile Include="pch_bcl.cpp">
@@ -246,7 +359,16 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
       <PrecompiledHeaderFile>pch_bcl.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
-    <ClCompile Include="Animations.cpp" />
+    <ClCompile Include="Animations.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="AssetDictionary.cpp" />
     <ClCompile Include="CausalityApplication.cpp" />
     <ClCompile Include="FbxParser.cpp" />
@@ -260,9 +382,17 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PenModeler.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Armature.cpp" />
+    <ClCompile Include="Armature.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch_bcl.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)bcl.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="SceneParser.cpp" />
     <ClCompile Include="Serialization.cpp" />
@@ -275,12 +405,31 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClCompile Include="SkinningModelFromFbx.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="StreamDevice.cpp" />
-    <ClCompile Include="TrackedObjectControl.cpp" />
-    <ClCompile Include="TrackerdPen.cpp" />
     <ClCompile Include="Vicon.cpp" />
     <ClCompile Include="VisualObject.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\CompositeFlag.h" />
+    <ClInclude Include="..\Common\Filter.h" />
+    <ClInclude Include="..\Common\iterator_range.h" />
+    <ClInclude Include="..\Common\signal.hpp" />
+    <ClInclude Include="..\Common\stride_range.h" />
+    <ClInclude Include="..\Common\tree.h" />
+    <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h" />
+    <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h" />
+    <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />
+    <ClInclude Include="..\OpenAvataring\ArmatureTransforms.h" />
+    <ClInclude Include="..\OpenAvataring\BoneFeatures.h" />
+    <ClInclude Include="..\OpenAvataring\CharacterController.h" />
+    <ClInclude Include="..\OpenAvataring\ClipMetric.h" />
+    <ClInclude Include="..\OpenAvataring\GaussianProcess.h" />
+    <ClInclude Include="..\OpenAvataring\GestureTracker.h" />
+    <ClInclude Include="..\OpenAvataring\PcaCcaMap.h" />
+    <ClInclude Include="..\OpenAvataring\pch.h" />
+    <ClInclude Include="..\OpenAvataring\PlayerProxy.h" />
+    <ClInclude Include="..\OpenAvataring\QudraticAssignment.h" />
+    <ClInclude Include="..\OpenAvataring\RegressionModel.h" />
+    <ClInclude Include="..\OpenAvataring\StylizedIK.h" />
     <ClInclude Include="AnimationObject.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="BasicKeyboardMouseControlLogic.h" />
@@ -289,10 +438,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="AssetDictionary.h" />
     <ClInclude Include="CausalityApplication.h" />
     <ClInclude Include="CharacterBehavier.h" />
-    <ClInclude Include="Common\CompositeFlag.h" />
-    <ClInclude Include="Common\Filter.h" />
-    <ClInclude Include="Common\stride_range.h" />
-    <ClInclude Include="Common\tree.h" />
+    <ClInclude Include="CharacterObject.h" />
     <ClInclude Include="Content\OculusDisortionRenderer.h" />
     <ClInclude Include="Events.h" />
     <ClInclude Include="FbxParser.h" />
@@ -302,20 +448,18 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="GSL\gsl.h" />
     <ClInclude Include="GSL\string_view.h" />
     <ClInclude Include="Interactive.h" />
+    <ClInclude Include="InverseKinematics.h" />
     <ClInclude Include="Kinect.h" />
     <ClInclude Include="LeapMotion.h" />
     <ClInclude Include="LightObject.h" />
     <ClInclude Include="MatrixVisualizer.h" />
     <ClInclude Include="NativeWindow.h" />
-    <ClInclude Include="PenModeler.h" />
     <ClInclude Include="Serialization.h" />
     <ClInclude Include="SkyDome.h" />
     <ClInclude Include="Math3D.h" />
     <ClInclude Include="SmartPointers.h" />
     <ClInclude Include="StreamDevice.h" />
     <ClInclude Include="String.h" />
-    <ClInclude Include="TrackedObjectControl.h" />
-    <ClInclude Include="TrackerdPen.h" />
     <ClInclude Include="Vicon.h" />
     <ClInclude Include="VisualObject.h" />
     <ClInclude Include="OculusRift.h" />
@@ -333,12 +477,29 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="SettingsRegisteration.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="libfftw3f-3.dll">
+    <CustomBuild Include="$(FftwDir)libfftw3f-3.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-    </None>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)libfftw3f-3.dll</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)libfftw3f-3.dll</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)libfftw3f-3.dll</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)libfftw3f-3.dll</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</TreatOutputAsContent>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</TreatOutputAsContent>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon1.ico" />
@@ -347,7 +508,9 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ResourceCompile Include="Causality.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="..\Assets\ArSketch.xml" />
+    <Xml Include="..\Assets\AvataringTest.xml">
+      <SubType>Designer</SubType>
+    </Xml>
     <Xml Include="App.xml">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

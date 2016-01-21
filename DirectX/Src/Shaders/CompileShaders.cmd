@@ -122,6 +122,10 @@ call :CompileShaderHLSL%platform% BlurEffect ps AlphaAsDepthPassBy
 call :CompileShaderHLSL%platform% BlurEffect ps PassBy
 goto finish
 
+:SkyDomeEffect
+call :CompileShaderHLSL%platform% SkyDomeEffect vs VS
+call :CompileShaderHLSL%platform% SkyDomeEffect ps PS
+
 :finish
 echo.
 

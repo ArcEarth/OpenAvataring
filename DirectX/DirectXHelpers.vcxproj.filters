@@ -40,6 +40,9 @@
     <ClCompile Include="Src\HUD.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Src\SkyDomeEffect.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\ConstantBuffer.h">
@@ -123,6 +126,12 @@
     <ClInclude Include="Inc\VertexTraits.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\SkyDomeEffect.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ShaderEffectBase.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">
@@ -163,6 +172,9 @@
       <Filter>Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="Src\Shaders\ShadowMapGen.hlsl">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\SkydomeEffect.hlsl">
       <Filter>Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

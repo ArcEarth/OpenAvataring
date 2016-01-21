@@ -73,8 +73,8 @@
     <EigenDir>..\Eigen</EigenDir>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(BOOST_ROOT);$(DirectXTKDir)\Inc;$(CGALDIR)\include;..\DirectX\Inc;..\GSL\include;$(EigenDir)\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(BOOST_ROOT)\stage\$(PlatformToolset)\$(PlatformTarget)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(DirectXTKDir)\Inc;$(CGALDIR)\include;$(ProjectDir)..\DirectX\Inc;$(ProjectDir)..\GSL\include;$(EigenDir)\;$(ProjectDir)..\Common\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>

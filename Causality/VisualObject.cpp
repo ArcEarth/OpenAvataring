@@ -143,7 +143,7 @@ void VisualObject::Parse(const ParamArchive* store)
 	}
 	else
 	{
-		auto nMesh = GetFirstChildArchive(store,"object.mesh");
+		auto nMesh = GetFirstChildArchive(store, "object.mesh");
 		if (nMesh)
 		{
 			nMesh = GetFirstChildArchive(nMesh);
@@ -158,7 +158,7 @@ bool VisualObject::IsVisible(const BoundingGeometry & viewFrustum) const
 	if (!m_isVisable || m_pRenderModel == nullptr) return false;
 	auto box = m_pRenderModel->GetOrientedBoundingBox();
 	box.Transform(box, this->GlobalTransformMatrix());
-	return true;// viewFrustum.Contains(box) != ContainmentType::DISJOINT;
+	return viewFrustum.Contains(box) != ContainmentType::DISJOINT;
 }
 
 
@@ -267,10 +267,7 @@ bool GlowingBorder::IsVisible(const BoundingGeometry & viewFrustum) const
 {
 	if (!IsEnabled()) return false;
 	auto pVisual = this->FirstAncesterOfType<VisualObject>();
-	if (pVisual)
-	{
-		return pVisual->IsVisible(viewFrustum);
-	}
+	return pVisual && pVisual->IsVisible(viewFrustum);
 }
 
 RenderFlags GlowingBorder::GetRenderFlags() const

@@ -1,6 +1,6 @@
-#include "pch_bcl.h"
+#include "pch.h"
 #include "ArmatureParts.h"
-#include "Animations.h"
+#include "Causality\Animations.h"
 
 using namespace Causality;
 using namespace DirectX;
@@ -51,7 +51,8 @@ void ShrinkedArmature::ComputeWeights()
 	const auto& frame = m_pArmature->default_frame();
 
 	// Reverse Depth first visit, thus child must be visited before parent
-	for (auto& pblcok : adaptors::reverse(m_Parts))
+	auto rparts = make_range(m_Parts.rbegin(), m_Parts.rend());
+	for (auto& pblcok : rparts)
 	{
 		auto& part = *pblcok;
 		float length = 0;

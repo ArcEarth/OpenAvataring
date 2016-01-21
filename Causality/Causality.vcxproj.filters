@@ -36,11 +36,23 @@
     <Filter Include="HUD">
       <UniqueIdentifier>{1f8cd33e-39cb-494e-9b7e-856d80ff79c8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ArSketch Objects">
-      <UniqueIdentifier>{1ba06f40-366b-4381-8afb-6282dd7a5f57}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Serialization">
       <UniqueIdentifier>{3e944cf1-fadf-4432-a24f-fdafb822bdd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Avataring Control">
+      <UniqueIdentifier>{afec0125-2be4-4e29-8181-1580ca885340}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Avataring Control\Algorithms">
+      <UniqueIdentifier>{d46b7cbb-5592-4ed4-b0f6-e89c0ef67391}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Avataring Control\Aniamtion Anaylze">
+      <UniqueIdentifier>{479310a7-ea70-4949-9b65-ed85eebc8509}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Avataring Control\StylizedIK">
+      <UniqueIdentifier>{961f24b9-8ff1-492f-a38c-4773cc5d59f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility Foundation\stdx">
+      <UniqueIdentifier>{c3bfc488-1a07-4cc5-bf40-957c5f23e282}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -107,14 +119,8 @@
     <ClCompile Include="CausalityApplication.cpp">
       <Filter>Platform Application Logic</Filter>
     </ClCompile>
-    <ClCompile Include="TrackedObjectControl.cpp">
-      <Filter>ArSketch Objects</Filter>
-    </ClCompile>
     <ClCompile Include="FloatHud.cpp">
       <Filter>HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="PenModeler.cpp">
-      <Filter>ArSketch Objects</Filter>
     </ClCompile>
     <ClCompile Include="Serialization.cpp">
       <Filter>Serialization</Filter>
@@ -128,9 +134,44 @@
     <ClCompile Include="Vicon.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
-    <ClCompile Include="StreamDevice.cpp" />
-    <ClCompile Include="TrackerdPen.cpp">
-      <Filter>ArSketch Objects</Filter>
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp">
+      <Filter>Avataring Control\Algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp">
+      <Filter>Avataring Control\StylizedIK</Filter>
+    </ClCompile>
+    <ClCompile Include="StreamDevice.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\pch.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="CharacterObject.cpp">
+      <Filter>Scene Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="InverseKinematics.cpp">
+      <Filter>Armature Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -188,13 +229,7 @@
     <ClInclude Include="RenderSystemDecl.h">
       <Filter>Utility Foundation</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Filter.h">
-      <Filter>Algorithms</Filter>
-    </ClInclude>
     <ClInclude Include="RenderFlags.h">
-      <Filter>Utility Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\CompositeFlag.h">
       <Filter>Utility Foundation</Filter>
     </ClInclude>
     <ClInclude Include="AnimationObject.h">
@@ -214,12 +249,6 @@
     </ClInclude>
     <ClInclude Include="SkyDome.h">
       <Filter>Scene Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\stride_range.h">
-      <Filter>Utility Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\tree.h">
-      <Filter>Utility Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
       <Filter>Scene Objects</Filter>
@@ -257,12 +286,6 @@
     <ClInclude Include="FloatHud.h">
       <Filter>Scene Objects</Filter>
     </ClInclude>
-    <ClInclude Include="TrackedObjectControl.h">
-      <Filter>ArSketch Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="PenModeler.h">
-      <Filter>ArSketch Objects</Filter>
-    </ClInclude>
     <ClInclude Include="Serialization.h">
       <Filter>Serialization</Filter>
     </ClInclude>
@@ -281,14 +304,75 @@
     <ClInclude Include="StreamDevice.h">
       <Filter>Devices</Filter>
     </ClInclude>
-    <ClInclude Include="TrackerdPen.h">
-      <Filter>ArSketch Objects</Filter>
+    <ClInclude Include="..\OpenAvataring\ArmatureTransforms.h">
+      <Filter>Avataring Control</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="libfftw3f-3.dll">
-      <Filter>Dlls</Filter>
-    </None>
+    <ClInclude Include="..\OpenAvataring\BoneFeatures.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\CharacterController.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\GestureTracker.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\GaussianProcess.h">
+      <Filter>Avataring Control\Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\QudraticAssignment.h">
+      <Filter>Avataring Control\Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\RegressionModel.h">
+      <Filter>Avataring Control\Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\ArmatureParts.h">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\ClipMetric.h">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\StylizedIK.h">
+      <Filter>Avataring Control\StylizedIK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\PlayerProxy.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CompositeFlag.h">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Filter.h">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\iterator_range.h">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\stride_range.h">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\tree.h">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\signal.hpp">
+      <Filter>Utility Foundation\stdx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\PcaCcaMap.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\pch.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterObject.h">
+      <Filter>Scene Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="InverseKinematics.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon1.ico">
@@ -307,8 +391,11 @@
     <Xml Include="App.xml">
       <Filter>Resource Files</Filter>
     </Xml>
-    <Xml Include="..\Assets\ArSketch.xml">
+    <Xml Include="..\Assets\AvataringTest.xml">
       <Filter>Resource Files</Filter>
     </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="$(FftwDir)libfftw3f-3.dll" />
   </ItemGroup>
 </Project>

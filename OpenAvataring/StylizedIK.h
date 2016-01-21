@@ -1,56 +1,34 @@
 #pragma once
-#include "Armature.h"
-#include "Animations.h"
-#include "RegressionModel.h"
+#include <Causality\Armature.h>
+#include <Causality\Animations.h>
+
+//#include "Causality\InverseKinematics.h"
 #include "GaussianProcess.h"
-#include "PcaCcaMap.h"
-#include <memory>
 
 namespace Causality
 {
-	class IFeatureDecoder abstract
+	class StylizedChainIK //: public ChainInverseKinematics
 	{
 	public:
-		virtual ~IFeatureDecoder();
+		using OptimzeVectorType = Eigen::RowVectorXf;
+		using OptimzeJacobiType = Eigen::MatrixXd;
 
-		virtual void operator()(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y) = 0;
-		virtual void EncodeJacobi(Eigen::MatrixXd& jacb);
-	};
+		class IFeatureDecoder abstract
+		{
+		public:
+			typedef StylizedChainIK::OptimzeVectorType VectorType;
+			typedef StylizedChainIK::OptimzeJacobiType JacobiType;
 
-	class AbsoluteLnQuaternionDecoder : public IFeatureDecoder
-	{
-	public:
-		~AbsoluteLnQuaternionDecoder();
-		void operator()(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y) override;
-	};
+			virtual ~IFeatureDecoder();
 
-	class RelativeLnQuaternionDecoder : public IFeatureDecoder
-	{
-	public:
-		std::vector<DirectX::Quaternion, DirectX::XMAllocator>
-			bases;
-	public:
-		~RelativeLnQuaternionDecoder();
-		void Decode(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y);
-		void operator()(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y) override;
-	};
+			// Decode input vector into local rotation quaternions
+			virtual void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) = 0;
+			// Encode joint rotations into input vector 
+			virtual void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) = 0;
+			// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+			virtual void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) = 0;
+		};
 
-	class RelativeLnQuaternionPcaDecoder : public RelativeLnQuaternionDecoder
-	{
-	public:
-		Eigen::RowVectorXd	meanY;
-		Eigen::MatrixXd		pcaY;
-		Eigen::MatrixXd		invPcaY;
-	public:
-		~RelativeLnQuaternionPcaDecoder();
-		void DecodePcad(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y);
-		void EncodeJacobi(Eigen::MatrixXd& jacb) override;
-		void operator()(DirectX::Quaternion* rots, const Eigen::RowVectorXd& y) override;
-	};
-
-
-	class StylizedChainIK : public IRegression
-	{
 	private:
 		// translation of local chain, 128 bit aligned
 		std::vector<DirectX::Vector4, DirectX::XMAllocator>	m_chain;
@@ -58,7 +36,7 @@ namespace Causality
 
 		// intermediate variable for IK caculation
 		std::vector<DirectX::Quaternion, DirectX::XMAllocator>
-															m_chainRot;
+			m_chainRot;
 
 		gaussian_process_regression							m_gplvm;
 
@@ -75,6 +53,8 @@ namespace Causality
 		Eigen::RowVectorXd									m_iy;	// initial y, default y
 		Eigen::RowVectorXd									m_cx;	// current x
 		Eigen::RowVectorXd									m_cy;	// current y
+		Eigen::RowVectorXd									m_cyNorm;
+		Eigen::RowVectorXd									m_eyNorm;
 		Eigen::RowVectorXd									m_wy;	//weights of y
 		Eigen::MatrixXd										m_limy;	//weights of y
 
@@ -83,58 +63,157 @@ namespace Causality
 
 		Eigen::Vector3d										m_goal;
 		Quaternion											m_baseRot;
+		int													m_maxIter;
 
 		std::unique_ptr<IFeatureDecoder>					m_fpDecoder;
 
+	//private:
+	//	struct OptimizeFunctor;
+	//	std::unique_ptr<OptimizeFunctor>					m_pFunctor;
+
+		//using ChainInverseKinematics::solve;
+		//using ChainInverseKinematics::solveWithStyle;
 	public:
 		StylizedChainIK();
+		StylizedChainIK(size_t n);
 		StylizedChainIK(const std::vector<const Joint*> &joints, ArmatureFrameConstView defaultframe);
+		~StylizedChainIK();
+		void reset();
+
+		//const OptimzeVectorType & apply(const Vector3 & goal, const DirectX::Quaternion & baseRotation);
+		//const OptimzeVectorType & apply(const Vector3 & goal, const Vector3& goal_vel, const DirectX::Quaternion& baseRotation);
+		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const DirectX::Quaternion & baseRotation);
+		//{
+		//	return apply(Vector3(goal.x(), goal.y(), goal.z()),baseRotation);
+		//}
+		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const Eigen::Vector3d& goal_vel, const DirectX::Quaternion & baseRotation);
+		//{
+		//	return apply(Vector3(goal.x(), goal.y(), goal.z()), Vector3(goal_vel.x(), goal_vel.y(), goal_vel.z()), baseRotation);
+		//}
+		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const Eigen::VectorXd & hint_y);
+
 
 		// set the functional that decode feature vector "Y" to local rotation quaternions
 		// by default, Decoder is set to "Absolute Ln Quaternion of joint local orientation" 
 		// you can use RelativeLnQuaternionDecoder and 
-		void SetFeatureDecoder(std::unique_ptr<IFeatureDecoder>&& decoder);
-		const IFeatureDecoder* GetDecoder() const { return m_fpDecoder.get(); }
-		IFeatureDecoder* GetDecoder() { return m_fpDecoder.get(); }
+		void setDecoder(std::unique_ptr<IFeatureDecoder>&& decoder);
+		const IFeatureDecoder* getDecoder() const { return m_fpDecoder.get(); }
+		IFeatureDecoder* getDecoder() { return m_fpDecoder.get(); }
 
-		void SetChain(const std::vector<const Joint*> &joints, ArmatureFrameConstView defaultframe);
-		void SetGoal(const Eigen::Vector3d& goal);
-		void SetIKWeight(double weight);
-		void SetMarkovWeight(double weight);
-		void SetBaseRotation(const Quaternion& q);
-		void SetHint(const Eigen::RowVectorXd &y);
+		void setGoal(const Eigen::Vector3d & goal);
+		void setBaseRotation(const DirectX::Quaternion & q);
+		void setHint(const Eigen::RowVectorXd & y);
+
+		void setChain(const std::vector<const Joint*> &joints, ArmatureFrameConstView defaultframe);
+		void setIKWeight(double weight);
+		void setMarkovWeight(double weight);
+
 		template <class Derived>
-		void SetGplvmWeight(const Eigen::DenseBase<Derived>& w) { m_wy = w; }
+		void setGplvmWeight(const Eigen::DenseBase<Derived>& w) { m_wy = w; }
+
 		template <class Derived>
-		void SetYLimit(const Eigen::DenseBase<Derived>& limY) { m_limy = limY; }
+		void setYLimit(const Eigen::DenseBase<Derived>& limY) { m_limy = limY; }
 
 		gaussian_process_regression& Gplvm() { return m_gplvm; }
 		const gaussian_process_regression& Gplvm() const { return m_gplvm; }
+
+		double objective(const Eigen::RowVectorXd &x, const Eigen::RowVectorXd &y);
+
+		Eigen::RowVectorXd objective_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y);
 
 		DirectX::XMVECTOR EndPosition(const DirectX::XMFLOAT4A* rotqs);
 		Eigen::Matrix3Xf EndPositionJacobi(const DirectX::XMFLOAT4A* rotqs);
 
 		void JacobbiFromR(DirectX::XMFLOAT4X4A &jac, _In_reads_(3) const float* r);
 
-		double objective(const Eigen::RowVectorXd &x, const Eigen::RowVectorXd &y);
-
-		Eigen::RowVectorXd objective_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y);
-
-		// Filter alike interface
-		// reset history data
-		void Reset();
-		void Reset(const Eigen::RowVectorXd &x, const Eigen::RowVectorXd &y);
-
-		// return the joints rotation vector
-		const Eigen::RowVectorXd& Apply(const Eigen::Vector3d& goal);
-		const Eigen::RowVectorXd& Apply(const Eigen::Vector3d& goal, const Eigen::Vector3d& goal_velocity);
-		const Eigen::RowVectorXd& Apply(const Eigen::Vector3d& goal, const Eigen::VectorXd& hint_y);
-
-		double CurrentError() const { return m_currentError; }
-		// Inherited via IRegression
-		virtual float Fit(const Eigen::MatrixXf & X, const Eigen::MatrixXf & Y) override;
-		virtual float Predict(const Eigen::RowVectorXf & X, Eigen::RowVectorXf & Y) override;
 	};
+
+	class AbsoluteLnQuaternionDecoder : public StylizedChainIK::IFeatureDecoder
+	{
+	public:
+		~AbsoluteLnQuaternionDecoder();
+		// Decode input vector into local rotation quaternions
+		void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+		// Encode joint rotations into input vector 
+		void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+		// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+		void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	};
+
+	//class AbsoluteEulerAngleDecoder : public StylizedChainIK::IFeatureDecoder
+	//{
+	//public:
+	//	~AbsoluteEulerAngleDecoder();
+	//	// Decode input vector into local rotation quaternions
+	//	void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+	//	// Encode joint rotations into input vector 
+	//	void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+	//	// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+	//	void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	//};
+
+	//class RelativeEulerAngleDecoder : public AbsoluteEulerAngleDecoder
+	//{
+	//public:
+	//	std::vector<DirectX::Quaternion, DirectX::XMAllocator>
+	//		bases;
+	//public:
+	//	~RelativeEulerAngleDecoder();
+	//	// Decode input vector into local rotation quaternions
+	//	void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+	//	// Encode joint rotations into input vector 
+	//	void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+	//	// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+	//	void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	//};
+
+	class RelativeLnQuaternionDecoder : public AbsoluteLnQuaternionDecoder
+	{
+	public:
+		std::vector<DirectX::Quaternion, DirectX::XMAllocator>
+			bases;
+	public:
+		~RelativeLnQuaternionDecoder();
+		// Decode input vector into local rotation quaternions
+		void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+		// Encode joint rotations into input vector 
+		void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+		// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+		void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	};
+
+	//class RelativeEulerAnglePcaDecoder : public RelativeEulerAngleDecoder
+	//{
+	//public:
+	//	Eigen::RowVectorXd	meanY;
+	//	Eigen::MatrixXd		pcaY;
+	//	Eigen::MatrixXd		invPcaY;
+	//public:
+	//	~RelativeEulerAnglePcaDecoder();
+	//	// Decode input vector into local rotation quaternions
+	//	void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+	//	// Encode joint rotations into input vector 
+	//	void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+	//	// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+	//	void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	//};
+
+	class RelativeLnQuaternionPcaDecoder : public RelativeLnQuaternionDecoder
+	{
+	public:
+		Eigen::RowVectorXd	meanY;
+		Eigen::MatrixXd		pcaY;
+		Eigen::MatrixXd		invPcaY;
+	public:
+		~RelativeLnQuaternionPcaDecoder();
+		// Decode input vector into local rotation quaternions
+		void Decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const VectorType& x) override;
+		// Encode joint rotations into input vector 
+		void Encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ VectorType& x) override;
+		// Convert Jaccobi respect Euler anglue to Jaccobi respect input vector
+		void EncodeJacobi(_In_ array_view<const DirectX::Quaternion> rotations, _Inout_ JacobiType& jacb) override;
+	};
+
 
 #define AUTO_PROPERTY(type,name) private : type m_##name;\
 public:\
@@ -142,39 +221,4 @@ public:\
 	const type& name() { return m_##name; } \
 	void set_##name(const type& val) { m_##name = val;}
 
-
-
-	class PcaCcaIK : public IRegression
-	{
-	public:
-		// Inherited via IRegression
-		virtual float Fit(const Eigen::MatrixXf & X, const Eigen::MatrixXf & Y) override;
-		virtual float Predict(const Eigen::RowVectorXf & X, Eigen::RowVectorXf & Y) override;
-
-		PcaCcaMap& Cca() { return m_cca; }
-		const PcaCcaMap& Cca() const { return m_cca; }
-
-
-	private:
-		float		m_xCut, m_yCut;
-		PcaCcaMap	m_cca;
-	};
-
-	class GaussianProcessIK : public IRegression
-	{
-	public:
-		// Inherited via IRegression
-		virtual float Fit(const Eigen::MatrixXf & X, const Eigen::MatrixXf & Y) override;
-		virtual float Predict(const Eigen::RowVectorXf & X, Eigen::RowVectorXf & Y) override;
-
-		gaussian_process_regression& Gpr() { return m_gpr; }
-		const gaussian_process_regression& Gpr() const { return m_gpr; }
-
-		Eigen::MatrixXd& ObsrCov() { return m_obsrCov; }
-		const Eigen::MatrixXd& ObsrCov() const { return m_obsrCov; }
-
-	private:
-		Eigen::MatrixXd				m_obsrCov;
-		gaussian_process_regression m_gpr;
-	};
 }

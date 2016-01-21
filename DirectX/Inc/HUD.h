@@ -20,11 +20,11 @@ namespace DirectX
 	{
 		static XMVECTORF32 conv = { 0.5f,-0.5f,.0f,0.f };
 		static XMVECTORF32 addv = { 0.5f, 0.5f,.0f,0.f };
-		static XMVECTORF32 g_XMMaskXY = { 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000 };
+		static XMVECTORU32 g_XMMaskXY = { 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000 };
 		XMVECTOR v1 = conv.v;
 		XMVECTOR v2 = addv.v;
 		XMVECTOR nv;
-		nv = XMVectorMultiplyAdd(nv, v1, v2); // convert from [-1,1]x[1,-1] to [0,1]x[0,1] range (Y is fliped)
+		nv = XMVectorMultiplyAdd(v, v1, v2); // convert from [-1,1]x[1,-1] to [0,1]x[0,1] range (Y is fliped)
 		v1 = XMVectorAndInt(viewport, g_XMMaskXY.v);
 		v2 = XMVectorShiftLeft<2>(viewport, XMVectorZero());
 		nv = XMVectorMultiplyAdd(nv, v1, v2); // convert to viewport size and add viewport leff-top

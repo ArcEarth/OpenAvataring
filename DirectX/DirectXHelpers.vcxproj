@@ -81,7 +81,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(DirectXTKDir)\Inc;$(ProjectDir)Inc;$(BOOST_ROOT)\;$(IncludePath)</IncludePath>
+    <IncludePath>$(DirectXTKDir)\Inc;$(ProjectDir)Inc;$(ProjectDir)..\Common\;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -195,6 +195,7 @@
     </ClCompile>
     <ClCompile Include="Src\PostProcessingEffect.cpp" />
     <ClCompile Include="Src\ShadowMapGenerationEffect.cpp" />
+    <ClCompile Include="Src\SkyDomeEffect.cpp" />
     <ClCompile Include="Src\tiny_obj_loader.cc">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -216,6 +217,8 @@
     <ClInclude Include="Inc\HUD.h" />
     <ClInclude Include="Inc\PostProcessingEffect.h" />
     <ClInclude Include="Inc\ShadowMapGenerationEffect.h" />
+    <ClInclude Include="Inc\ShaderEffectBase.h" />
+    <ClInclude Include="Inc\SkyDomeEffect.h" />
     <ClInclude Include="Inc\VertexTraits.h" />
     <ClInclude Include="Src\tiny_obj_loader.h" />
     <ClInclude Include="Inc\Locatable.h" />
@@ -275,6 +278,14 @@
       </Command>
       <Outputs>$(ShaderBtyeCodeDir)\ShadowMapGen_PS_ColorNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_ColorTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_DepthNoTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_PS_DepthTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_FourBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_FourBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_TwoBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_TwoBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_OneBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_OneBoneTex.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_NoBone.inc;$(ShaderBtyeCodeDir)\ShadowMapGen_VS_NoBoneTex.inc</Outputs>
       <AdditionalInputs>$(SrcDir)\Shaders\Common.hlsli</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Src\Shaders\SkydomeEffect.hlsl">
+      <FileType>Document</FileType>
+      <Command>
+        $(CdToSrcShaders)
+        $(CompileShaderCmd) SkydomeEffect $(FxConfig)
+      </Command>
+      <Outputs>$(ShaderBtyeCodeDir)\SkydomeEffect_VS.inc;$(ShaderBtyeCodeDir)\SkydomeEffect_PS.inc;</Outputs>
     </CustomBuild>
     <None Include="Src\Shaders\CompileShaders.cmd" />
     <None Include="Src\Shaders\Common.hlsli" />

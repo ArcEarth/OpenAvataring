@@ -2,6 +2,11 @@
 #define _PCH_BCL_
 #pragma once
 
+#ifdef _DEBUG
+#include <crtdbg.h>
+#include <cassert>
+#endif
+
 #include <thread>
 #include <iostream>
 #include <mutex>

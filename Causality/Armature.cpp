@@ -1,12 +1,9 @@
 #include "pch_bcl.h"
 #include "Armature.h"
 #include "Animations.h"
-#include <boost\range\adaptor\transformed.hpp>
-#include <boost\range\algorithm\copy.hpp>
 #include <regex>
 //#include <boost\assign.hpp>
 #include <iostream>
-#include <Eigen\Eigen>
 
 using namespace DirectX;
 using namespace Causality;
@@ -433,11 +430,9 @@ void Causality::StaticArmature::set_default_frame(uptr<frame_type> && frame) { D
 
 void StaticArmature::CaculateTopologyOrder()
 {
-	using namespace boost;
-	using namespace boost::adaptors;
-	TopologyOrder.resize(size());
-	copy(root()->nodes() | transformed([](const Joint& joint) {return joint.ID; }), TopologyOrder.begin());
-
+	TopologyOrder.reserve(size());
+	for (auto& j : root()->nodes())
+		TopologyOrder.push_back(j.ID);
 }
 
 // Lerp the local-rotation and scaling, "interpolate in Time"

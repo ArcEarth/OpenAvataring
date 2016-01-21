@@ -6,6 +6,7 @@
 #include "Settings.h"
 #include "AssetDictionary.h"
 #include <filesystem>
+#include <sstream>
 
 using namespace tinyxml2;
 using namespace Causality;

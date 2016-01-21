@@ -12,6 +12,7 @@
 #include "Vicon.h"
 
 #include <tinyxml2.h>
+#include "InverseKinematics.h"
 
 using namespace Causality;
 using namespace std;
@@ -95,6 +96,115 @@ void Application::Exit()
 	}
 	PostQuitMessage(0);
 }
+//
+//class ChainInverseKinematics
+//{
+//public:
+//	std::vector<DirectX::Vector4, DirectX::XMAllocator>	m_chain;
+//	Quaternion m_baseRot;
+//
+//	// Jaccobbi from a rotation radius vector (r) respect to a small rotation dr = (drx,dry,drz) in global reference frame
+//	void JacobbiFromR(DirectX::XMFLOAT4X4A &j, _In_reads_(3) const float* r)
+//	{
+//		j._11 = 0, j._12 = r[2], j._13 = -r[1];
+//		j._21 = -r[2], j._22 = 0, j._23 = r[0];
+//		j._31 = r[1], j._32 = -r[0], j._33 = 0;
+//	}
+//
+//	DirectX::XMVECTOR Position(array_view<XMFLOAT4A> rotqs)
+//	{
+//		const auto n = m_chain.size();
+//
+//		XMVECTOR q, t, gt, gq;
+//		Eigen::Vector4f qs;
+//		qs.setZero();
+//
+//		gt = XMVectorZero();
+//		gq = XMLoad(m_baseRot);
+//
+//		for (int i = 0; i < n; i++)
+//		{
+//			q = XMLoadFloat4A(&rotqs[i]);
+//			t = m_chain[i];
+//
+//			t = XMVector3Rotate(t, gq);
+//			gq = XMQuaternionMultiply(q, gq);
+//
+//			gt += t;
+//		}
+//
+//		return gt;
+//	}
+//
+//	Eigen::Matrix3Xf Jaccobi(array_view<XMFLOAT4A> rotqs)
+//	{
+//		using namespace Eigen;
+//		const auto n = m_chain.size();
+//
+//		Eigen::Matrix3Xf jacb(3, 3 * n);
+//		MatrixXf rad(3, n);
+//
+//
+//		XMVECTOR q, t, gt, gq;
+//
+//		gt = XMVectorZero();
+//		gq = XMQuaternionIdentity();
+//		t = XMVectorZero();
+//
+//		for (int i = n - 1; i >= 0; i--)
+//		{
+//			q = XMLoadFloat4A(&rotqs[i]);
+//
+//			gt = XMVector3Rotate(gt, q);
+//			t = XMLoadA(m_chain[i]);
+//			XMStoreFloat3(rad.col(i).data(), gt);
+//			gt += t;
+//		}
+//
+//		XMMATRIX rot;
+//		XMFLOAT4X4A jac;
+//		//jac._11 = jac._22 = jac._33 = 0;
+//		//jac._41 = jac._42 = jac._43 = jac._44 = jac._14 = jac._24 = jac._34 = 0;
+//
+//		gq = XMLoad(m_baseRot);
+//		for (int i = 0; i < n; i++)
+//		{
+//			q = XMLoadFloat4A(&rotqs[i]);
+//
+//			auto& r = rad.col(i);
+//			JacobbiFromR(jac, r.data());
+//
+//			rot = XMMatrixRotationQuaternion(XMQuaternionConjugate(gq));
+//			// transpose as XMMatrix is row major
+//			rot = XMMatrixMultiplyTranspose(rot, XMLoadA(jac));
+//			for (int j = 0; j < 3; j++)
+//			{
+//				XMStoreFloat3(jacb.col(i * 3 + j).data(), rot.r[j]);
+//			}
+//
+//			gq = XMQuaternionMultiply(q, gq);
+//		}
+//
+//		return jacb;
+//	}
+//};
+
+float randf()
+{
+	float r = (float)rand();
+	r /= (float)(RAND_MAX);
+	return r;
+}
+
+float rand2pi()
+{
+	return randf() * XM_2PI - XM_PI;
+}
+
+float randpi()
+{
+	return randf() * XM_PI - XM_PIDIV2;
+}
 
 bool App::OnStartup(const std::vector<std::string>& args)
 {
@@ -157,6 +267,59 @@ bool App::OnStartup(const std::vector<std::string>& args)
 		pConsole = make_shared<DebugConsole>();
 		pConsole->Initialize(title, width, height, fullscreen);
 	}
+
+	using namespace DirectX;
+	// Patch Yaw Roll = (1.4,0.8,0.4)
+	//Quaternion q = XMQuaternionRotationRollPitchYaw(1.4, 0.8, -1.4);
+	//cout << "q = " << q << endl;
+
+	//Vector3 eular = XMQuaternionEulerAngleYawPitchRoll(q);
+	//cout << "eular = " << eular << endl;
+
+	//Quaternion lq = XMQuaternionLn(q);
+	//cout << "ln(q) = " << lq << endl;
+	//Quaternion ldq(0.01f, 0, 0, 0);
+	//cout << "dlnq = d(ln(q)) = " << ldq << endl;
+	//Quaternion dq = XMQuaternionExp(ldq);
+	//cout << "dq = exp(d(ln(q))) = " << dq << endl;
+
+	//lq = XMQuaternionExp((lq + ldq));
+	//cout << "exp(ln(q)+d(ln(q))) = " << lq << endl;
+
+	//lq = XMQuaternionMultiply(q, dq);
+	//cout << "q * dq= " << lq << endl;
+
+	//lq = XMQuaternionMultiply(dq, q);
+	//cout << "dq * q= " << lq << endl;
+
+	//ChainInverseKinematics cik(3);
+	//cik.bone(0) = Vector4(0, 1.0f, 0, 1.0f);
+	//cik.bone(1) = Vector4(0, 1.0f, 0, 1.0f);
+	//cik.bone(2) = Vector4(0, 1.0f, 0, 1.0f);
+	////cik.m_boneMinLimits[0].x = 0;
+	////cik.m_boneMaxLimits[0].x = 0;
+	//cik.minRotation(1).y = 0;
+	//cik.maxRotation(1).y = 0;
+	//cik.minRotation(2).y = 0;
+	//cik.maxRotation(2).y = 0;
+	////cik.computeJointWeights();
+	//vector<Quaternion> rotations(3);
+	//for (size_t i = 0; i < 30; i++)
+	//{
+	//	rotations[0] = XMQuaternionRotationRollPitchYaw(0, 0, 0.1);
+	//	rotations[1] = XMQuaternionRotationRollPitchYaw(0, 0, 0.1);
+	//	rotations[2] = XMQuaternionRotationRollPitchYaw(0, 0, 0.1);
+	//	Vector3 goal = XMVectorSet(1.0f + randf(), randf(), randf(), 0);
+	//	auto code = cik.solve(goal, rotations);
+	//	Vector3 achieved = cik.endPosition(rotations);
+	//	cout << "ik test : goal = " << goal << " ; achieved position = " << achieved << endl;
+	//}
+	//cout << "rotations = {";
+	//for (size_t i = 0; i < 3; i++)
+	//{
+	//	cout << rotations[i] << ' ';
+	//}
+	//cout << '}' << endl;
 
 	if (windowSettings)
 	{
@@ -256,6 +419,7 @@ void App::SetupDevices(const ParamArchive* arch)
 				XMQuaternionRotationRollPitchYaw(-XM_PI / 12.0f, XM_PI, 0), // Orientation
 				XMVectorSet(0, 0.0, 1.0f, 1.0f)); // Position
 			pKinect->SetDeviceCoordinate(kinectCoord);
+			pKinect->Start();
 		}
 	}
 

@@ -19,8 +19,8 @@
 //// boost and std extension
 //#include <boost\signals2.hpp>
 //#include <boost\any.hpp>
-#include <boost\range\iterator_range_core.hpp>
-#include <boost\range\adaptor\transformed.hpp>
+//#include <boost\range\iterator_range_core.hpp>
+//#include <boost\range\adaptor\transformed.hpp>
 //#include <boost\operators.hpp>
 //#include <boost\format.hpp>
 //#include <boost\filesystem.hpp>
@@ -32,13 +32,13 @@
 #include "SmartPointers.h"
 #include "String.h"
 
-#if defined __AVX__
-#undef __AVX__ //#error Eigen have problem with AVX now
-#endif
-#define EIGEN_HAS_CXX11_MATH 1
-#define EIGEN_HAS_STD_RESULT_OF 1
-#define EIGEN_HAS_VARIADIC_TEMPLATES 1
-#include <Eigen\Dense>
+//#if defined __AVX__
+//#undef __AVX__ //#error Eigen have problem with AVX now
+//#endif
+//#define EIGEN_HAS_CXX11_MATH 1
+//#define EIGEN_HAS_STD_RESULT_OF 1
+//#define EIGEN_HAS_VARIADIC_TEMPLATES 1
+//#include <Eigen\Dense>
 
 
 namespace Causality
@@ -47,7 +47,7 @@ namespace Causality
 	typedef uint64_t id_t;
 
 	using std::string;
-	using boost::iterator_range;
+	using std::iterator_range;
 	//using boost::sub_range;
 
 	//namespace adaptors = boost::adaptors;

@@ -1,9 +1,9 @@
 #pragma once
-#include "Animations.h"
+#include "Causality\Animations.h"
 #include <atomic>
 #include "ClipMetric.h"
 #include "StylizedIK.h"
-#include "Serialization.h"
+#include "Causality\Serialization.h"
 
 namespace tinyxml2
 {
@@ -64,7 +64,7 @@ namespace Causality
 
 		std::atomic_bool			IsReady;
 		int							ID;
-		ArmatureFrame			PotientialFrame;
+		ArmatureFrame				PotientialFrame;
 
 		float						CharacterScore;
 		Vector3						MapRefPos;
@@ -87,21 +87,22 @@ namespace Causality
 
 		std::vector<CharacterClipinfo>& GetClipInfos() { return m_Clipinfos; }
 
-		StylizedChainIK& GetStylizedIK(int pid) { return m_SIKs[pid]; }
-		const StylizedChainIK& GetStylizedIK(int pid) const { return m_SIKs[pid]; }
+		StylizedChainIK& GetStylizedIK(int pid) { return *m_SIKs[pid]; }
+		const StylizedChainIK& GetStylizedIK(int pid) const { return *m_SIKs[pid]; }
 
 		CharacterClipinfo& GetUnitedClipinfo() { return m_cpxClipinfo; }
 		const CharacterClipinfo& GetUnitedClipinfo() const { return m_cpxClipinfo; }
 	protected:
 		// Cache frame for character
 		mutable
-		ArmatureFrame										m_charaFrame;
+		ArmatureFrame											m_charaFrame;
+		ShrinkedArmature										m_charaParts;
 		CharacterObject*										m_pCharacter;
 		std::vector<CharacterClipinfo>							m_Clipinfos;
 
 		// A Clipinfo which encapture all frames from clips
 		CharacterClipinfo										m_cpxClipinfo;
-		std::vector<StylizedChainIK>							m_SIKs;
+		std::vector<uptr<StylizedChainIK>>						m_SIKs;
 
 		mutable
 		std::mutex												m_bindMutex;

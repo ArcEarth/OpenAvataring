@@ -1,19 +1,21 @@
-#include "pch_bcl.h"
+#include "pch.h"
 #include "ClipMetric.h"
-#include <algorithm>
-#include <ppl.h>
 #include "CCA.h"
-#include "Settings.h"
-#include "EigenExtension.h"
 #include "ArmaturePartFeatures.h"
-#include <unsupported\Eigen\fft>
+
+//#include <unsupported\Eigen\fft>
+#include "EigenExtension.h"
 
 #define FFTW
-
 #ifdef FFTW
 #include <fftw3.h>
 #pragma comment(lib, "libfftw3f-3.lib")
 #endif
+
+#include <algorithm>
+#include <ppl.h>
+
+#include "Causality\Settings.h"
 
 #ifdef _DEBUG
 #define DEBUGOUT(x) std::cout << #x << " = " << x << std::endl
@@ -32,15 +34,15 @@ typedef
 	Weighted<
 	RelativeDeformation <
 	AllJoints <
-		LclRotLnQuatFeature > > >
+	LclRotLnQuatFeature> > >
 	CharacterJRSFeature;
 
 typedef
-//ArmaturePartFeatures::WithVelocity<
-	NormalizeVelocity<
-	Localize<
+	WithVelocity<
+	//NormalizeVelocity<
+	//Localize<
 	EndEffector<
-		GblPosFeature >>>
+		GblPosFeature >>//>
 	PVSFeatureVel;
 
 typedef
@@ -96,7 +98,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 	PvFacade.Prepare(parts, -1, ClipFacade::ComputeAll);
 }
 
-void CharacterClipinfo::AnalyzeSequence(gsl::array_view<ArmatureFrame> frames, double sequenceTime)
+void CharacterClipinfo::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime)
 {
 	RcFacade.AnalyzeSequence(frames, sequenceTime);
 	PvFacade.AnalyzeSequence(frames, sequenceTime);
@@ -178,9 +180,9 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 
 	m_buffer.setZero(m_bufferWidth, m_bufferCapacity);
 	m_Spectrum.setZero(m_bufferWidth, m_windowSize);
-	m_SmoothedBuffer.resize(m_windowSize, m_frameWidth);
+	m_SmoothedBuffer.setZero(m_windowSize, m_frameWidth);
 
-	m_cropMargin = m_sampleRate * 0.1; // 0.1s of frames as margin
+	m_cropMargin = m_sampleRate * 0.5; // 0.1s of frames as margin
 	m_cyclicDtcThr = g_RevampActiveSupportThreshold;
 
 	int n = m_windowSize;
@@ -324,11 +326,11 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 	{
 		// Critial section, copy data from buffer and transpose in Column Major
 		std::lock_guard<std::mutex> guard(m_bfMutex);
-		Xs = m_buffer.block(0, head, m_frameWidth, inputLength).transpose();
+		Xs = m_buffer.block(0, head + m_windowSize - inputLength, m_frameWidth, inputLength).transpose();
 	}
 
 	// Smooth the input 
-	laplacianSmooth(Xs, smoothStrength, smoothIteration, Eigen::CloseLoop);
+	laplacianSmooth(Xs, smoothStrength, smoothIteration, Eigen::OpenLoop);
 
 	//! To-do , use better method to crop out the "example" single period
 
@@ -466,7 +468,7 @@ void ClipFacade::SetComputationFlags(int flags)
 	m_flag = flags;
 }
 
-void ClipFacade::AnalyzeSequence(gsl::array_view<ArmatureFrame> frames, double sequenceTime)
+void ClipFacade::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime)
 {
 	assert(m_pParts != nullptr);
 
@@ -478,7 +480,7 @@ void ClipFacade::AnalyzeSequence(gsl::array_view<ArmatureFrame> frames, double s
 	CaculatePartsMetric();
 }
 
-void ClipFacade::SetFeatureMatrix(gsl::array_view<ArmatureFrame> frames, double duration, bool cyclic)
+void ClipFacade::SetFeatureMatrix(array_view<ArmatureFrame> frames, double duration, bool cyclic)
 {
 	assert(m_pParts != nullptr && m_flag != NotInitialize);
 

@@ -2,6 +2,11 @@
 #include "VisualObject.h"
 #include "Models.h"
 
+namespace DirectX
+{
+	class SkydomeEffect;
+}
+
 namespace Causality
 {
 	class SkyDome : virtual public SceneObject, virtual public IVisual
@@ -12,7 +17,7 @@ namespace Causality
 
 		virtual void Parse(const ParamArchive* store) override;
 
-		void CreateDeviceResource(ID3D11Device* device, DirectX::EnvironmentMapEffect * pEffect);
+		void CreateDeviceResource(ID3D11Device* device, DirectX::SkydomeEffect* pEffect);
 		void SetTexture(DirectX::Texture& texture);
 
 		// Inherited via IVisual
@@ -25,9 +30,9 @@ namespace Causality
 		// Inherited via IVisual
 		virtual RenderFlags GetRenderFlags() const override;
 	private:
-		std::shared_ptr<MeshBuffer>		m_pSphere;
+		std::shared_ptr<MeshBuffer>						m_pSphere;
 		// This texture must be a cube texture
 		DirectX::Texture								m_Texture;
-		DirectX::EnvironmentMapEffect*					m_pEffect;
+		DirectX::SkydomeEffect*							m_pEffect;
 	};
 }

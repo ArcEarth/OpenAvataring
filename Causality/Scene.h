@@ -49,6 +49,20 @@ namespace Causality
 	};
 
 	using std::vector;
+
+	namespace Internal
+	{
+		XM_ALIGNATTR
+		struct LightParam
+		{
+			XMVECTOR color;
+			XMVECTOR direction;
+			XMMATRIX view;
+			XMMATRIX proj;
+			float	 bias;
+			ID3D11ShaderResourceView* shadow;
+		};
+	}
 	// A Scene is a collection of it's contents, interactive logic, 
 	class Scene : public IScene
 	{
@@ -125,7 +139,7 @@ namespace Causality
 		vector<IEffect*>&		GetEffects();
 
 		void SetupEffectsViewProject(IEffect* pEffect, const DirectX::XMMATRIX &v, const DirectX::XMMATRIX &p);
-		void SetupEffectsLights(IEffect* pEffect);
+		void SetupEffectLight(IEffect * &pEff, const DirectX::XMVECTOR &ambient, Internal::LightParam* Lps);
 
 		void UpdateRenderViewCache();
 

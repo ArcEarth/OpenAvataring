@@ -4,9 +4,9 @@
 
 namespace Causality
 {
-	using gsl::owner;
+	//using gsl::owner;
 	using gsl::byte;
-	using gsl::not_null;
+	//using gsl::not_null;
 	using std::string;
 	using std::wstring;
 	using gsl::span;

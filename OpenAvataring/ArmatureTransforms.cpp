@@ -1,14 +1,16 @@
-#include "pch_bcl.h"
+#include "pch.h"
+
 #include "ArmatureTransforms.h"
-#include <iostream>
-#include "Settings.h"
-#include <PrimitiveVisualizer.h>
 #include "CharacterController.h"
 #include "EigenExtension.h"
-#include "CharacterObject.h"
 
 #include <set>
 #include <random>
+#include <iostream>
+
+#include <PrimitiveVisualizer.h>
+#include <Causality\CharacterObject.h>
+#include <Causality\Settings.h>
 
 
 using namespace std;
@@ -329,6 +331,10 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 {
 	using namespace DirectX;
 	using namespace Eigen;
+
+	DirectX::Quaternion baseRot;
+	if (block.Joints.front()->ParentID >= 0)
+		frame[block.Joints.front()->ParentID].GblRotation;
 	if (block.ActiveActions.size() > 0)
 	{
 		RowVectorXf Y(CharacterFeatureType::Dimension * block.Joints.size());
@@ -353,8 +359,8 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 				auto dX = feature.cast<double>().eval();
 				auto& sik = m_pController->GetStylizedIK(block.Index);
 				auto& gpr = sik.Gplvm();
-				sik.SetBaseRotation(frame[block.parent()->Joints.back()->ID].GblRotation);
-				dY = sik.Apply(dX.segment<3>(0).transpose().eval(), dX.segment<3>(3).transpose().eval());
+				//sik.setBaseRotation(frame[block.parent()->Joints.back()->ID].GblRotation);
+				dY = sik.apply(dX.segment<3>(0).transpose().eval(), dX.segment<3>(3).transpose().eval(), baseRot).cast<double>();
 			}
 			double likilyhood = 1.0;
 
@@ -458,6 +464,8 @@ void PartilizedTransformer::Transform(frame_view target_frame, const_frame_view 
 	m_trackerFrame = target_frame;
 	VectorXd actPartsEnergy(cparts.size());
 	actPartsEnergy.setOnes();
+	actPartsEnergy *= g_DynamicTraderKeyEnergy;
+
 	//cout << frame_time << '|';
 	for (auto& ctrl : this->ActiveParts)
 	{
@@ -508,7 +516,7 @@ void PartilizedTransformer::Transform(frame_view target_frame, const_frame_view 
 	actPartsEnergy = actPartsEnergy.cwiseMax(.0).cwiseMin(1.0);
 
 	if (m_useTracker && m_pTrackerFeature)
-		BlendFrame(*m_pTrackerFeature, *m_cParts, target_frame, { actPartsEnergy.data(),(size_t)actPartsEnergy.size() }, m_ikDrivedFrame, m_trackerFrame);
+		BlendFrame(*m_pTrackerFeature, *m_cParts, target_frame, array_view<double>(actPartsEnergy.data(),actPartsEnergy.size()), m_ikDrivedFrame, m_trackerFrame);
 	else
 	{
 		target_frame = m_ikDrivedFrame;
@@ -559,17 +567,17 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 	auto& joints = cpart.Joints;
 
 	auto baseRot = target_frame[cpart.parent()->Joints.back()->ID].GblRotation;
-	sik.SetBaseRotation(baseRot);
-	sik.SetChain(cpart.Joints, target_frame);
+	//sik.SetBaseRotation(baseRot);
+	sik.setChain(cpart.Joints, target_frame);
 
 	Xd = xf.cast<double>();
 	if (!computeVelocity)
-		Y = sik.Apply(Xd.transpose());
+		Y = sik.apply(Xd.transpose(), baseRot).cast<double>();
 	else
 	{
 		assert(xf.size() % 2 == 0);
 		auto pvDim = xf.size() / 2;
-		Y = sik.Apply(Xd.segment(0, pvDim).transpose(), Vector3d(Xd.segment(pvDim, pvDim).transpose()));
+		Y = sik.apply(Xd.segment(0, pvDim).transpose(), Vector3d(Xd.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
 	}
 
 	m_pActiveF->Set(cpart, target_frame, Y.cast<float>());
@@ -1021,7 +1029,7 @@ void CharacterActionTracker::Reset()
 	m_dt = m_Animation.Duration.count() / tchuck;
 	auto dt = m_dt;
 
-	RowVector3f v;
+	RowVector3d v;
 	m_sample.resize(tchuck * schunck * vchunck, 3 + 1);
 	auto stdevS = sqrt(m_varS);
 	auto stdevV = sqrt(m_varVt);

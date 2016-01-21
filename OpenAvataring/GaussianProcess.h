@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen\Dense>
+#include <limits>
 
 namespace Causality
 {
@@ -15,7 +16,7 @@ namespace Causality
 		typedef Eigen::RowVectorXd RowVectorType;
 		typedef Eigen::VectorXd	ColVectorType;
 		static constexpr double epsilon() {
-			return 1e-7;
+			return std::numeric_limits<double>::epsilon();
 		};
 
 		MatrixType X;

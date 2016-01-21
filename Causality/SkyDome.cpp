@@ -4,6 +4,7 @@
 #include <PrimitiveVisualizer.h>
 #include "AssetDictionary.h"
 #include "Scene.h"
+#include <SkyDomeEffect.h>
 
 using namespace Causality;
 using namespace DirectX;
@@ -31,9 +32,15 @@ void SkyDome::Parse(const ParamArchive * store)
 	GetParam(store, "background", bg);
 
 	auto& m_assets = Scene->Assets();
-	auto pEffect = m_assets.GetEffect("default_environment");
+	
+	auto pEffect = m_assets.GetEffect("skydome_effect");
+	auto pSeffect = dynamic_cast<DirectX::SkydomeEffect*>(pEffect);
 
-	CreateDeviceResource(m_assets.GetRenderDevice(), dynamic_cast<DirectX::EnvironmentMapEffect*>(pEffect));
+	CreateDeviceResource(m_assets.GetRenderDevice(), pSeffect);
+	if (m_pEffect)
+	{
+		m_assets.AddEffect("skydome_effect", m_pEffect);
+	}
 
 	if (bg[0] == '{')
 	{
@@ -46,9 +53,15 @@ void SkyDome::Parse(const ParamArchive * store)
 	}
 }
 
-void SkyDome::CreateDeviceResource(ID3D11Device * device, DirectX::EnvironmentMapEffect * pEffect)
+void SkyDome::CreateDeviceResource(ID3D11Device * device, DirectX::SkydomeEffect * pEffect)
 {
 	m_pSphere = DirectX::Scene::GeometricPrimtives::CreateSphere(device, 1.0f, 16, true, true);
+
+	if (pEffect == nullptr)
+	{
+		pEffect = new SkydomeEffect(device);
+	}
+
 	m_pSphere->CreateInputLayout(device, pEffect);
 	m_pEffect = pEffect;
 }
@@ -69,13 +82,8 @@ bool SkyDome::IsVisible(const DirectX::BoundingGeometry & viewFrustum) const
 void SkyDome::Render(IRenderContext * context, DirectX::IEffect * pEffect)
 {
 	auto pStates = Visualizers::g_PrimitiveDrawer.GetStates();
-	m_pEffect->SetTexture(NULL);
+	m_pEffect->SetEnviromentMap(m_Texture.ShaderResourceView());
 	m_pEffect->SetWorld(XMMatrixIdentity());
-	m_pEffect->SetEnvironmentMap(m_Texture.ShaderResourceView());
-	m_pEffect->SetEnvironmentMapAmount(0.5f);
-	m_pEffect->SetDiffuseColor(DirectX::Colors::White.v);
-	m_pEffect->SetAmbientLightColor(DirectX::Colors::Azure.v);
-	m_pEffect->SetFresnelFactor(0.0f);
 	m_pEffect->Apply(context);
 
 	ComPtr<ID3D11DepthStencilState> pFomerState;

@@ -21,7 +21,7 @@ PhongMaterial::PhongMaterial()
 }
 
 PhongMaterial::PhongMaterial(const PhongMaterialData & data, const std::wstring & lookupDirectory, ID3D11Device * pDevice)
-	: PhongMaterialData(data)
+	: PhongMaterialData(data) , pDefaultRequestEffect(nullptr)
 {
 	path lookup(lookupDirectory);
 	if (!AmbientMapName.empty())
