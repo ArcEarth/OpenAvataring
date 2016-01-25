@@ -207,9 +207,11 @@ namespace Causality
 		const IArmature	*m_sArmature, *m_tArmature;
 	};
 
-	template <typename FrameType>
+	template <typename _FrameType>
 	class IStreamAnimation abstract
 	{
+	public:
+		typedef _FrameType FrameType;
 		// Advance the stream by 1 
 		virtual bool ReadNextFrame() = 0;
 
@@ -224,6 +226,8 @@ namespace Causality
 
 		// Peek the current frame head
 		virtual const FrameType& PeekFrame() const = 0;
+
+		virtual bool IsAvailable() const = 0;
 	};
 
 	class IArmatureStreamAnimation : public IStreamAnimation<ArmatureFrame>

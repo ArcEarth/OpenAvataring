@@ -922,6 +922,7 @@ MatrixXf CharacterController::GenerateXapv(const std::vector<int> &activeParts)
 void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::XMLElement * settings)
 {
 	auto pid = part.Index;
+	auto parentid = part.parent()->Index;
 	auto& aactions = part.ActiveActions;
 	auto& joints = part.Joints;
 	auto& allClipinfo = m_cpxClipinfo;
@@ -932,8 +933,11 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 	if (rcFacade.GetPartPcaDim(pid) == -1)
 		rcFacade.CaculatePartPcaQr(pid);
 
-	auto& X = rcFacade.GetPartPcadSequence(pid);
-	auto& Pv = pvFacade.GetPartSequence(pid);
+	// Prepare the local transform pair
+	auto X = rcFacade.GetPartPcadSequence(pid);
+	auto PartPv = pvFacade.GetPartSequence(pid);
+	auto ParentPv = pvFacade.GetPartSequence(parentid);
+	MatrixXf Pv = PartPv - ParentPv;
 
 	//? To-do Select Active Rows from allClipFacade
 

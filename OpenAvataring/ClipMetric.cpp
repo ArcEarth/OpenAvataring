@@ -30,37 +30,40 @@ using namespace Eigen;
 using namespace ArmaturePartFeatures;
 using namespace BoneFeatures;
 
+const static double g_Gravity = 9.8;
+
 typedef
-	Weighted<
+Weighted<
 	RelativeDeformation <
 	AllJoints <
 	LclRotLnQuatFeature> > >
 	CharacterJRSFeature;
 
 typedef
-	WithVelocity<
+WithVelocity<
 	//NormalizeVelocity<
 	//Localize<
-	EndEffector<
-		GblPosFeature >>//>
+	EndEffector <
+	GblPosFeature >>//>
 	PVSFeatureVel;
 
 typedef
-	Localize <
-	EndEffector <
-	GblPosFeature >>
+//Localize <
+EndEffector <
+	GblPosFeature >//>
 	PVSFeature;
 
 
 typedef PVSFeature PartsFeatureType;
 
-void Causality::CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold) {
+void CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold) {
 	m_enableCyclicDtc = is_enable;
 	m_cyclicDtcThr = cyclicSupportThrehold;
 }
 
 void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 {
+	std::lock_guard<std::mutex> guard(m_facadeMutex);
 	ClipFacade::SetFeature(m_pFeature);
 	ClipFacade::SetActiveEnergy(g_PlayerActiveEnergy, g_PlayerSubactiveEnergy);
 	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif);
@@ -85,7 +88,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 	if (g_UseVelocity)
 	{
 		auto pPvF = std::make_shared<PVSFeatureVel>();
-		pPvF->SetVelocityThreshold(g_VelocityNormalizeThreshold);
+		//pPvF->SetVelocityThreshold(g_VelocityNormalizeThreshold);
 		PvFacade.SetFeature(pPvF);
 	}
 	else
@@ -94,7 +97,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 		PvFacade.SetFeature(pPvF);
 	}
 
-	RcFacade.Prepare(parts, -1, ClipFacade::ComputePca | ClipFacade::ComputeStaticEnergy);
+	RcFacade.Prepare(parts, -1, ClipFacade::ComputePca);
 	PvFacade.Prepare(parts, -1, ClipFacade::ComputeAll);
 }
 
@@ -149,6 +152,8 @@ void CyclicStreamClipinfo::Initialize(ShrinkedArmature& parts, time_seconds minT
 
 void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames)
 {
+	std::lock_guard<std::mutex> guard(m_bfMutex);
+
 	m_pParts = &parts;
 	m_pFeature = make_shared<PartsFeatureType>();
 
@@ -172,7 +177,7 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 
 	// make sure each row/column in buffer is aligned as __mm128 for SIMD
 	const int alignBoundry = alignof(__m128) / sizeof(float);
-	m_bufferWidth = ((m_frameWidth-1) / alignBoundry + 1) * alignBoundry;
+	m_bufferWidth = ((m_frameWidth - 1) / alignBoundry + 1) * alignBoundry;
 	assert(m_bufferWidth >= m_frameWidth);
 
 	// this 4 is just some majical constant that large enough to avaiod frequent data moving
@@ -195,6 +200,8 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 
 	m_fftplan = plan;
 #endif
+
+	m_bufferHead = m_bufferSize = m_frameCounter = 0;
 }
 
 bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
@@ -202,12 +209,18 @@ bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 	using namespace Eigen;
 	using namespace DirectX;
 
+	assert(
+		XMVector3InBounds(
+			frame[m_pParts->Armature().root()->ID].GblTranslation,
+			XMVectorSplatEpsilon())
+		&& "frame must be localized to root");
+
 	if (m_bufferSize < m_windowSize)
 		++m_bufferSize;
 	else if (m_bufferSize >= m_windowSize)
 	{
 		++m_bufferHead;
-		
+
 		if (m_bufferHead + m_bufferSize >= m_bufferCapacity)
 		{
 			// unique_lock
@@ -242,13 +255,13 @@ bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 	return false;
 }
 
-void Causality::CyclicStreamClipinfo::ResetStream()
+void CyclicStreamClipinfo::ResetStream()
 {
 	std::lock_guard<std::mutex> guard(m_bfMutex);
 	m_bufferHead = m_bufferSize = m_frameCounter = 0;
 }
 
-std::mutex & Causality::CyclicStreamClipinfo::AqucireFacadeMutex()
+std::mutex & CyclicStreamClipinfo::AqucireFacadeMutex()
 {
 	return m_facadeMutex;
 }
@@ -265,8 +278,8 @@ bool CyclicStreamClipinfo::AnaylzeRecentStream()
 
 	if (fr.Support > m_cyclicDtcThr)
 	{
-		if (m_facadeMutex.try_lock()){
-			lock_guard<mutex> guard(m_facadeMutex,std::adopt_lock);
+		if (m_facadeMutex.try_lock()) {
+			lock_guard<mutex> guard(m_facadeMutex, std::adopt_lock);
 
 			auto& X = ClipFacade::SetFeatureMatrix();
 			float Tseconds = 1 / fr.Frequency;
@@ -319,7 +332,7 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 	auto T = inputPeriod;
 
 	int inputLength = T + m_cropMargin * 2;
-	assert(inputLength< m_bufferSize);
+	assert(inputLength < m_bufferSize);
 	// copy the buffer
 	auto Xs = m_SmoothedBuffer.topRows(inputLength);
 
@@ -334,7 +347,7 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 
 	//! To-do , use better method to crop out the "example" single period
 
-	if (X.rows() != resampledPeriod) 
+	if (X.rows() != resampledPeriod)
 		X.resize(resampledPeriod, m_frameWidth);
 	// Resample input into X
 	cublicBezierResample(X,
@@ -387,6 +400,7 @@ ClipFacade::ClipFacade()
 {
 	m_pParts = nullptr;
 	m_flag = NotInitialize;
+	m_energyTerms = Ek_SampleVarience;
 	m_pairInfoLevl = NonePair;
 	m_dimP = -1;
 	m_pdFix = false;
@@ -401,7 +415,34 @@ ClipFacade::~ClipFacade()
 
 }
 
-void Causality::ClipFacade::SetActiveEnergy(float active, float subActive) { m_ActiveEnergyThreshold = active; m_SubactiveEnergyThreshold = subActive; }
+void ClipFacade::SetActiveEnergy(float active, float subActive) {
+	m_ActiveEnergyThreshold = active; m_SubactiveEnergyThreshold = subActive;
+}
+
+void ClipFacade::SetGravityReference(ArmatureFrameConstView frame)
+{
+	auto& parts = *m_pParts;
+	int stIdx = 0;
+	for (int i = 0; i < parts.size(); i++)
+	{
+		auto& part = *parts[i];
+		auto bv = m_pFeature->Get(part, frame);
+		int dim = m_pFeature->GetDimension(*parts[i]);
+		m_refX.segment(stIdx, dim) = bv.transpose();
+		stIdx += dim;
+	}
+
+	// Automatic gravity mask
+	if (GetAllPartDimension() == 3 && m_energyTerms & Ep_AbsGravity)
+	{
+		m_Gmask = Vector3f(0.0, g_Gravity, 0.0).replicate(1, m_pParts->size()).transpose();
+	}
+}
+
+void ClipFacade::SetGravityMask(const Eigen::RowVectorXf gmask)
+{
+	m_Gmask = gmask;
+}
 
 void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int flag)
 {
@@ -421,7 +462,7 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 	if (m_flag & ComputePca)
 	{
 		m_Pcas.resize(parts.size());
-		m_PcaDims.setConstant(parts.size(),-1);
+		m_PcaDims.setConstant(parts.size(), -1);
 
 		if (m_flag & ComputePcaQr)
 			m_thickQrs.resize(parts.size());
@@ -429,6 +470,10 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 
 	m_partSt[0] = 0;
 	m_pdFix = true;
+
+	auto& dframe = parts.Armature().default_frame();
+	SetGravityReference(dframe);
+
 	for (int i = 0; i < parts.size(); i++)
 	{
 		m_partDim[i] = m_pFeature->GetDimension(*parts[i]);
@@ -449,6 +494,7 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 		m_X.resize(clipLength, fLength);
 		m_uX.resize(fLength);
 		m_cX.resizeLike(m_X);
+		m_dX.resizeLike(m_X);
 		if (m_flag & ComputeNormalize)
 			m_Xnor.resizeLike(m_X);
 	}
@@ -468,7 +514,7 @@ void ClipFacade::SetComputationFlags(int flags)
 	m_flag = flags;
 }
 
-void ClipFacade::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime)
+void ClipFacade::AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime)
 {
 	assert(m_pParts != nullptr);
 
@@ -480,7 +526,7 @@ void ClipFacade::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequen
 	CaculatePartsMetric();
 }
 
-void ClipFacade::SetFeatureMatrix(array_view<ArmatureFrame> frames, double duration, bool cyclic)
+void ClipFacade::SetFeatureMatrix(array_view<const ArmatureFrame> frames, double duration, bool cyclic)
 {
 	assert(m_pParts != nullptr && m_flag != NotInitialize);
 
@@ -495,7 +541,7 @@ void ClipFacade::SetFeatureMatrix(array_view<ArmatureFrame> frames, double durat
 	m_X.resize(frames.size(), fLength);
 	for (int f = 0; f < frames.size(); f++)
 	{
-		auto& lastFrame = frames[f>0?f-1:frames.size()-1];
+		auto& lastFrame = frames[f > 0 ? f - 1 : frames.size() - 1];
 		auto& frame = frames[f];
 		for (int i = 0; i < parts.size(); i++)
 		{
@@ -524,21 +570,59 @@ void ClipFacade::CaculatePartsMetric()
 	m_Eb.resize(parts.size());
 	m_partDim.resize(parts.size());
 	m_partSt.resize(parts.size());
-
 	m_Pcas.resize(parts.size());
 	m_thickQrs.resize(parts.size());
+
+	// Caculate Numberical difference of X 
+	double frametime = m_clipTime / (double)m_X.rows();
+	int N = m_X.rows();
+	m_dX.resizeLike(m_X);
+	m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - m_step) - m_X.bottomRows(m_dX.rows() - m_step)) / (2 * (double)m_step * frametime);
+
+	if (!m_isClose) // Open Loop case
+	{
+		for (int d = 1; d < m_step; d++)
+		{
+			int i = d;
+			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+			i = N - d - 1;
+			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+		}
+		m_dX.row(0) = (m_X.row(0) - m_X.row(1)) / frametime;
+		m_dX.row(N - 1) = (m_X.row(N - 2) - m_X.row(N - 1)) / frametime;
+	}
+	else // Close Loop case
+	{
+		m_dX.topRows(m_step) = (m_X.bottomRows(m_step) - m_X.middleRows(m_step, m_step)) / (2 * (double)m_step * frametime);;
+		m_dX.bottomRows(m_step) = (m_X.middleRows(N-m_step*2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
+	}
+
 
 	for (int i = 0; i < parts.size(); i++)
 	{
 
-		m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose();
-		m_Eb[i] = m_Edim[i].sum();
+		if (m_energyTerms & Ek_SampleVarience)
+		{
+			m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose();
+			m_Eb[i] = m_Edim[i].sum();
+		}
+		else if (m_energyTerms & Ek_TimeDiveritive)
+		{
+			auto cols = m_cX.middleCols(m_partSt[i], m_partDim[i]);
+			m_Edim[i] = m_dX.cwiseAbs2().colwise().sum().transpose();
+			m_Eb[i] = m_Edim[i].sum();
+		}
 
-		if (m_flag & ComputeStaticEnergy)
+		if (m_energyTerms & Ep_SampleMeanLength)
 			m_Eb[i] += m_uX.segment(m_partSt[i], m_partDim[i]).cwiseAbs2().sum();
+		else if (m_energyTerms & Ep_AbsGravity)
+			m_Eb[i] += ((m_uX.segment(m_partSt[i], m_partDim[i])
+					- m_refX.segment(m_partSt[i], m_partDim[i])).array()
+					* m_Gmask.segment(m_partSt[i], m_partDim[i]).array())
+					.cwiseAbs().sum();
 
-		m_Eb[i] = sqrtf(m_Eb[i]);
 		m_Edim[i] = m_Edim[i].array().sqrt();
+		m_Eb[i] = sqrtf(m_Eb[i]);
 
 		if (m_flag & ComputeNormalize)
 			m_Xnor.middleCols(m_partSt[i], m_partDim[i]).rowwise().normalize();
@@ -575,7 +659,7 @@ void ClipFacade::CaculatePartsMetric()
 	m_inited = true;
 }
 
-void Causality::ClipFacade::CaculatePartPcaQr(int i)
+void ClipFacade::CaculatePartPcaQr(int i)
 {
 	auto& pca = m_Pcas[i];
 
@@ -601,16 +685,16 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 	float thrh = 0;
 	switch (level)
 	{
-	case Causality::ClipFacade::ActivePartPairs:
+	case ClipFacade::ActivePartPairs:
 		thrh = m_ActiveEnergyThreshold;
 		break;
-	case Causality::ClipFacade::SubactivePartPairs:
+	case ClipFacade::SubactivePartPairs:
 		thrh = m_SubactiveEnergyThreshold;
 		break;
-	case Causality::ClipFacade::AllPartPairs:
+	case ClipFacade::AllPartPairs:
 		thrh = 0;
 		break;
-	case Causality::ClipFacade::NonePair:
+	case ClipFacade::NonePair:
 	default:
 		return;
 	}
@@ -621,9 +705,11 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 	for (int i = 0; i < parts.size(); i++)
 	{
 		if (m_Eb[i] < thrh) continue;
-		for (int j = i+1; j < parts.size(); j++)
+		for (int j = i + 1; j < parts.size(); j++)
 		{
-			if (m_Eb[j] < thrh) continue;
+			// Always caculate the metric of a part to its parent
+			if ((parts[j]->parent()->Index != i) && (m_Eb[j] < thrh))
+				continue;
 
 			Xij = GetPartsDifferenceSequence(i, j);
 			uXij = Xij.colwise().mean();
@@ -631,7 +717,7 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 
 			auto covij = m_difCov.block(i*m_dimP, j*m_dimP, m_dimP, m_dimP);
 
-			Xij -= uXij.replicate(Xij.rows(),1);
+			Xij -= uXij.replicate(Xij.rows(), 1);
 			covij.noalias() = Xij.transpose() * Xij;
 
 			// mean is aniti-symetric, covarience is symetric

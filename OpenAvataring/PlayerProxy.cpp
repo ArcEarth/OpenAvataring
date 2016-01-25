@@ -21,6 +21,7 @@
 #include "ArmatureTransforms.h"
 #include "Cca.h"
 #include "EigenExtension.h"
+
 #include "Causality\Scene.h"
 #include "Causality\Settings.h"
 #include "Causality\CameraObject.h"
@@ -52,8 +53,8 @@ std::map<string, string> g_DebugLocalMotionAction;
 bool					 g_DebugLocalMotion = false;
 
 static const DirectX::XMVECTORF32 HumanBoneColors[JointType_Count] = {
-	{ 0.0f,0.0f,0.0f,0.0f }, //JointType_SpineBase = 0,
-	{ 0.0f,0.0f,0.0f,0.0f },//JointType_SpineMid = 1,
+	{ 0.0f,0.0f,0.0f,0.0f },//JointType_SpineBase = 0,
+	{ 0.4f,0.4f,0.1f,0.0f },//JointType_SpineMid = 1,
 	{ 0.9f,0.3f,0.9f,1.0f },//JointType_Neck = 2,
 	{ 0.9f,0.3f,0.9f,1.0f },//JointType_Head = 3,
 	{ 0.9f,0.3f,0.3f,1.0f },//JointType_ShoulderLeft = 4,
@@ -80,6 +81,7 @@ static const DirectX::XMVECTORF32 HumanBoneColors[JointType_Count] = {
 	//JointType_Count = (JointType_ThumbRight + 1)
 };
 
+/*
 pair<JointType, JointType> XFeaturePairs[] = {
 	{ JointType_SpineBase, JointType_SpineShoulder },
 	{ JointType_SpineShoulder, JointType_Head },
@@ -114,7 +116,7 @@ JointType KeyJoints[] = {
 	JointType_KneeRight,		//14
 	JointType_AnkleRight,		//15
 };
-
+*/
 float BoneRadius[JointType_Count] = {
 };
 
@@ -124,7 +126,7 @@ float BoneRadius[JointType_Count] = {
 void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const CharacterController& controller);
 
 // Player Proxy methods
-void PlayerProxy::StreamPlayerFrame(const TrackedBody& body, const TrackedBody::FrameType& frame)
+void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const IArmatureStreamAnimation::FrameType& frame)
 {
 	using namespace Eigen;
 	using namespace DirectX;
@@ -150,9 +152,18 @@ void PlayerProxy::StreamPlayerFrame(const TrackedBody& body, const TrackedBody::
 
 }
 
-void PlayerProxy::ResetPlayer(TrackedBody * pOld, TrackedBody * pNew)
+void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAnimation * pNew)
 {
+	if (!pOld)
+		StopUpdateThread();
+
 	m_CyclicInfo.ResetStream();
+
+	if (!pOld || &pNew->GetArmature() != &pOld->GetArmature())
+	{
+		ResetPlayerArmature(&pNew->GetArmature());
+	}
+
 	m_CyclicInfo.EnableCyclicMotionDetection(true);
 	m_updateTime = 0;
 	m_updateCounter = 0;
@@ -160,8 +171,16 @@ void PlayerProxy::ResetPlayer(TrackedBody * pOld, TrackedBody * pNew)
 
 	if (pNew != nullptr)
 		StartUpdateThread();
-	else
-		StopUpdateThread();
+}
+
+void PlayerProxy::ResetPlayerArmature(const IArmature* playerArmature)
+{
+	if (m_pPlayerArmature == playerArmature) 
+		return;
+	m_pPlayerArmature = playerArmature;
+	InitializeShrinkedPlayerArmature();
+	m_CyclicInfo.Initialize(*m_pParts, time_seconds(0.5), time_seconds(3), 30, 0);
+
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Joint& joint)
@@ -192,7 +211,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<T> &vec)
 
 PlayerProxy::PlayerProxy()
 	: m_IsInitialized(false),
-	m_playerSelector(nullptr),
+	m_pSelector(nullptr),
 	m_CurrentIdx(-1),
 	current_time(0),
 	m_mapTaskOnGoing(false),
@@ -202,8 +221,13 @@ PlayerProxy::PlayerProxy()
 	m_updateTime(0),
 	m_pParts(new ShrinkedArmature())
 {
-	m_pKinect = Devices::KinectSensor::GetForCurrentView();
-	m_pPlayerArmature = &m_pKinect->Armature();
+	Register();
+	m_stopUpdate = true;
+	m_IsInitialized = true;
+}
+
+void PlayerProxy::InitializeShrinkedPlayerArmature()
+{
 	if (m_pParts->empty())
 	{
 		m_pParts->SetArmature(*m_pPlayerArmature);
@@ -224,22 +248,6 @@ PlayerProxy::PlayerProxy()
 			}
 		}
 	}
-
-	m_CyclicInfo.Initialize(*m_pParts, time_seconds(0.5), time_seconds(3), 30, 0);
-	m_CyclicInfo.EnableCyclicMotionDetection(true);
-
-	auto fReset = std::bind(&PlayerProxy::ResetPlayer, this, placeholders::_1, placeholders::_2);
-	m_playerSelector.SetPlayerChangeCallback(fReset);
-
-	auto fFrame = std::bind(&PlayerProxy::StreamPlayerFrame, this, placeholders::_1, placeholders::_2);
-	m_playerSelector.SetFrameCallback(fFrame);
-
-	m_playerSelector.Initialize(m_pKinect.get(), TrackedBodySelector::SelectionMode::Closest);
-	Register();
-	m_stopUpdate = true;
-	m_IsInitialized = true;
-
-	m_pKinect->Start();
 }
 
 void PlayerProxy::StartUpdateThread()
@@ -296,6 +304,31 @@ void PlayerProxy::AddChild(SceneObject* pChild)
 			glow->SetEnabled(false);
 			pChara->AddChild(glow);
 		}
+	}
+}
+
+void PlayerProxy::Parse(const ParamArchive * store)
+{
+	auto sel = GetFirstChildArchive(store, "player_controller.selector");
+	sel = GetFirstChildArchive(sel);
+	string name = GetArchiveName(sel);
+	if (name == "kinect_player_selector")
+	{
+		auto pKinect = Devices::KinectSensor::GetForCurrentView();
+		KinectPlayerSelector::SelectionMode mode;
+		unsigned umode = KinectPlayerSelector::ClosestStickly;
+		GetParam(sel, "mode", umode);
+		mode = (KinectPlayerSelector::SelectionMode)umode;
+		m_pSelector = make_shared<KinectPlayerSelector>(pKinect.get(), mode);
+		pKinect->Start();
+	}
+	else if (name == "leap_selector")
+	{
+
+	}
+	else if (name == "virutal_character_selector")
+	{
+
 	}
 }
 
@@ -429,8 +462,9 @@ void PlayerProxy::SetActiveController(int idx)
 				SetGlowBoneColor(glow, *m_pParts, controller);
 			}
 
-			assert(m_playerSelector);
-			auto& frame = m_playerSelector->PeekFrame();
+			assert(m_pSelector && m_pSelector->Get());
+			auto &player = *m_pSelector->Get();
+			auto& frame = player.PeekFrame();
 			auto pose = frame[m_pPlayerArmature->root()->ID];
 			controller.SetReferenceSourcePose(pose);
 
@@ -459,15 +493,9 @@ void PlayerProxy::SetActiveController(int idx)
 	//	StopUpdateThread();
 }
 
-void CreateControlBinding(CharacterController & controller, const InputClipInfo& iclip);
-
-void SetIdentity(Causality::PcaCcaMap & map, const Eigen::Index &rank);
-
-float max_cols_assignment(Eigen::MatrixXf & A, Eigen::MatrixXf & Scor, std::vector<ptrdiff_t> &matching);
-
 int PlayerProxy::MapCharacterByLatestMotion()
 {
-	auto& player = *m_playerSelector;
+	auto& player = *m_pSelector->Get();
 
 	CharacterController* pControl = nullptr;
 	{
@@ -494,43 +522,8 @@ int PlayerProxy::MapCharacterByLatestMotion()
 	return pControl->ID;
 }
 
-float max_cols_assignment(Eigen::MatrixXf & A, Eigen::MatrixXf & Scor, std::vector<ptrdiff_t> &matching)
-{
-	VectorXf XScore(A.rows());
-	VectorXi XCount(A.rows());
-	XCount.setZero();
-	XScore.setZero();
-	for (int k = 0; k < A.cols(); k++)
-	{
-		DenseIndex jx;
-		Scor.col(k).maxCoeff(&jx);
-		auto score = A(jx, k);
-		if (score < g_MatchAccepetanceThreshold) // Reject the match if it's less than a threshold
-			matching[k] = -1;
-		else
-		{
-			matching[k] = jx;
-			XScore(jx) += score;
-			++XCount(jx);
-		}
-	}
-	//XScore.array() /= XCount.array().cast<float>();
-	return XScore.sum();
-}
 
-void SetIdentity(Causality::PcaCcaMap & map, const Eigen::Index &rank)
-{
-	map.A.setIdentity(rank, rank);
-	map.B.setIdentity(rank, rank);
-	map.uX.setZero(rank);
-	map.uY.setZero(rank);
-	map.uXpca.setZero(rank);
-	map.uYpca.setZero(rank);
-	map.pcX.setIdentity(rank, rank);
-	map.pcY.setIdentity(rank, rank);
-	map.useInvB = true;
-	map.invB.setIdentity(rank, rank);
-}
+
 
 bool PlayerProxy::IsMapped() const { return m_CurrentIdx >= 0; }
 
@@ -653,12 +646,12 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 			controller.Character().EnabeAutoDisplacement(g_UsePersudoPhysicsWalk && controller.ID == m_CurrentIdx);
 		}
 	}
-	else if (e.Key == 'M')
-	{
-		g_MirrowInputX = !g_MirrowInputX;
-		cout << "Kinect Input Mirrowing = " << g_MirrowInputX << endl;
-		m_pKinect->EnableMirrowing(g_MirrowInputX);
-	}
+	//else if (e.Key == 'M')
+	//{
+	//	g_MirrowInputX = !g_MirrowInputX;
+	//	cout << "Kinect Input Mirrowing = " << g_MirrowInputX << endl;
+	//	m_pKinect->EnableMirrowing(g_MirrowInputX);
+	//}
 	else if (e.Key == VK_BACK)
 	{
 		m_CyclicInfo.ResetStream();
@@ -744,8 +737,8 @@ void PlayerProxy::UpdateThreadRuntime()
 	{
 		if (!(bool)m_newFrameAvaiable) continue;
 
-		auto& player = *m_playerSelector;
-		if (!m_playerSelector || !player.IsTracked() || !player.ReadLatestFrame())
+		auto& player = *m_pSelector->Get();
+		if (!m_pSelector->Get() || !player.IsAvailable() || !player.ReadLatestFrame())
 			return;
 
 		// Update time / frame
@@ -816,7 +809,7 @@ void PlayerProxy::Update(time_seconds const & time_delta)
 	}
 
 
-	if (IsMapped() && m_EnableOverShoulderCam && m_playerSelector->IsTracked())
+	if (IsMapped() && m_EnableOverShoulderCam && m_pSelector->Get() && m_pSelector->Get()->IsAvailable())
 		UpdatePrimaryCameraForTrack();
 
 	// no new frame is coming
@@ -1031,19 +1024,19 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		}
 	}
 
-	if (!m_playerSelector) return;
-	auto& player = *m_playerSelector;
+	if (!m_pSelector || !m_pSelector->Get()) return;
+	auto& player = *m_pSelector->Get();
 
 	Color color = DirectX::Colors::Yellow.v;
 
-	if (player.IsTracked())
+	if (player.IsAvailable())
 	{
 		const auto& frame = player.PeekFrame();
 
 		if (IsMapped())
 			color.A(0.3f);
 
-		DrawArmature(*player.BodyArmature, frame, reinterpret_cast<const Color*>(HumanBoneColors));
+		DrawArmature(player.GetArmature(), frame, reinterpret_cast<const Color*>(HumanBoneColors));
 	}
 
 	// IsMapped() && 
@@ -1067,6 +1060,14 @@ void XM_CALLCONV PlayerProxy::UpdateViewMatrix(DirectX::FXMMATRIX view, DirectX:
 {
 	DirectX::Visualizers::g_PrimitiveDrawer.SetView(view);
 	DirectX::Visualizers::g_PrimitiveDrawer.SetProjection(projection);
+}
+
+void PlayerProxy::SetPlayerSelector(const sptr<IPlayerSelector>& playerSelector) {
+	auto fReset = std::bind(&PlayerProxy::ResetPlayer, this, placeholders::_1, placeholders::_2);
+	m_pSelector->SetPlayerChangeCallback(fReset);
+
+	auto fFrame = std::bind(&PlayerProxy::StreamPlayerFrame, this, placeholders::_1, placeholders::_2);
+	m_pSelector->SetFrameCallback(fFrame);
 }
 
 KinectVisualizer::KinectVisualizer()

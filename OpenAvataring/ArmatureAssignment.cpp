@@ -57,6 +57,45 @@ namespace Causality
 		return os;
 	}
 
+	void SetIdentity(Causality::PcaCcaMap & map, const Eigen::Index &rank);
+	void SetIdentity(Causality::PcaCcaMap & map, const Eigen::Index &rank)
+	{
+		map.A.setIdentity(rank, rank);
+		map.B.setIdentity(rank, rank);
+		map.uX.setZero(rank);
+		map.uY.setZero(rank);
+		map.uXpca.setZero(rank);
+		map.uYpca.setZero(rank);
+		map.pcX.setIdentity(rank, rank);
+		map.pcY.setIdentity(rank, rank);
+		map.useInvB = true;
+		map.invB.setIdentity(rank, rank);
+	}
+
+	float max_cols_assignment(Eigen::MatrixXf & A, Eigen::MatrixXf & Scor, std::vector<ptrdiff_t> &matching);
+	float max_cols_assignment(Eigen::MatrixXf & A, Eigen::MatrixXf & Scor, std::vector<ptrdiff_t> &matching)
+	{
+		VectorXf XScore(A.rows());
+		VectorXi XCount(A.rows());
+		XCount.setZero();
+		XScore.setZero();
+		for (int k = 0; k < A.cols(); k++)
+		{
+			DenseIndex jx;
+			Scor.col(k).maxCoeff(&jx);
+			auto score = A(jx, k);
+			if (score < g_MatchAccepetanceThreshold) // Reject the match if it's less than a threshold
+				matching[k] = -1;
+			else
+			{
+				matching[k] = jx;
+				XScore(jx) += score;
+				++XCount(jx);
+			}
+		}
+		//XScore.array() /= XCount.array().cast<float>();
+		return XScore.sum();
+	}
 
 	extern Matrix3f FindIsometricTransformXY(const Eigen::MatrixXf& X, const Eigen::MatrixXf& Y, float* pError = nullptr);
 
@@ -288,8 +327,6 @@ namespace Causality
 	}
 
 	// helper functions
-	void CaculateQuadraticDistanceMatrix(Eigen::Tensor<float, 4> &C, const ClipInfo& iclip, const ClipInfo& cclip);
-
 	void CaculateQuadraticDistanceMatrix(Eigen::Tensor<float, 4> &C, const ClipFacade& iclip, const ClipFacade& cclip)
 	{
 		C.setZero();
@@ -418,8 +455,11 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 	RowVectorXf xpvrow = Xpvseq.colwise().sum();
 
 	//selectCols(reshape(iclip.GetAllPartsMean(), pvDim, -1), Juk, &Xpvnm);
-
-	Xpvnm = reshape(xpvrow, Juk.size(), pvDim).transpose().colwise().normalized();
+	for (int i = 0; i < Juk.size(); i++)
+	{
+		Xpvnm.col(i) = iclip.GetPartsDifferenceMean(Juk[i],userParts[Juk[i]]->parent()->Index).normalized();
+	}
+	//Xpvnm = reshape(xpvrow, Juk.size(), pvDim).transpose().colwise().normalized();
 	//Xpvnm.colwise().normalize();
 
 
@@ -455,12 +495,17 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 		// Character Perceptive vector mean normalized
 		MatrixXf Cpvnm(pvDim, Jck.size());
 		RowVectorXf cpvnmrow(pvDim* Jck.size());
-		selectCols(cpv.GetAllPartsMean(), Jck3, &cpvnmrow);
-		Cpvnm = reshape(cpvnmrow, Jck.size(), pvDim).transpose().colwise().normalized();
+		//selectCols(cpv.GetAllPartsMean(), Jck3, &cpvnmrow);
+		//Cpvnm = reshape(cpvnmrow, Jck.size(), pvDim).transpose().colwise().normalized();
+		for (int i = 0; i < Jck.size(); i++)
+		{
+			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).normalized();
+		}
+
 		//Cpvnm.colwise().normalize();
 
-		MatrixXf Cpvseq(cpv.ClipFrames(), Jck.size() * pvDim);
-		selectCols(cpv.GetAllPartsSequence(), Jck3, &Cpvseq);
+		//MatrixXf Cpvseq(cpv.ClipFrames(), Jck.size() * pvDim);
+		//selectCols(cpv.GetAllPartsSequence(), Jck3, &Cpvseq);
 
 
 		// Memery allocation

@@ -29,7 +29,7 @@ namespace Causality
 			ComputePca = 0x4,
 			ComputePcaQr = 0x8 | ComputePca,
 			ComputePairDif = 0x10,
-			ComputeStaticEnergy = 0x20,
+			ComputeVelocity = 0x20,
 			ComputeAll = ComputePcaQr | ComputeNormalize | ComputePairDif,
 		};
 
@@ -41,10 +41,12 @@ namespace Causality
 			AllPartPairs = 3,
 		};
 
-		enum EnergyStatisticMethod
+		enum EnergyTermEnum
 		{
-			VarienceKinetic = 1,
-			NormStatic = 2,
+			Ek_SampleVarience = 1,
+			Ep_SampleMeanLength = 2,
+			Ek_TimeDiveritive = 4, //This enery are direved from X(t)-X(t-1), time dependent
+			Ep_AbsGravity = 8, // This term compute the hight (Y) energy from the default pose
 		};
 
 		// Construction & Meta-data acess
@@ -85,12 +87,15 @@ namespace Causality
 			m_pFeature = std::make_shared<_Ty, _Types...>( _STD forward<_Types>(_Args)... );
 		}
 
+		void							SetGravityReference(ArmatureFrameConstView frames);
+		void							SetGravityMask(const Eigen::RowVectorXf gmask);
+
 		void							Prepare(const ShrinkedArmature& parts, int clipLength = -1, int flag = ComputeAll);
 		void							SetComputationFlags(int flags);
 
-		void							AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime);
+		void							AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime);
 
-		void							SetFeatureMatrix(array_view<ArmatureFrame> frames, double duration, bool cyclic);
+		void							SetFeatureMatrix(array_view<const ArmatureFrame> frames, double duration, bool cyclic);
 		void							SetFeatureMatrix(const Eigen::MatrixXf& X) { m_inited = false; m_X = X; }
 		void							SetFeatureMatrix(Eigen::MatrixXf&& X) { m_inited = false; m_X = std::move(X); }
 		Eigen::MatrixXf&				SetFeatureMatrix() { m_inited = false; return m_X; }
@@ -201,16 +206,22 @@ namespace Causality
 
 		double					m_clipTime;
 		unsigned				m_flag;
+		unsigned				m_energyTerms;
 		PairDifLevelEnum		m_pairInfoLevl;
+		bool					m_isClose;		// flag if the clip is cyclic (or close)
 		bool					m_inited;
+		int						m_step;		// Frame difference for caculating velocity
 
 		// Feature data matrix
 		Eigen::MatrixXf			m_X;	// Raw data
 		Eigen::RowVectorXf		m_uX;	// X mean
 		Eigen::MatrixXf			m_cX;	// Centered X
+		Eigen::MatrixXf			m_dX;	// Centre differcence of X
 
 		Eigen::MatrixXf			m_Xnor;	// Partiwise Rowwise noramlized X
 
+		Eigen::RowVectorXf		m_refX;
+		Eigen::RowVectorXf		m_Gmask;
 		Eigen::RowVectorXf		m_Eb;	// 1xB, Blockwise Energy
 		std::vector<Eigen::VectorXf>	
 								m_Edim;// Dimension energy for parts i , for variable size

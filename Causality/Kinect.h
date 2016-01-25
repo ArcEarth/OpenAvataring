@@ -268,6 +268,7 @@ namespace Causality
 
 		const IArmature& GetArmature() const override;
 
+		bool IsAvailable() const override;
 		// Get Historical or Future 
 		// relativeIndex = 0, returns latest unprocess frame
 		// relativeIndex > 0, return "future" frames
@@ -301,89 +302,6 @@ namespace Causality
 	{
 	public:
 		virtual TrackedBody* ReselectBody() = 0;
-	};
-
-	/// <summary>
-	/// Helper class for Selecting sensor tracked bodies.
-	/// Specify the behavier by seting the Selection Mode.
-	/// Act as a Smart pointer to the actual body.
-	/// Provide callback for notifying selected body changed and recieved a frame.
-	/// </summary>
-	class TrackedBodySelector
-	{
-	public:
-		enum SelectionMode
-		{
-			None = 0,
-			Sticky = 1,
-			Closest = 2,
-			ClosestStickly = 3,
-			PreferLeft = 4,
-			PreferRight = 8,
-		};
-	private:
-		typedef std::function<void(const TrackedBody&, const TrackedBody::FrameType&)> FrameEventFunctionType;
-		typedef std::function<void(TrackedBody*, TrackedBody*)> PlayerEventFunctionType;
-		FrameEventFunctionType	fpFrameArrived;
-		PlayerEventFunctionType	fpTrackedBodyChanged;
-
-		TrackedBody*						pCurrent;
-		shared_ptr<Devices::KinectSensor>	pKinect;
-
-		SelectionMode			mode;
-		EventConnection			con_tracked;
-		EventConnection			con_lost;
-		EventConnection			con_frame;
-
-	public:
-		explicit TrackedBodySelector(Devices::KinectSensor* pKinect, SelectionMode mode = Sticky);
-		~TrackedBodySelector();
-		void Reset();
-		void Initialize(Devices::KinectSensor* pKinect, SelectionMode mode = Sticky);
-		void ChangePlayer(TrackedBody* pNewPlayer);
-
-		void SetFrameCallback(const FrameEventFunctionType& callback);
-		void SetPlayerChangeCallback(const PlayerEventFunctionType& callback);
-
-		static const size_t szi = sizeof(std::list<function<void(void*)>>::const_reverse_iterator);
-		void OnPlayerTracked(TrackedBody& body);
-		void OnPlayerLost(TrackedBody& body);
-		void ReSelectFromAllTrackedBodies();
-
-		operator bool() const { return pCurrent != nullptr; }
-		bool operator == (nullptr_t) const { return pCurrent == nullptr; }
-		bool operator != (nullptr_t) const { return pCurrent != nullptr; }
-
-		TrackedBody* operator->()
-		{
-			return pCurrent;
-		}
-
-		const TrackedBody* operator->() const
-		{
-			return pCurrent;
-		}
-
-		TrackedBody& operator*()
-		{
-			return *pCurrent;
-		}
-
-		const TrackedBody& operator*() const
-		{
-			return *pCurrent;
-		}
-
-		const TrackedBody* Get() const { return pCurrent; }
-		TrackedBody* Get() { return pCurrent; }
-
-		void ChangeSelectionMode(SelectionMode mdoe);
-
-		SelectionMode CurrentSelectionMode() const
-		{
-			return mode;
-		}
-
 	};
 
 	namespace Devices

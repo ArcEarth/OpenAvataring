@@ -1,10 +1,11 @@
 #pragma once
 #include "Causality\CharacterObject.h"
 #include "Causality\Kinect.h"
-//#include <boost\circular_buffer.hpp>
 #include "Causality\Animations.h"
-#include "CharacterController.h"
 #include "Causality\Interactive.h"
+
+#include "CharacterController.h"
+#include "PlayerSelector.h"
 #include <atomic>
 
 namespace Causality
@@ -16,8 +17,8 @@ namespace Causality
 	{
 	public:
 #pragma region Constants
-		static const size_t					FrameRate = ANIM_STANDARD::SAMPLE_RATE;
-		static const size_t					ScaledMotionTime = ANIM_STANDARD::MAX_CLIP_DURATION; // second
+		static const size_t	FrameRate = ANIM_STANDARD::SAMPLE_RATE;
+		static const size_t	ScaledMotionTime = ANIM_STANDARD::MAX_CLIP_DURATION; // second
 #pragma endregion
 
 		// Character Map State
@@ -33,8 +34,9 @@ namespace Causality
 
 		// SceneObject interface
 		PlayerProxy();
-		virtual ~PlayerProxy() override;
+		virtual		 ~PlayerProxy() override;
 		virtual void AddChild(SceneObject* pChild) override;
+		virtual void Parse(const ParamArchive* store) override;
 
 		// Render / UI Thread 
 		void Update(time_seconds const& time_delta) override;
@@ -50,25 +52,32 @@ namespace Causality
 		virtual void XM_CALLCONV UpdateViewMatrix(DirectX::FXMMATRIX view, DirectX::CXMMATRIX projection) override;
 
 		// PlayerSelector Interface
-		const TrackedBodySelector&	GetPlayer() const { return m_playerSelector; }
-		TrackedBodySelector&		GetPlayer() { return m_playerSelector; }
+		const IPlayerSelector&		GetPlayerSelector() const { return *m_pSelector; }
+		IPlayerSelector&			GetPlayerSelector() { return *m_pSelector; }
+		void						SetPlayerSelector(const sptr<IPlayerSelector>& playerSelector);
+
 		const IArmature&			Armature() const { return *m_pPlayerArmature; };
 		const ShrinkedArmature&		Parts() const { return *m_pParts; }
+
 	protected:
+
 		void	UpdatePrimaryCameraForTrack();
 		void	ResetPrimaryCameraPoseToDefault();
 
 		// Helper methods
-		bool	UpdateByFrame(ArmatureFrameConstView frame);
+		//bool	UpdateByFrame(ArmatureFrameConstView frame);
 
 		void	SetActiveController(int idx);
 		int		MapCharacterByLatestMotion();
 
-		friend TrackedBodySelector;
-		// Kinect streaming thread
-		void	StreamPlayerFrame(const TrackedBody& body, const TrackedBody::FrameType& frame);
-		void	ResetPlayer(TrackedBody* pOld, TrackedBody* pNew);
-		void	ClearPlayerFeatureBuffer();
+		// plyaer streaming thread
+		friend	IPlayerSelector;
+		void	StreamPlayerFrame(const IArmatureStreamAnimation& body, const IArmatureStreamAnimation::FrameType& frame);
+		void	ResetPlayer(IArmatureStreamAnimation* pOld, IArmatureStreamAnimation* pNew);
+
+		void	ResetPlayerArmature(const IArmature* playerArmature);
+		void	InitializeShrinkedPlayerArmature();
+		//void	ClearPlayerFeatureBuffer();
 
 	protected:
 		bool								m_EnableOverShoulderCam;
@@ -87,16 +96,15 @@ namespace Causality
 		uptr<ShrinkedArmature>				m_pParts;
 		int									m_Id;
 
-		sptr<Devices::KinectSensor>			m_pKinect;
-		TrackedBodySelector					m_playerSelector;
+		sptr<IPlayerSelector>				m_pSelector;
 
-		ArmatureFrame					m_pushFrame;
+		ArmatureFrame						m_pushFrame;
 
 		double								m_updateTime;
 		std::chrono::time_point<std::chrono::system_clock> 
 											m_lastUpdateTime;
-		ArmatureFrame					m_currentFrame;
-		ArmatureFrame					m_lastFrame;
+		ArmatureFrame						m_currentFrame;
+		ArmatureFrame						m_lastFrame;
 
 		double								m_LowLikilyTime;
 		CyclicStreamClipinfo				m_CyclicInfo;
@@ -111,11 +119,11 @@ namespace Causality
 
 	protected:
 		// Enter the selecting phase
-		void BeginSelectingPhase();
+		//void BeginSelectingPhase();
 		// End the selecting phase and enter the manipulating phase
-		void BeginManipulatingPhase();
+		//void BeginManipulatingPhase();
 
-		std::pair<float, float> ExtractUserMotionPeriod();
+		//std::pair<float, float> ExtractUserMotionPeriod();
 
 		// Inherited via IVisual
 		virtual RenderFlags GetRenderFlags() const override;

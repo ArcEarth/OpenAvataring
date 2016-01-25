@@ -767,6 +767,11 @@ const TrackedBody::FrameType& TrackedBody::PeekFrame() const
 
 const IArmature & TrackedBody::GetArmature() const { return *BodyArmature; }
 
+bool TrackedBody::IsAvailable() const
+{
+	return IsTracked();
+}
+
 float TrackedBody::DistanceToSensor() const
 {
 	return m_Distance;
@@ -778,138 +783,4 @@ void TrackedBody::AddRef() {
 
 void TrackedBody::Release() {
 	--RefCount;
-}
-
-TrackedBodySelector::TrackedBodySelector(KinectSensor * pKinect, SelectionMode mode)
-	:pCurrent(nullptr), pKinect(nullptr), mode(None)
-{
-	Initialize(pKinect, mode);
-}
-
-TrackedBodySelector::~TrackedBodySelector()
-{
-	fpTrackedBodyChanged = nullptr;
-	fpFrameArrived = nullptr;
-
-	ChangePlayer(nullptr);
-
-	if (pKinect)
-	{
-		con_tracked.disconnect();
-		con_lost.disconnect();
-	}
-}
-
-void TrackedBodySelector::OnPlayerTracked(TrackedBody & body)
-{
-	if ((!pCurrent || !(mode & Sticky)))
-	{
-		if (!pCurrent || ( mode == SelectionMode::Closest && body.DistanceToSensor() < pCurrent->DistanceToSensor()))
-		{
-			ChangePlayer(&body);
-		}
-	}
-}
-
-void TrackedBodySelector::OnPlayerLost(TrackedBody & body)
-{
-	if (pCurrent && body == *pCurrent)
-	{
-		ReSelectFromAllTrackedBodies();
-	}
-}
-
-void TrackedBodySelector::ReSelectFromAllTrackedBodies()
-{
-	TrackedBody *pBestPlayer = nullptr;
-
-	if (mode & Closest)
-	{
-		float distance = 100000;
-		for (auto& player : pKinect->GetTrackedBodies())
-		{
-			if (player.IsTracked() && player != *pCurrent && distance > player.DistanceToSensor())
-			{
-				pBestPlayer = &player;
-				distance = player.DistanceToSensor();
-			}
-		}
-	}
-	else // Eariest tracked player
-	{
-		for (auto& player : pKinect->GetTrackedBodies())
-		{
-			if (player.IsTracked() && player != *pCurrent)
-			{
-				pBestPlayer = &player;
-				break;
-			}
-		}
-	}
-
-	ChangePlayer(pBestPlayer);
-
-}
-
-void TrackedBodySelector::Reset() {
-
-	if (fpTrackedBodyChanged)
-		fpTrackedBodyChanged(pCurrent, nullptr);
-	if (pCurrent)
-		pCurrent->Release();
-	pCurrent = nullptr;
-}
-
-void TrackedBodySelector::Initialize(Devices::KinectSensor * pKinect, SelectionMode mode)
-{
-	this->mode = mode;
-	if (pKinect)
-	{
-		this->pKinect = pKinect->GetRef();
-		con_tracked =
-			pKinect->OnPlayerTracked += MakeEventHandler(&TrackedBodySelector::OnPlayerTracked, this);
-		con_lost =
-			pKinect->OnPlayerLost += MakeEventHandler(&TrackedBodySelector::OnPlayerLost, this);
-	}
-}
-
-void TrackedBodySelector::ChangePlayer(TrackedBody * pNewPlayer)
-{
-	auto pOld = pCurrent;
-	con_frame.disconnect();
-	pCurrent = pNewPlayer;
-
-	if (pCurrent)
-	{
-		pCurrent->AddRef();
-		if (fpFrameArrived)
-			con_frame = pCurrent->OnFrameArrived.connect(fpFrameArrived);
-	}
-
-	if (fpTrackedBodyChanged)
-		fpTrackedBodyChanged(pOld, pCurrent);
-
-	if (pOld)
-		pOld->Release();
-}
-
-void TrackedBodySelector::SetFrameCallback(const FrameEventFunctionType & callback) {
-	fpFrameArrived = callback;
-	if (con_frame.connected())
-	{
-		con_frame.disconnect();
-		if (fpFrameArrived)
-			con_frame = pCurrent->OnFrameArrived.connect(fpFrameArrived);
-	}
-}
-
-void TrackedBodySelector::SetPlayerChangeCallback(const PlayerEventFunctionType & callback) { 
-	fpTrackedBodyChanged = callback; 
-}
-
-void TrackedBodySelector::ChangeSelectionMode(SelectionMode mdoe)
-{
-	this->mode = mode;
-	if (pCurrent)
-		ReSelectFromAllTrackedBodies();
 }

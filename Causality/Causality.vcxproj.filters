@@ -173,6 +173,9 @@
     <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
       <Filter>Avataring Control</Filter>
     </ClCompile>
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -371,6 +374,9 @@
       <Filter>Armature Animation</Filter>
     </ClInclude>
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\PlayerSelector.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
   </ItemGroup>

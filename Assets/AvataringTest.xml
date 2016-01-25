@@ -228,6 +228,9 @@
 
      <!--<object name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}"/>-->
      <player_controller name="player" position="0,0.0,0">
+       <player_controller.selector>
+         <kinect_player_selector mode="3"/>
+       </player_controller.selector>
 
        <!--<action name="idle" src="Horse_Idle.fbx"/>-->
        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
