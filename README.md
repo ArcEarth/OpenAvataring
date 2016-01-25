@@ -1,41 +1,37 @@
-#Tangible Holographic Sketch
-This is a WIP project <br/>
-if you encounter a problem, email Arc.
+#Open Avataring Toolkit
+This is WIP project, which subject to control arbitary skeleton-mesh with arbitary input skeleton stream. <br/>
+WIP means:
+* No support from Author absolutely. No associate docutment yet.
+* The code are also not ensured to compile or run at this stage.
+## License : GPL-V3 for WIP stage.
+
 #Build and Dependencies
-##Hardware
+## Supported Hardware
 * Vicon Mocap
 * Leap Motion
 * Kinect 2 for Windows/XBox One
+
+## Planned Supported Game Engine
+* Customized Engein
+* Unreal 4.10 + (Todo)
+* Unity 5 + (Todo)
 
 ##Platform/Compiler
 * Windows 8.1+
 * Visual Studio 2015 (VC++ 14)
 
 ##External SDK and Library
-* boost 1.5.9+ [download](http://sourceforge.net/projects/boost/files/boost/1.59.0/)
-* FBX SDK 2015+ [download](http://download.autodesk.com/us/fbx_release_older/2016.1.2/fbx20161_2_fbxsdk_vs2015_win.exe)
+* FBX SDK 2016+ [download](http://download.autodesk.com/us/fbx_release_older/2016.1.2/fbx20161_2_fbxsdk_vs2015_win.exe)
 * Kinect SDK 2.0+ [download](http://www.microsoft.com/en-us/download/details.aspx?id=44561)
 * Leap SDK 2.31+ [download](http://1drv.ms/1NYFRGk)
 + Eigen 3.2.6+ (included)
 + DirectXTK (included) 
-+ CGAL (included)
 + tinyXML2 (included)
 + tinyObjLoader (included)
 + GSL (included)
++ CGAL (included)
 
-##Define following MARCOS in [Enviroment Variable](http://superuser.com/questions/949560/how-do-i-set-system-environment-variables-in-windows-10) $(PATH) 
+##Makesure / Define following MARCOS in [Enviroment Variable](http://superuser.com/questions/949560/how-do-i-set-system-environment-variables-in-windows-10) $(PATH) 
 * $(LeapSDK_Root) D:\SDKs\LeapSDK
-* $(BOOST_ROOT) D:\SDKs\boost_1_59_0
 * $(KINECTSDK20_DIR) C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\
 * $(FBX_SDK_ROOT) C:\Program Files\Autodesk\FBX\FBX SDK\2016.1.2
-
-##Compiled Boost Binary [Download](http://1drv.ms/1Qj7Mkt) 
-### Unzip the binary into BOOST_ROOT folder, so that the boost root folder look like this:
-* $(BOOST_ROOT)\stage\v140\x64
-* $(BOOST_ROOT)\stage\v140\x86
-
-### Dependent Lib
-* Boost::Signal2 (this is evil)
-* Boost::Any (header only)
-* Boost::Range (header only)
-* Boost::Regex (secondary dependency, even more evil)
