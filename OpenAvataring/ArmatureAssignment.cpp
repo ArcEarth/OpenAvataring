@@ -10,20 +10,21 @@
 #include <iostream>
 #include <filesystem>
 
-#pragma warning (push)
-#pragma warning (disable:4554) // Disable anoying warrning in Tensor module
-#include <unsupported\Eigen\CXX11\Tensor>
-#pragma warning (pop)
 #include "EigenExtension.h"
 
 #include <Causality\Settings.h>
 #include <Causality\CharacterObject.h>
+
 //#include "Causality\FloatHud.h"
 
 
 using namespace std;
 using namespace Eigen;
 using namespace Causality;
+
+typedef array_view<float, -1, -1, -1, -1> array4_view;
+typedef array_view<float, -1, -1, -1, -1> array4_const_view;
+typedef std::ptrdiff_t index_type;
 
 #ifdef _DEBUG
 #define DEBUGOUT(x) std::cout << #x << " = " << x << std::endl
@@ -247,10 +248,16 @@ namespace Causality
 		int T = CLIP_FRAME_COUNT;
 
 		// Up-rotate X to phi
-		auto rotX = upRotatePermutation(T, phi);
-		auto rawX = (rotX * iclip.GetPartSequence(ju)).eval();
+		auto up = iclip.ArmatureParts()[ju]->parent();
+		int jup = up ? up->Index : -1;
+		auto cp = cclip.ArmatureParts()[jc]->parent();
+		int jcp = cp ? cp->Index : -1;
 
-		auto rawY = cclip.GetPartSequence(jc);
+
+		auto rotX = upRotatePermutation(T, phi);
+		auto rawX = (rotX * (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup))).eval();
+
+		auto rawY = (cclip.GetPartSequence(jc) - cclip.GetPartSequence(jcp)).eval();
 
 		assert(rawX.rows() == rawY.rows() && rawY.rows() == T);
 
@@ -288,7 +295,10 @@ namespace Causality
 			assert(uX.size() == uY.size());
 			MatrixXf _X = rawX - uX.replicate(rawX.rows(), 1);
 			MatrixXf _Y = rawY - uY.replicate(rawY.rows(), 1);
+
+			//float unis = sqrtf(uY.stableNorm() / uY.stableNorm());
 			float unis = sqrtf(rawY.cwiseAbs2().sum() / rawX.cwiseAbs2().sum());
+			
 			RowVectorXf alpha = (_Y.cwiseAbs2().colwise().sum().array() / _X.cwiseAbs2().colwise().sum().array()).cwiseSqrt();
 
 			alpha = alpha.cwiseMax(0.8f * unis).cwiseMin(1.2f * unis);
@@ -327,10 +337,8 @@ namespace Causality
 	}
 
 	// helper functions
-	void CaculateQuadraticDistanceMatrix(Eigen::Tensor<float, 4> &C, const ClipFacade& iclip, const ClipFacade& cclip)
+	void CaculateQuadraticDistanceMatrix(array4_view &C, const ClipFacade& iclip, const ClipFacade& cclip)
 	{
-		C.setZero();
-
 		auto& Juk = iclip.ActiveParts();
 		auto& Jck = cclip.ActiveParts();
 		//const std::vector<int> &Juk, const std::vector<int> &Jck, const Eigen::Array<Eigen::RowVector3f, -1, -1> &XpMean, const Eigen::Array<Eigen::Matrix3f, -1, -1> &XpCov, const Causality::CharacterController & controller);
@@ -338,13 +346,13 @@ namespace Causality
 		auto& cparts = cclip.ArmatureParts();
 		auto& sparts = iclip.ArmatureParts();
 
-		for (int i = 0; i < Juk.size(); i++)
+		for (index_type i = 0; i < Juk.size(); i++)
 		{
-			for (int j = i + 1; j < Juk.size(); j++)
+			for (index_type j = i + 1; j < Juk.size(); j++)
 			{
-				for (int si = 0; si < Jck.size(); si++)
+				for (index_type si = 0; si < Jck.size(); si++)
 				{
-					for (int sj = si + 1; sj < Jck.size(); sj++)
+					for (index_type sj = si + 1; sj < Jck.size(); sj++)
 					{
 						auto xu = iclip.GetPartsDifferenceMean(Juk[i], Juk[j]);
 						auto xc = cclip.GetPartsDifferenceMean(Jck[si], Jck[sj]);
@@ -409,7 +417,7 @@ namespace Causality
 
 }
 
-float Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
+CtrlTransformInfo Causality::CreateControlTransform(const CharacterController & controller, const ClipFacade& iclip)
 {
 	assert(controller.IsReady && iclip.IsReady());
 
@@ -422,11 +430,12 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 	auto& clips = character.Behavier().Clips();
 	auto& clipinfos = controller.GetClipInfos();
 
-	controller.CharacterScore = numeric_limits<float>::min();
+	//controller.CharacterScore = numeric_limits<float>::min();
 	//auto& anim = character.Behavier()["walk"];
 
 	//if (character.CurrentAction() == nullptr)
 	//	return 0.0f;
+	_ASSERTE(_CrtCheckMemory());
 
 	auto panim = character.CurrentAction();
 	if (panim == nullptr)
@@ -444,6 +453,8 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 	int Ti = g_PhaseMatchingInterval;
 	int Ts = T / Ti + 1;
 
+	_ASSERTE(_CrtCheckMemory());
+
 	RowVectorXf Eub(Juk.size());
 	selectCols(iclip.GetAllPartsEnergy(), Juk, &Eub);
 
@@ -457,12 +468,12 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 	//selectCols(reshape(iclip.GetAllPartsMean(), pvDim, -1), Juk, &Xpvnm);
 	for (int i = 0; i < Juk.size(); i++)
 	{
-		Xpvnm.col(i) = iclip.GetPartsDifferenceMean(Juk[i],userParts[Juk[i]]->parent()->Index).normalized();
+		Xpvnm.col(i) = iclip.GetPartsDifferenceMean(Juk[i], userParts[Juk[i]]->parent()->Index).normalized().transpose();
 	}
 	//Xpvnm = reshape(xpvrow, Juk.size(), pvDim).transpose().colwise().normalized();
 	//Xpvnm.colwise().normalize();
 
-
+	_ASSERTE(_CrtCheckMemory());
 	std::vector<unique_ptr<PartilizedTransformer>> clipTransforms;
 	clipTransforms.reserve(clips.size());
 	Eigen::VectorXf clipTransformScores(clips.size());
@@ -473,12 +484,22 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 		auto& cpv = cclip.PvFacade;
 
 		// Independent Active blocks only
+		//std::vector<int> Jck;
+		//Jck.reserve(cpv.ActiveParts().size());
+		//for (auto cj : cpv.ActiveParts())
+		//{
+		//	if (std::binary_search(controller.ActiveParts().begin(), controller.ActiveParts().end(), cj))
+		//	{
+		//		Jck.push_back(cj);
+		//	}
+		//}
 		const auto &Jck = cpv.ActiveParts();
+		//const auto &Jck = controller.ActiveParts();
 
-		std::vector<int> Jck3(Jck.size() * pvDim);
-		for (int i = 0; i < Jck.size(); i++)
-			for (int j = 0; j < pvDim; j++)
-				Jck3[i * pvDim + j] = Jck[i] * pvDim + j;
+		//std::vector<int> Jck3(Jck.size() * pvDim);
+		//for (int i = 0; i < Jck.size(); i++)
+		//	for (int j = 0; j < pvDim; j++)
+		//		Jck3[i * pvDim + j] = Jck[i] * pvDim + j;
 
 
 		// Ecb, Energy of Character Active Parts
@@ -494,12 +515,12 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 
 		// Character Perceptive vector mean normalized
 		MatrixXf Cpvnm(pvDim, Jck.size());
-		RowVectorXf cpvnmrow(pvDim* Jck.size());
+		//RowVectorXf cpvnmrow(pvDim* Jck.size());
 		//selectCols(cpv.GetAllPartsMean(), Jck3, &cpvnmrow);
 		//Cpvnm = reshape(cpvnmrow, Jck.size(), pvDim).transpose().colwise().normalized();
 		for (int i = 0; i < Jck.size(); i++)
 		{
-			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).normalized();
+			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).normalized().transpose();
 		}
 
 		//Cpvnm.colwise().normalize();
@@ -527,11 +548,19 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 		A.array() = (-(A.array() / (DirectX::XM_PI / 6)).cwiseAbs2()).exp();
 		//A.noalias() = Xsp.transpose() * Csp;
 
-		Tensor<float, 4> C((int)Juk.size(), (int)Juk.size(), (int)Jck.size(), (int)Jck.size());
+		//_ASSERTE( _CrtCheckMemory( ) );
 
+		typedef array4_view::size_type size_type;
+		size_type cu = Juk.size(), cc = Jck.size();
+		std::vector<float> Cdata(cu*cu*cc*cc, .0f);
+		array4_view C(Cdata.data(), array4_view::bounds_type({ cu, cu, cc, cc }));
+
+		//_ASSERTE(_CrtCheckMemory());
 		CaculateQuadraticDistanceMatrix(C, iclip, cpv);
 
-		vector<DenseIndex> matching(A.cols());
+		//cout << C << endl;
+
+		vector<index_type> matching(Juk.size());
 
 		//float score = 0;
 		//for (int i = 0; i < Jck.size(); i++)
@@ -541,9 +570,13 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 		//	score += A.col(i).maxCoeff(&idx);
 		//	matching[i] = idx;
 		//}
-		float score = max_quadratic_assignment(A, C, matching);
+		float score = max_quadratic_assignment(A, array4_const_view(C), gsl::span<index_type>(matching));
 
 		float maxScore = score;
+
+		//matching.clear();
+		//matching.shrink_to_fit();
+
 
 #pragma region Display Debug Armature Parts Info
 		cout << "=============================================" << endl;
@@ -580,6 +613,9 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 #pragma endregion
 
 		Cca<float> cca;
+
+		//_ASSERTE( _CrtCheckMemory( ) );
+
 		MatrixXf corrlations(Ts, matching.size());
 		corrlations.setZero();
 
@@ -631,11 +667,17 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 
 			// Combine the score from qudratic assignment with phase matching
 			maxScore = maxScore * mScore;
+
+			//_ASSERTE( _CrtCheckMemory( ) );
+
 		}
 
 
 		// Transform pair for active parts
 		std::vector<P2PTransform> partTransforms;
+		partTransforms.reserve(matching.size());
+
+		//_ASSERTE( _CrtCheckMemory( ) );
 
 		double partAssignError = 0;
 		for (int i = 0; i < matching.size(); i++)
@@ -654,6 +696,13 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 			}
 		}
 
+		//_ASSERTE(_CrtIsValidHeapPointer(matching.data()));
+
+		//matching.clear();
+		//matching.shrink_to_fit();
+
+		//_ASSERTE( _CrtCheckMemory() );
+
 		auto pTransformer = new PartilizedTransformer(userParts, controller);
 		pTransformer->ActiveParts = move(partTransforms);
 
@@ -669,6 +718,9 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 			g_TrackerSclSubdivide);
 
 		pTransformer->EnableTracker(anim.Name);
+
+		//_ASSERTE( _CrtCheckMemory( ) );
+
 		pTransformer->GenerateDrivenAccesseryControl();
 
 		clipTransformScores[clipTransforms.size()] = maxScore;
@@ -680,15 +732,22 @@ float Causality::CreateControlTransform(CharacterController & controller, const 
 	float maxScore = clipTransformScores.segment(0, clipTransforms.size()).maxCoeff(&maxClipIdx);
 
 	cout << maxScore << endl;
-	if (maxClipIdx >= 0 && (&controller.Binding() == nullptr || maxScore > controller.CharacterScore * 1.2))
+
+	CtrlTransformInfo candy;
+	candy.likilihood = 0;
+	candy.clipname = anim.Name;
+	if (maxClipIdx >= 0 
+		/*&& (&controller.Binding() == nullptr || maxScore > controller.CharacterScore * 1.2)*/)
 	{
-		cout << "Trying to set binding..." << endl;
-		controller.SetBinding(move(clipTransforms[maxClipIdx]));
-		controller.CharacterScore = maxScore;
-		cout << "Finished set binding" << endl;
+		candy.likilihood = maxScore;
+		candy.transform = move(clipTransforms[maxClipIdx]);
+		//cout << "Trying to set binding..." << endl;
+		//controller.SetBinding(move(clipTransforms[maxClipIdx]));
+		//controller.CharacterScore = maxScore;
+		//cout << "Finished set binding" << endl;
 	}
 
-	return maxScore;
+	return candy;
 
 	//if (g_EnableDependentControl)
 	//{

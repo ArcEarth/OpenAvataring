@@ -53,7 +53,7 @@ void KinectPlayerSelector::ReSelectFromAllTrackedBodies()
 		float distance = 100000;
 		for (auto& player : pKinect->GetTrackedBodies())
 		{
-			if (player.IsTracked() && player != *pCurrent && distance > player.DistanceToSensor())
+			if (player.IsTracked() &&(pCurrent ==nullptr || player != *pCurrent && distance > player.DistanceToSensor()))
 			{
 				pBestPlayer = &player;
 				distance = player.DistanceToSensor();
@@ -64,7 +64,7 @@ void KinectPlayerSelector::ReSelectFromAllTrackedBodies()
 	{
 		for (auto& player : pKinect->GetTrackedBodies())
 		{
-			if (player.IsTracked() && player != *pCurrent)
+			if (player.IsTracked() && (pCurrent == nullptr || player != *pCurrent))
 			{
 				pBestPlayer = &player;
 				break;
@@ -95,6 +95,11 @@ void KinectPlayerSelector::Initialize(Devices::KinectSensor * pKinect, Selection
 			pKinect->OnPlayerTracked += MakeEventHandler(&KinectPlayerSelector::OnPlayerTracked, this);
 		con_lost =
 			pKinect->OnPlayerLost += MakeEventHandler(&KinectPlayerSelector::OnPlayerLost, this);
+
+		if (pKinect->GetTrackedBodies().size() > 0)
+		{
+			ReSelectFromAllTrackedBodies();
+		}
 	}
 }
 
@@ -120,12 +125,12 @@ void KinectPlayerSelector::ChangePlayer(TrackedBody * pNewPlayer)
 
 void KinectPlayerSelector::SetFrameCallback(const FrameEventFunctionType & callback) {
 	fpFrameArrived = callback;
+
 	if (con_frame.connected())
-	{
 		con_frame.disconnect();
-		if (fpFrameArrived)
-			con_frame = pCurrent->OnFrameArrived.connect(fpFrameArrived);
-	}
+
+	if (fpFrameArrived && pCurrent)
+		con_frame = pCurrent->OnFrameArrived.connect(fpFrameArrived);
 }
 
 void KinectPlayerSelector::SetPlayerChangeCallback(const PlayerEventFunctionType & callback) {

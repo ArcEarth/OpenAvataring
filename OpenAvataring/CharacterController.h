@@ -25,15 +25,15 @@ namespace Causality
 	public:
 		~CharacterController();
 		CharacterController();
-		void Initialize(const IArmature& player, CharacterObject& character, const ParamArchive* settings);
+		void Initialize(CharacterObject& character, const ParamArchive* settings);
 
 		const ArmatureTransform& Binding() const;
 		ArmatureTransform& Binding();
 		std::mutex& GetBindingMutex();
 		void SetBinding(std::unique_ptr<ArmatureTransform> &&upBinding);
 
-		const ArmatureTransform& SelfBinding() const { return *m_pSelfBinding; }
-		ArmatureTransform& SelfBinding() { return *m_pSelfBinding; }
+		const ArmatureTransform& SelfBinding() const;
+		ArmatureTransform& SelfBinding();
 
 		const CharacterObject& Character() const;
 		CharacterObject& Character();
@@ -44,8 +44,8 @@ namespace Causality
 		const ShrinkedArmature& ArmatureParts() const;
 		ShrinkedArmature& ArmatureParts();
 
-		auto&	ActiveParts() const { return m_ActiveParts; }
-		auto&	SubactiveParts() const { return m_SubactiveParts; }
+		const std::vector<int>&	ActiveParts() const;
+		const std::vector<int>&	SubactiveParts() const;
 
 
 		float UpdateTargetCharacter(ArmatureFrameConstView sourceFrame, ArmatureFrameConstView lastSourceFrame, double deltaTime_seconds) const;
@@ -58,7 +58,7 @@ namespace Causality
 
 		float CreateControlBinding(const ClipFacade& inputClip);
 
-		const std::vector<std::pair<Vector3, Vector3>>& PvHandles() const;
+		array_view<std::pair<Vector3, Vector3>> PvHandles() const;
 		std::vector<std::pair<Vector3, Vector3>>& PvHandles();
 
 
@@ -80,12 +80,19 @@ namespace Causality
 
 		// Addtional velocity
 		Vector3					Vaff;
+
+		//mutable
 		std::vector<std::pair<Vector3, Vector3>> m_PvHandles;
 
 		// Principle displacement driver
 		CharacterClipinfo& GetClipInfo(const std::string& name);
+		const CharacterClipinfo& GetClipInfo(const std::string& name) const
+		{
+			return const_cast<CharacterController&>(*this).GetClipInfo(name);
+		}
 
 		std::vector<CharacterClipinfo>& GetClipInfos() { return m_Clipinfos; }
+		array_view<const CharacterClipinfo> GetClipInfos() const { return m_Clipinfos; }
 
 		StylizedChainIK& GetStylizedIK(int pid) { return *m_SIKs[pid]; }
 		const StylizedChainIK& GetStylizedIK(int pid) const { return *m_SIKs[pid]; }
@@ -113,7 +120,6 @@ namespace Causality
 		std::vector<int>										m_ActiveParts;  // it's a set
 		std::vector<int>										m_SubactiveParts;
 	protected:
-		void SetSourceArmature(const IArmature& armature);
 		void SetTargetCharacter(CharacterObject& object);
 
 		Eigen::MatrixXf GenerateXapv(const std::vector<int> &activeParts);

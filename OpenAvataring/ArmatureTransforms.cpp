@@ -37,7 +37,8 @@ namespace Causality
 }
 
 typedef
-Localize<EndEffector<InputFeature>>
+	Localize<
+	EndEffector<InputFeature>>
 InputExtractorType;
 
 typedef
@@ -382,11 +383,11 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 	}
 }
 
-PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, CharacterController & controller)
-	: m_pHandles(nullptr), m_pController(nullptr)
+PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, const CharacterController & controller)
+	: m_pController(nullptr)
 {
 	m_pController = &controller;
-	m_pHandles = &controller.PvHandles();
+	m_handles = controller.PvHandles();
 	auto& parts = controller.ArmatureParts();
 	auto& armature = controller.Armature();
 	m_sArmature = &sParts.Armature();
@@ -562,7 +563,7 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 {
 	RowVectorXd Xd, Y;
 
-	auto& sik = m_pController->GetStylizedIK(cpart.Index);
+	auto& sik = const_cast<StylizedChainIK&>(m_pController->GetStylizedIK(cpart.Index));
 	auto& gpr = sik.Gplvm();
 	auto& joints = cpart.Joints;
 
@@ -589,16 +590,17 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 
 void PartilizedTransformer::SetHandleVisualization(ArmaturePart & cpart, Eigen::RowVectorXf &xf)
 {
-	if (m_pHandles)
+	if (!m_handles.empty())
 	{
-		m_pHandles->at(cpart.Index).first = Vector3(xf.data());
+		auto& handle = m_handles[cpart.Index];
+		handle.first = Vector3(xf.data());
 		if (g_UseVelocity && g_PvDimension == 6)
 		{
-			m_pHandles->at(cpart.Index).second = Vector3(xf.data() + 3);
+			handle.second = Vector3(xf.data() + 3);
 		}
 		else
 		{
-			m_pHandles->at(cpart.Index).second = Vector3::Zero;
+			handle.second = Vector3::Zero;
 		}
 	}
 }

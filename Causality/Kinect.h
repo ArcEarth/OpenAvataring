@@ -237,6 +237,7 @@ namespace Causality
 		time_t					m_LastTrackedTime;
 		int						m_LostFrameCount;
 		float					m_Distance;
+		StaticArmature			m_armature;
 		Devices::KinectSensor	*m_pKinectSensor;
 
 		// Current pose data
@@ -287,6 +288,8 @@ namespace Causality
 		bool	  IsTracked() const { return m_IsTracked; }
 		float	  DistanceToSensor() const;
 
+		void	  SetArmatureProportion(ArmatureFrameConstView frameView);
+		void	  FireFrameArrivedForLatest();
 		// Events
 		Event<const TrackedBody&, const FrameType&>	OnFrameArrived;
 	public:

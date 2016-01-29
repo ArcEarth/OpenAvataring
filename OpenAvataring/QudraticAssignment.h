@@ -4,8 +4,7 @@
 #include <numeric>
 #include <limits>
 
-#include <Eigen\Core>
-
+#include <span.h>
 // spamming std namespace
 namespace std
 {
@@ -58,21 +57,36 @@ namespace std
 namespace Eigen
 {
 	// C(i,j,ass(i),ass(j)) must exist
-	template <class QuadraticFuncType>
-	float quadratic_assignment_cost(const Eigen::MatrixXf& A, const QuadraticFuncType &C, _In_reads_(A.rows()) Eigen::DenseIndex* ass, bool transposed)
+	template <class MatrixType, class QuadraticFuncType, typename IndexType>
+	float quadratic_assignment_cost(const MatrixType& A, const QuadraticFuncType &C, const IndexType *ass, bool transposed)
 	{
 		using namespace std;
-		using namespace Eigen;
 
-		int n = min(A.rows(),A.cols());
-		float score = 0;
+		IndexType n = min(A.rows(),A.cols());
+		float score = .0f;
 
-		for (int i = 0; i < n; i++)
+		if (!transposed)
 		{
-			score += transposed ? A(ass[i],i) : A(i, ass[i]);
-			for (int j = i + 1; j < n; j++)
+			for (IndexType i = 0; i < n; i++)
 			{
-				score += transposed ? C(ass[i], ass[j], i, j) : C(i, j, ass[i], ass[j]);
+				score += A(i, ass[i]);
+				for (IndexType j = i + 1; j < n; j++)
+				{
+					float c = C(i, j, ass[i], ass[j]);
+					score += c;
+				}
+			}
+		}
+		else
+		{
+			for (IndexType i = 0; i < n; i++)
+			{
+				score += A(ass[i], i);
+				for (IndexType j = i + 1; j < n; j++)
+				{
+					float c = C(ass[i], ass[j], i, j);
+					score += c;
+				}
 			}
 		}
 
@@ -81,53 +95,66 @@ namespace Eigen
 
 	// C(i,j,ass(i),ass(j)) must exist
 	// Brute-force solve QAP
-	template <class QuadraticFuncType>
-	float max_quadratic_assignment(const Eigen::MatrixXf& A, const QuadraticFuncType &C, _Out_ std::vector<Eigen::DenseIndex>& assignment)
+	template <class MatrixType, class QuadraticFuncType, typename IndexType>
+	float max_quadratic_assignment(const MatrixType& A, const QuadraticFuncType &C, _Out_ gsl::span<IndexType> assignment)
 	{
 		using namespace std;
-		using namespace Eigen;
+
+		constexpr IndexType null_assign = static_cast<IndexType>(-1);
 
 		// in this case, we do a transposed question
 		bool transposed = A.rows() > A.cols();
 
-		auto nx = A.rows(), ny = A.cols();
+		size_t nx = A.rows(), ny = A.cols();
 		if (transposed)
 			swap(nx, ny);
 
-		vector<DenseIndex> s(std::max(nx, ny));
+		vector<IndexType> s(ny);
 		iota(s.begin(), s.end(), 0);
 
-		vector<DenseIndex>  optAss(nx);
-		std::fill(optAss.begin(), optAss.end(), -1);
+		vector<IndexType>  optAss((size_t)nx, null_assign);
 		float optScore = std::numeric_limits<float>::min();
 
 		do {
 			do {
 				float score = quadratic_assignment_cost(A, C, s.data(), transposed);
+				//if (std::isnan(score))
+				//{
+				//	_CrtDbgBreak();
+				//	cout << "Bug lurks here!" << endl;
+				//}
+
 				if (score > optScore)
 				{
 					optAss.assign(s.begin(), s.begin() + nx);
 					optScore = score;
 				}
-#ifdef _DEBUG
-				for (auto& i : s)
-				{
-					cout << i << ' ';
-				}
-				cout << ':' << score << endl;
-#endif
+//#ifdef _DEBUG
+				//for (auto& i : s)
+				//{
+				//	cout << i << ' ';
+				//}
+				//cout << ':' << score << endl;
+//#endif
 			} while (std::next_permutation(s.begin(), s.begin() + nx));
 		} while (next_combination(s.begin(), s.begin() + nx, s.end()));
 
 		if (!transposed)
-			assignment = optAss;
+			std::copy_n(optAss.begin(), optAss.size(), assignment.begin());
+			//assignment = optAss;
 		else
 		{
-			assignment.resize(A.rows());
-			fill(assignment.begin(), assignment.end(), -1);
+			//assignment.resize(A.rows());
+			std::fill(assignment.begin(), assignment.end(), null_assign);
 
+			//cout << "optAss = ";
 			for (int i = 0; i < optAss.size(); i++)
-				assignment[optAss[i]] = i;
+			{
+				//cout << optAss[i] << ' ';
+				if (optAss[i] >= 0 && optAss[i] < assignment.size())
+					assignment[optAss[i]] = i;
+			}
+			//cout << endl;
 		}
 
 		return optScore;

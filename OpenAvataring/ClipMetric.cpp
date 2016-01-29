@@ -66,7 +66,16 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	std::lock_guard<std::mutex> guard(m_facadeMutex);
 	ClipFacade::SetFeature(m_pFeature);
 	ClipFacade::SetActiveEnergy(g_PlayerActiveEnergy, g_PlayerSubactiveEnergy);
-	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif);
+	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy);
+	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive /*| Ep_AbsGravity*/);
+	ClipFacade::SetGravityReference(parts.Armature().default_frame());
+	ClipFacade::SetEnergyFilterFunction([&parts](Eigen::RowVectorXf& Eb) {
+		for (int i = 0; i < parts.size(); i++)
+		{
+			if (parts[i]->parent() != nullptr)
+				Eb[i] *= parts[i]->ChainLength / parts[i]->LengthToRoot;
+		}
+	});
 }
 
 CharacterClipinfo::CharacterClipinfo()
@@ -97,14 +106,19 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 		PvFacade.SetFeature(pPvF);
 	}
 
-	RcFacade.Prepare(parts, -1, ClipFacade::ComputePca);
+	RcFacade.Prepare(parts, -1, ClipFacade::ComputePca | ClipFacade::ComputeEnergy);
+
+	ClipFacade::EnergyFilterFunctionType binded = std::bind(&CharacterClipinfo::FilterLocalRotationEnergy, *this, std::placeholders::_1);
+	RcFacade.SetEnergyFilterFunction(std::move(binded));
 	PvFacade.Prepare(parts, -1, ClipFacade::ComputeAll);
 }
 
-void CharacterClipinfo::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime)
+void CharacterClipinfo::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime, bool cyclic)
 {
-	RcFacade.AnalyzeSequence(frames, sequenceTime);
-	PvFacade.AnalyzeSequence(frames, sequenceTime);
+	RcFacade.AnalyzeSequence(frames, sequenceTime, cyclic);
+	// Force both facade to use same energy
+	PvFacade.SetAllPartsEnengy(RcFacade.GetAllPartsEnergy());
+	PvFacade.AnalyzeSequence(frames, sequenceTime, cyclic);
 }
 
 CharacterClipinfo::CharacterClipinfo(const ShrinkedArmature& parts)
@@ -119,9 +133,23 @@ void CharacterClipinfo::SetClipName(const ::std::string& name)
 	RcFacade.SetClipName(name);
 }
 
+void CharacterClipinfo::FilterLocalRotationEnergy(Eigen::RowVectorXf & Eb)
+{
+	auto& parts = *m_pParts;
+	for (int i = 0; i < parts.size(); i++)
+	{
+		// Normalize the angular movenmentum to linear
+		Eb[i] *= parts[i]->ChainLength;
+	}
+}
+
 CyclicStreamClipinfo::~CyclicStreamClipinfo()
 {
-
+	if (m_fftplan != nullptr)
+	{
+		fftwf_free(m_fftplan);
+		m_fftplan = nullptr;
+	}
 }
 
 CyclicStreamClipinfo::CyclicStreamClipinfo(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames)
@@ -152,6 +180,7 @@ void CyclicStreamClipinfo::Initialize(ShrinkedArmature& parts, time_seconds minT
 
 void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames)
 {
+	m_bufferInit = false;
 	std::lock_guard<std::mutex> guard(m_bfMutex);
 
 	m_pParts = &parts;
@@ -197,17 +226,24 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 		m_buffer.data(), nullptr, m_bufferWidth, 1,
 		(fftwf_complex*)m_Spectrum.data(), nullptr, m_bufferWidth, 1,
 		0);
-
+	if (m_fftplan != nullptr)
+	{
+		fftwf_free(m_fftplan);
+		m_fftplan = nullptr;
+	}
 	m_fftplan = plan;
 #endif
 
 	m_bufferHead = m_bufferSize = m_frameCounter = 0;
+	m_bufferInit = true;
 }
 
 bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 {
 	using namespace Eigen;
 	using namespace DirectX;
+	if (!m_bufferInit)
+		return false;
 
 	assert(
 		XMVector3InBounds(
@@ -405,6 +441,8 @@ ClipFacade::ClipFacade()
 	m_dimP = -1;
 	m_pdFix = false;
 	m_inited = false;
+	m_isClose = false;
+	m_step = 1;
 	m_pcaCutoff = g_CharacterPcaCutoff;
 	m_ActiveEnergyThreshold = g_CharacterActiveEnergy;
 	m_SubactiveEnergyThreshold = g_CharacterSubactiveEnergy;
@@ -423,6 +461,7 @@ void ClipFacade::SetGravityReference(ArmatureFrameConstView frame)
 {
 	auto& parts = *m_pParts;
 	int stIdx = 0;
+	m_refX.resize(m_partSt.back() + m_partDim.back());
 	for (int i = 0; i < parts.size(); i++)
 	{
 		auto& part = *parts[i];
@@ -471,9 +510,6 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 	m_partSt[0] = 0;
 	m_pdFix = true;
 
-	auto& dframe = parts.Armature().default_frame();
-	SetGravityReference(dframe);
-
 	for (int i = 0; i < parts.size(); i++)
 	{
 		m_partDim[i] = m_pFeature->GetDimension(*parts[i]);
@@ -488,6 +524,9 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 	m_dimP = m_pdFix ? m_partDim[0] : -1;
 
 	int fLength = m_partDim.back() + m_partSt.back();
+
+	auto& dframe = parts.Armature().default_frame();
+	SetGravityReference(dframe);
 
 	if (clipLength > 0)
 	{
@@ -514,14 +553,17 @@ void ClipFacade::SetComputationFlags(int flags)
 	m_flag = flags;
 }
 
-void ClipFacade::AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime)
+void ClipFacade::SetEnergyTerms(unsigned energyTerms) { m_energyTerms = energyTerms; }
+
+void ClipFacade::AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime, bool cyclic)
 {
 	assert(m_pParts != nullptr);
 
 	m_clipTime = sequenceTime;
 
+	m_isClose = cyclic;
 	//? HACK! IS BAD.
-	SetFeatureMatrix(frames, sequenceTime, true);
+	SetFeatureMatrix(frames, sequenceTime, cyclic);
 
 	CaculatePartsMetric();
 }
@@ -567,7 +609,7 @@ void ClipFacade::CaculatePartsMetric()
 		m_Xnor = m_X;
 
 	m_Edim.resize(parts.size());
-	m_Eb.resize(parts.size());
+	m_Eb.setZero(parts.size());
 	m_partDim.resize(parts.size());
 	m_partSt.resize(parts.size());
 	m_Pcas.resize(parts.size());
@@ -577,7 +619,7 @@ void ClipFacade::CaculatePartsMetric()
 	double frametime = m_clipTime / (double)m_X.rows();
 	int N = m_X.rows();
 	m_dX.resizeLike(m_X);
-	m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - m_step) - m_X.bottomRows(m_dX.rows() - m_step)) / (2 * (double)m_step * frametime);
+	m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - 2 * m_step) - m_X.bottomRows(m_dX.rows() - 2 * m_step)) / (2 * (double)m_step * frametime);
 
 	if (!m_isClose) // Open Loop case
 	{
@@ -597,36 +639,48 @@ void ClipFacade::CaculatePartsMetric()
 		m_dX.bottomRows(m_step) = (m_X.middleRows(N-m_step*2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
 	}
 
+	if (m_flag & ComputeNormalize)
+		for (int i = 0; i < parts.size(); i++)
+		{
+			m_Xnor.middleCols(m_partSt[i], m_partDim[i]).rowwise().normalize();
+		}
 
-	for (int i = 0; i < parts.size(); i++)
+	if (m_flag & ComputeEnergy)
 	{
-
-		if (m_energyTerms & Ek_SampleVarience)
+		for (int i = 0; i < parts.size(); i++)
 		{
-			m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose();
-			m_Eb[i] = m_Edim[i].sum();
-		}
-		else if (m_energyTerms & Ek_TimeDiveritive)
-		{
-			auto cols = m_cX.middleCols(m_partSt[i], m_partDim[i]);
-			m_Edim[i] = m_dX.cwiseAbs2().colwise().sum().transpose();
-			m_Eb[i] = m_Edim[i].sum();
-		}
 
-		if (m_energyTerms & Ep_SampleMeanLength)
-			m_Eb[i] += m_uX.segment(m_partSt[i], m_partDim[i]).cwiseAbs2().sum();
-		else if (m_energyTerms & Ep_AbsGravity)
-			m_Eb[i] += ((m_uX.segment(m_partSt[i], m_partDim[i])
+			if (m_energyTerms & Ek_SampleVarience)
+			{
+				m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose();
+				m_Eb[i] = m_Edim[i].sum();
+			}
+			else if (m_energyTerms & Ek_TimeDiveritive)
+			{
+				auto cols = m_cX.middleCols(m_partSt[i], m_partDim[i]);
+				m_Edim[i] = cols.cwiseAbs2().colwise().sum().transpose();
+				m_Eb[i] = m_Edim[i].sum();
+			}
+
+			if (m_energyTerms & Ep_SampleMeanLength)
+				m_Eb[i] += m_uX.segment(m_partSt[i], m_partDim[i]).cwiseAbs2().sum();
+			else if (m_energyTerms & Ep_AbsGravity)
+				m_Eb[i] += ((m_uX.segment(m_partSt[i], m_partDim[i])
 					- m_refX.segment(m_partSt[i], m_partDim[i])).array()
 					* m_Gmask.segment(m_partSt[i], m_partDim[i]).array())
-					.cwiseAbs().sum();
+				.cwiseAbs().sum();
 
-		m_Edim[i] = m_Edim[i].array().sqrt();
-		m_Eb[i] = sqrtf(m_Eb[i]);
+			m_Edim[i] = m_Edim[i].array().sqrt();
+			m_Eb[i] = sqrtf(m_Eb[i]);
+		}
 
-		if (m_flag & ComputeNormalize)
-			m_Xnor.middleCols(m_partSt[i], m_partDim[i]).rowwise().normalize();
+		if (m_energyFilter != nullptr)
+		{
+			m_energyFilter(m_Eb);
+		}
 	}
+
+	assert(m_Eb.size() == parts.size() && "Energy function must be compute or imported before further processing");
 
 	float maxEnergy = m_Eb.maxCoeff();
 
@@ -680,7 +734,7 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 	auto& parts = *m_pParts;
 
 	m_difMean.resize(parts.size() * m_dimP, parts.size());
-	m_difMean.resize(parts.size() * m_dimP, parts.size() * m_dimP);
+	m_difCov.resize(parts.size() * m_dimP, parts.size() * m_dimP);
 
 	float thrh = 0;
 	switch (level)
@@ -705,24 +759,32 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 	for (int i = 0; i < parts.size(); i++)
 	{
 		if (m_Eb[i] < thrh) continue;
-		for (int j = i + 1; j < parts.size(); j++)
+		for (int j = 0; j < parts.size(); j++)
 		{
 			// Always caculate the metric of a part to its parent
-			if ((parts[j]->parent()->Index != i) && (m_Eb[j] < thrh))
+			if ((m_Eb[j] < thrh))
 				continue;
 
-			Xij = GetPartsDifferenceSequence(i, j);
-			uXij = Xij.colwise().mean();
-			m_difMean.block(i*m_dimP, j, m_dimP, 1) = uXij.transpose();
-
-			auto covij = m_difCov.block(i*m_dimP, j*m_dimP, m_dimP, m_dimP);
-
-			Xij -= uXij.replicate(Xij.rows(), 1);
-			covij.noalias() = Xij.transpose() * Xij;
-
-			// mean is aniti-symetric, covarience is symetric
-			m_difMean.block(j*m_dimP, i, m_dimP, 1) = -uXij.transpose();
-			m_difCov.block(j*m_dimP, i*m_dimP, m_dimP, m_dimP) = covij;
+			CaculatePairMetric(Xij, i, j, uXij);
 		}
+		auto pi = parts[i]->parent();
+		if (pi)
+			CaculatePairMetric(Xij, i, pi->Index, uXij);
 	}
+}
+
+inline void ClipFacade::CaculatePairMetric(Eigen::MatrixXf &Xij, int i, int j, Eigen::RowVectorXf &uXij)
+{
+	Xij = GetPartsDifferenceSequence(i, j);
+	uXij = Xij.colwise().mean();
+	m_difMean.block(i*m_dimP, j, m_dimP, 1) = uXij.transpose();
+
+	auto covij = m_difCov.block(i*m_dimP, j*m_dimP, m_dimP, m_dimP);
+
+	Xij -= uXij.replicate(Xij.rows(), 1);
+	covij.noalias() = Xij.transpose() * Xij;
+
+	// mean is aniti-symetric, covarience is symetric
+	m_difMean.block(j*m_dimP, i, m_dimP, 1) = -uXij.transpose();
+	m_difCov.block(j*m_dimP, i*m_dimP, m_dimP, m_dimP) = covij;
 }

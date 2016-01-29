@@ -146,7 +146,6 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 		m_mapTask = concurrency::create_task([this]() {
 			auto idx = MapCharacterByLatestMotion();
 			m_mapTaskOnGoing = false;
-
 		});
 	}
 
@@ -154,33 +153,30 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 
 void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAnimation * pNew)
 {
-	if (!pOld)
-		StopUpdateThread();
+	StopUpdateThread();
+	SetActiveController(-1);
 
-	m_CyclicInfo.ResetStream();
-
-	if (!pOld || &pNew->GetArmature() != &pOld->GetArmature())
+	if (!pOld || (pNew && &pNew->GetArmature() != &pOld->GetArmature()))
 	{
 		ResetPlayerArmature(&pNew->GetArmature());
 	}
 
+	m_CyclicInfo.ResetStream();
 	m_CyclicInfo.EnableCyclicMotionDetection(true);
 	m_updateTime = 0;
 	m_updateCounter = 0;
-	SetActiveController(-1);
 
-	if (pNew != nullptr)
+	if (pNew)
 		StartUpdateThread();
 }
 
 void PlayerProxy::ResetPlayerArmature(const IArmature* playerArmature)
 {
-	if (m_pPlayerArmature == playerArmature) 
-		return;
 	m_pPlayerArmature = playerArmature;
 	InitializeShrinkedPlayerArmature();
+	cout << "Initializing Cyclic Info..." << endl;
 	m_CyclicInfo.Initialize(*m_pParts, time_seconds(0.5), time_seconds(3), 30, 0);
-
+	cout << "Cyclic Info Initited!" << endl;
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Joint& joint)
@@ -219,8 +215,10 @@ PlayerProxy::PlayerProxy()
 	m_DefaultCameraFlag(true),
 	m_updateCounter(0),
 	m_updateTime(0),
-	m_pParts(new ShrinkedArmature())
+	m_pParts(new ShrinkedArmature()),
+	m_pPlayerArmature(nullptr)
 {
+	//ResetPlayerArmature(TrackedBody::BodyArmature.get());
 	Register();
 	m_stopUpdate = true;
 	m_IsInitialized = true;
@@ -228,25 +226,30 @@ PlayerProxy::PlayerProxy()
 
 void PlayerProxy::InitializeShrinkedPlayerArmature()
 {
-	if (m_pParts->empty())
-	{
-		m_pParts->SetArmature(*m_pPlayerArmature);
+	m_pParts->SetArmature(*m_pPlayerArmature);
 
+	{
+		cout << "Player Armature Parts" << endl;
+		int i = 0;
+		auto& parts = *m_pParts;
+		for (auto pPart : parts)
 		{
-			cout << "Player Armature Parts" << endl;
-			int i = 0;
-			auto& parts = *m_pParts;
-			for (auto pPart : parts)
+			auto& part = *pPart;
+			cout << "Part[" << i++ << "] = " << part.Joints;
+			if (part.SymetricPair != nullptr)
 			{
-				auto& part = *pPart;
-				cout << "Part[" << i++ << "] = " << part.Joints;
-				if (part.SymetricPair != nullptr)
-				{
-					cout << " <--> {" << part.SymetricPair->Joints[0] << "...}";
-				}
-				cout << endl;
+				cout << " <--> {" << part.SymetricPair->Joints[0] << "...}";
 			}
+			cout << endl;
 		}
+	}
+
+	cout << "Armature Proportions : " << endl;
+	for (auto pPart : *m_pParts)
+	{
+		auto& part = *pPart;
+		cout << "Part " << part.Joints << " = ";
+		cout << part.ChainLength << '|' << part.LengthToRoot << endl;
 	}
 }
 
@@ -263,7 +266,9 @@ void PlayerProxy::StopUpdateThread()
 {
 	m_stopUpdate = true;
 	if (m_updateThread.joinable())
+	{
 		m_updateThread.join();
+	}
 }
 
 
@@ -287,7 +292,7 @@ void PlayerProxy::AddChild(SceneObject* pChild)
 		m_Controllers.emplace_back();
 		auto& controller = m_Controllers.back();
 		controller.ID = m_Controllers.size() - 1;
-		controller.Initialize(*m_pPlayerArmature, *pChara, settings);
+		controller.Initialize(*pChara, settings);
 		pChara->SetOpticity(1.0f);
 
 		if (g_DebugLocalMotion)
@@ -319,7 +324,8 @@ void PlayerProxy::Parse(const ParamArchive * store)
 		unsigned umode = KinectPlayerSelector::ClosestStickly;
 		GetParam(sel, "mode", umode);
 		mode = (KinectPlayerSelector::SelectionMode)umode;
-		m_pSelector = make_shared<KinectPlayerSelector>(pKinect.get(), mode);
+		auto pSelector = make_shared<KinectPlayerSelector>(pKinect.get(), mode);
+		SetPlayerSelector(pSelector);
 		pKinect->Start();
 	}
 	else if (name == "leap_selector")
@@ -478,6 +484,7 @@ void PlayerProxy::SetActiveController(int idx)
 
 		auto& controller = GetController(m_CurrentIdx);
 		auto& chara = controller.Character();
+		controller.SetBinding(nullptr);
 
 		auto glow = chara.FirstChildOfType<CharacterGlowParts>();
 		if (glow)
@@ -495,12 +502,18 @@ void PlayerProxy::SetActiveController(int idx)
 
 int PlayerProxy::MapCharacterByLatestMotion()
 {
+	if (!m_pSelector || !m_pSelector->Get())
+		return -1;
+
 	auto& player = *m_pSelector->Get();
 
 	CharacterController* pControl = nullptr;
 	{
 		std::lock_guard<std::mutex> guard(m_CyclicInfo.AqucireFacadeMutex());
 		cout << "FacadeLock Aquired" << endl;
+
+		//std::this_thread::sleep_for(std::chrono::seconds(1));
+
 		for (auto& controller : m_Controllers)			//? <= 5 character
 		{
 			if (!controller.IsReady)
@@ -510,10 +523,13 @@ int PlayerProxy::MapCharacterByLatestMotion()
 			if (!pControl || controller.CharacterScore > pControl->CharacterScore)
 				pControl = &controller;
 		}
+
+		if (pControl)
+			// Disable re-matching when the controller has not request
+			m_CyclicInfo.EnableCyclicMotionDetection(false);
+
 		cout << "FacadeLock Releasing" << endl;
 	}
-	// Disable re-matching when the controller has not request
-	m_CyclicInfo.EnableCyclicMotionDetection(false);
 
 	if (!pControl) return -1;
 
@@ -738,8 +754,15 @@ void PlayerProxy::UpdateThreadRuntime()
 		if (!(bool)m_newFrameAvaiable) continue;
 
 		auto& player = *m_pSelector->Get();
-		if (!m_pSelector->Get() || !player.IsAvailable() || !player.ReadLatestFrame())
+
+		if (!m_pSelector->Get())
+		{
+			cout << "Player Selector Lost, stop update." << endl;
 			return;
+		}
+
+		if (!player.IsAvailable() || !player.ReadLatestFrame())
+			continue;
 
 		// Update time / frame
 		auto now = std::chrono::system_clock::now();
@@ -765,9 +788,10 @@ void PlayerProxy::UpdateThreadRuntime()
 		if (g_ForceRemappingAlwaysOn)
 			m_CyclicInfo.EnableCyclicMotionDetection();
 
-		if (IsMapped())
+		if (IsMapped() && m_controlMutex.try_lock())
 		{
-			std::lock_guard<std::mutex> guard(m_controlMutex);
+			std::lock_guard<std::mutex> guard(m_controlMutex,std::adopt_lock);
+			cout << "getting mutext" << endl;
 			auto& controller = CurrentController();
 			float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
 
@@ -1063,6 +1087,8 @@ void XM_CALLCONV PlayerProxy::UpdateViewMatrix(DirectX::FXMMATRIX view, DirectX:
 }
 
 void PlayerProxy::SetPlayerSelector(const sptr<IPlayerSelector>& playerSelector) {
+	m_pSelector = playerSelector;
+
 	auto fReset = std::bind(&PlayerProxy::ResetPlayer, this, placeholders::_1, placeholders::_2);
 	m_pSelector->SetPlayerChangeCallback(fReset);
 

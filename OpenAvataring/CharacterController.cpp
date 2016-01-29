@@ -86,7 +86,8 @@ public:
 	std::vector<std::pair<DirectX::Vector3, DirectX::Vector3>> * pHandles;
 
 	mutable
-		Localize<EndEffector<InputFeature>>
+		Localize<
+		EndEffector<InputFeature>>
 		inputExtractor;
 
 	mutable
@@ -342,7 +343,7 @@ public:
 		FrameRebuildGlobal(*m_tArmature, target_frame);
 	}
 
-	void SetVisualizeHandle(Causality::ArmaturePart *const & block, Eigen::RowVectorXf &xf)
+	void SetVisualizeHandle(ArmaturePart *const & block, Eigen::RowVectorXf &xf)
 	{
 		if (pHandles)
 		{
@@ -376,12 +377,11 @@ CharacterController::~CharacterController()
 CharacterController::CharacterController() {
 }
 
-void CharacterController::Initialize(const IArmature & player, CharacterObject & character, const ParamArchive* settings)
+void CharacterController::Initialize(CharacterObject & character, const ParamArchive* settings)
 {
 	IsReady = false;
 	CharacterScore = 0;
 	CurrentActionIndex = 0;
-	SetSourceArmature(player);
 	SetTargetCharacter(character);
 }
 
@@ -400,29 +400,37 @@ void CharacterController::SetBinding(std::unique_ptr<ArmatureTransform> && pBind
 	m_pBinding = move(pBinding);
 }
 
+const ArmatureTransform & CharacterController::SelfBinding() const { return *m_pSelfBinding; }
+
+ArmatureTransform & CharacterController::SelfBinding() { return *m_pSelfBinding; }
+
 const CharacterObject & CharacterController::Character() const { return *m_pCharacter; }
 
 CharacterObject & CharacterController::Character() { return *m_pCharacter; }
 
-const IArmature & Causality::CharacterController::Armature() const
+const IArmature & CharacterController::Armature() const
 {
 	return Character().Behavier().Armature();
 }
 
-IArmature & Causality::CharacterController::Armature()
+IArmature & CharacterController::Armature()
 {
 	return Character().Behavier().Armature();
 }
 
-const ShrinkedArmature & Causality::CharacterController::ArmatureParts() const
+const ShrinkedArmature & CharacterController::ArmatureParts() const
 {
 	return m_charaParts;
 }
 
-ShrinkedArmature & Causality::CharacterController::ArmatureParts()
+ShrinkedArmature & CharacterController::ArmatureParts()
 {
 	return m_charaParts;
 }
+
+const std::vector<int>& CharacterController::ActiveParts() const { return m_ActiveParts; }
+
+const std::vector<int>& CharacterController::SubactiveParts() const { return m_SubactiveParts; }
 
 float CharacterController::UpdateTargetCharacter(ArmatureFrameConstView frame, ArmatureFrameConstView lastframe, double deltaTime) const
 {
@@ -500,7 +508,7 @@ void CharacterController::SetReferenceSourcePose(const Bone & sourcePose)
 
 }
 
-void CharacterController::SychronizeRootDisplacement(const Causality::Bone & bone) const
+void CharacterController::SychronizeRootDisplacement(const Bone & bone) const
 {
 	auto pos = Character().GetPosition() + bone.GblTranslation - LastPos;
 
@@ -524,16 +532,24 @@ void CharacterController::SychronizeRootDisplacement(const Causality::Bone & bon
 	//m_pCharacter->SetOrientation(rot);
 }
 
-float CreateControlTransform(CharacterController & controller, const ClipFacade& iclip);
+//float CreateControlTransform(CharacterController & controller, const ClipFacade& iclip);
 
 float CharacterController::CreateControlBinding(const ClipFacade& inputClip)
 {
-	return CreateControlTransform(*this, inputClip);
+	auto info = CreateControlTransform(*this, inputClip);
+	if (info.transform != nullptr)
+	{
+		cout << "Trying to set binding..." << endl;
+		SetBinding(move(info.transform));
+		CharacterScore = info.likilihood;
+		cout << "Finished set binding" << endl;
+	}
+	return info.likilihood;
 }
 
-const std::vector<std::pair<DirectX::Vector3, DirectX::Vector3>>& Causality::CharacterController::PvHandles() const
+array_view<std::pair<DirectX::Vector3, DirectX::Vector3>> CharacterController::PvHandles() const
 {
-	return m_PvHandles;
+	return const_cast<std::vector<std::pair<DirectX::Vector3, DirectX::Vector3>>&>(m_PvHandles);
 }
 
 std::vector<std::pair<DirectX::Vector3, DirectX::Vector3>>& CharacterController::PvHandles()
@@ -553,11 +569,6 @@ CharacterClipinfo & CharacterController::GetClipInfo(const string & name) {
 	{
 		throw std::out_of_range("given name doesn't exist");
 	}
-}
-
-void CharacterController::SetSourceArmature(const IArmature & armature) {
-	if (m_pBinding)
-		m_pBinding->SetSourceArmature(armature);
 }
 
 template <class DerivedX, class DerivedY, typename Scalar>
@@ -654,7 +665,7 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 	m_charaFrame = armature.default_frame();
 	m_PvHandles.resize(armature.size());
 
-	parts.ComputeWeights();
+	//parts.ComputeWeights();
 	if (!g_UseJointLengthWeight)
 	{
 		for (auto& part : parts)
@@ -707,7 +718,7 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 			// set subactive energy to almost zero that make sure all part's pca is caculated
 			//m_cpxClipinfo.RcFacade.SetActiveEnergy(g_CharacterActiveEnergy, g_CharacterSubactiveEnergy * 0.01f);
 			//m_cpxClipinfo.PvFacade.SetActiveEnergy(g_CharacterActiveEnergy, g_CharacterSubactiveEnergy * 0.01f);
-			m_cpxClipinfo.AnalyzeSequence(allFrames, 0);
+			m_cpxClipinfo.AnalyzeSequence(allFrames, 0, false);
 		}));
 	}
 
@@ -724,7 +735,7 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		tasks.emplace_back(create_task([&clipinfo, &anim, &parts]() {
 			clipinfo.Initialize(parts);
 			auto & frames = anim.GetFrameBuffer();
-			clipinfo.AnalyzeSequence(frames, anim.Length().count());
+			clipinfo.AnalyzeSequence(frames, anim.Length().count(), anim.IsCyclic);
 		}));
 	}
 
@@ -795,11 +806,13 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		for (auto& clipinfo : m_Clipinfos)
 		{
 			auto& key = clipinfo.ClipName();
+			const auto& pvfacade = clipinfo.PvFacade;
 			auto& Eb = clipinfo.PvFacade.GetAllPartsEnergy();
 
 			for (int i = 0; i < Eb.size(); i++)
 			{
-				if (Eb[i] > g_CharacterActiveEnergy * globalEnergyMax)
+				if (std::binary_search(BEGIN_TO_END(pvfacade.ActiveParts()),i))
+				//if (Eb[i] > g_CharacterActiveEnergy * globalEnergyMax)
 				{
 					parts[i]->ActiveActions.push_back(key);
 					avtiveSet.insert(i);
@@ -885,21 +898,31 @@ MatrixXf CharacterController::GenerateXapv(const std::vector<int> &activeParts)
 	auto& allClipinfo = m_cpxClipinfo;
 	auto& pvFacade = allClipinfo.PvFacade;
 	int pvDim = pvFacade.GetAllPartDimension();
+	auto& parts = m_charaParts;
 	assert(pvDim > 0);
-
+	std::vector<int> activeParents = activeParts;
+	for (int i = 0; i < activeParts.size(); i++)
+		activeParents[i] = parts[activeParts[i]]->parent()->Index;
 
 	MatrixXf Xabpv(allClipinfo.ClipFrames(), size(activeParts) * pvDim);
+	MatrixXf Xabparentpv(allClipinfo.ClipFrames(), size(activeParts) * pvDim);
 
 	ArrayXi incX(pvDim);
 	incX.setLinSpaced(0, pvDim - 1);
 
 	MatrixXi apMask = VectorXi::Map(activeParts.data(), activeParts.size()).replicate(1, pvDim).transpose();
-
+	MatrixXi appMask = VectorXi::Map(activeParents.data(), activeParents.size()).replicate(1, pvDim).transpose();
 
 	apMask.array() = apMask.array() * pvDim + incX.replicate(1, apMask.cols());
+	appMask.array() = appMask.array() * pvDim + incX.replicate(1, appMask.cols());
+
 
 	auto maskVec = VectorXi::Map(apMask.data(), apMask.size());
 	selectCols(pvFacade.GetAllPartsSequence(), maskVec, &Xabpv);
+	maskVec = VectorXi::Map(appMask.data(), appMask.size());
+	selectCols(pvFacade.GetAllPartsSequence(), maskVec, &Xabparentpv);
+
+	Xabpv -= Xabparentpv;
 
 	Pca<MatrixXf> pcaXabpv(Xabpv);
 	int dXabpv = pcaXabpv.reducedRank(g_CharacterPcaCutoff);

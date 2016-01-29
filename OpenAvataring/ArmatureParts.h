@@ -49,6 +49,11 @@ namespace Causality
 		//ArmatureFrame			ChainFrame;			// Stores the length data and etc
 
 		// Structural feature
+		float				ChainLength;		// Length of this joint chain
+		float				LengthToRoot;		// Length to the root joint
+		float				LengthToLeaf;		// Average Length to end effectors
+		float				AccumulatedLengthToLeaf; // Sum of the length of all descendants
+		int					DoF;				// Actual Degree of freedom
 		int					LoD;				// Level of detail
 		int					LoG;				// Level of Grounding
 		SymetricTypeEnum	SymetricType;		// symmetry type

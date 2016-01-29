@@ -20,6 +20,7 @@ void ShrinkedArmature::SetArmature(const IArmature & armature)
 	m_pRoot.reset(ShrinkChainToBlock(armature.root()));
 	int idx = 0, accumIdx = 0;
 
+	m_Parts.clear();
 	for (auto& block : m_pRoot->nodes())
 	{
 		m_Parts.push_back(&block);
@@ -44,6 +45,8 @@ void ShrinkedArmature::SetArmature(const IArmature & armature)
 			}
 		}
 	}
+
+	ComputeWeights();
 }
 
 void ShrinkedArmature::ComputeWeights()
@@ -52,26 +55,50 @@ void ShrinkedArmature::ComputeWeights()
 
 	// Reverse Depth first visit, thus child must be visited before parent
 	auto rparts = make_range(m_Parts.rbegin(), m_Parts.rend());
-	for (auto& pblcok : rparts)
+	for (auto pblcok : rparts)
 	{
 		auto& part = *pblcok;
 		float length = 0;
+		int childrencount = 0;
 		for (auto& childPart : part.children())
 		{
 			length += childPart.Wxj[0] * childPart.Wxj[0];
+			++childrencount;
 		}
 		length = sqrt(length);
 
 		part.Wxj.resize(part.Joints.size());
 		part.Wxj.setZero();
+
+		part.LengthToLeaf = length / childrencount;
+
+		float lclenght = 0;
 		for (int i = part.Joints.size() - 1; i >= 0; --i)
 		{
-			length += frame[part.Joints[i]->ID].LclTranslation.Length();
+			float l = frame[part.Joints[i]->ID].LclTranslation.Length();
+			lclenght += l;
+			length += l;
 			part.Wxj[i] = length;
 		}
 
+		part.ChainLength = lclenght;
+		part.AccumulatedLengthToLeaf = length;
+
 		Matrix<float, -1, -1, RowMajor> wx = part.Wxj.replicate(1, 3).eval();
 		part.Wx = VectorXf::Map(wx.data(), wx.size());
+	}
+
+	for (auto pPart : m_Parts)
+	{
+		auto& part = *pPart;
+		if (part.parent() != nullptr)
+		{
+			part.LengthToRoot = part.ChainLength + part.parent()->LengthToRoot;
+		}
+		else
+		{
+			part.LengthToRoot = 0;
+		}
 	}
 
 }

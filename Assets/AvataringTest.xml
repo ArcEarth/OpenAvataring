@@ -29,7 +29,7 @@
     <FrameTimeScaleFactor>20</FrameTimeScaleFactor>
 
     <CharacterPcaCutoff>0.00001</CharacterPcaCutoff>
-    <CharacterActiveEnergy>0.2</CharacterActiveEnergy>
+    <CharacterActiveEnergy>0.3</CharacterActiveEnergy>
     <CharacterSubactiveEnergy>0.06</CharacterSubactiveEnergy>
 
     <PlayerPcaCutoff>0.04</PlayerPcaCutoff>
@@ -41,8 +41,8 @@
     <IKTermWeight>1</IKTermWeight>
     <IKLimitWeight>0</IKLimitWeight>
     <MarkovTermWeight>0.1</MarkovTermWeight>
-    <!--<StyleLikelihoodTermWeight ch="horse">0.000045</StyleLikelihoodTermWeight>-->
-    <StyleLikelihoodTermWeight ch="spider">0.0000003</StyleLikelihoodTermWeight>
+    <StyleLikelihoodTermWeight ch="horse">0.045</StyleLikelihoodTermWeight>
+    <!--<StyleLikelihoodTermWeight ch="spider">0.0000003</StyleLikelihoodTermWeight>-->
     <!--<IKTermWeight>1.0</IKTermWeight>
     <IKLimitWeight>200</IKLimitWeight>
     <MarkovTermWeight>1.0</MarkovTermWeight>
@@ -137,15 +137,15 @@
     <phong_material name="pinetree_mat" diffuse_map="Pine_tree_texture.dds" normal_map="Pine_tree_normal.dds" specular_map="Pine_tree_specular.dds" alpha_discard="true"></phong_material>
     <phong_material name="watchtower_mat" diffuse_map="Fortress_Watchtower.dds" normal_map="Pine_tree_normal.dds" alpha_discard="false"></phong_material>
 
-    <phong_material name="spider_material" diffuse_map="spider-tex.dds"></phong_material>
     <phong_material name="horse_material" alpha_discard="true" diffuse_map="Horse_D.dds"></phong_material>
+    <!--<phong_material name="spider_material" diffuse_map="spider-tex.dds"></phong_material>
     <phong_material name="insect_material" diffuse_map="Insect_Diff.dds" normal_map="Insect_NM.dds"></phong_material>
-    <!--<phong_material name="allosaurus_material" diffuse_map="Allosaurus_diffuse.dds" normal_map="Allosaurus_normal.dds"></phong_material>-->
     <phong_material name="kitten_Body" diffuse_color="#FFCCCCCC" diffuse_map="kitten_Albedo.dds" normal_map="kitten_Normal.dds"></phong_material>
     <phong_material name="kitten_Hair" diffuse_color="#FFCCCCCC" diffuse_map="kitten_Albedo.dds" alpha_discard="true"></phong_material>
     <phong_material name="kitten_Cornea" diffuse_map="kitten_Albedo.dds" normal_map="kitten_Normal.dds" specular_map="kitten_Specular.dds" alpha="0.25" diffuse_color="#20000000" specular_color="#FFFFFFFF" alpha_discard="true"></phong_material>
     <phong_material name="kitten_EyeballB" diffuse_map="kitten_Albedo.dds"></phong_material>
-    <phong_material name="kitten_EyeballA" diffuse_map="kitten_Albedo.dds"></phong_material>
+    <phong_material name="kitten_EyeballA" diffuse_map="kitten_Albedo.dds"></phong_material>-->
+    <!--<phong_material name="allosaurus_material" diffuse_map="Allosaurus_diffuse.dds" normal_map="Allosaurus_normal.dds"></phong_material>-->
 
 
     <!--<mesh name="cube_mesh" src="cube.obj"></mesh>-->
@@ -175,8 +175,8 @@
     <mesh name="watchtower_window" src="Enviroments\Watchtower_Window.fbx" material="{watchtower_mat}"></mesh>-->
 
     <mesh name="horse_mesh" src="Characters\Horse.fbx" material="{horse_material}" ></mesh>
-    <mesh name="spider_mesh" src="Characters\spider.fbx" material="{spider_material}"></mesh>
-    <mesh name="cat_mesh" src="Characters\kitten.fbx"></mesh>
+    <!--<mesh name="spider_mesh" src="Characters\spider.fbx" material="{spider_material}"></mesh>
+    <mesh name="cat_mesh" src="Characters\kitten.fbx"></mesh>-->
     <!--<mesh name="insect_mesh" src="Characters\Insect.fbx" material="{insect_material}"></mesh>-->
     <!--<mesh name="allosaurus_mesh" src="allosaurus.fbx" material="{allosaurus_material}"></mesh>-->
   </scene.assets>

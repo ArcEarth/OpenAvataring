@@ -1486,10 +1486,23 @@ public:
     constexpr reference operator()(FirstIndex index, OtherIndices... indices)
     {
         index_type idx = {narrow_cast<std::ptrdiff_t>(index),
-                          narrow_cast<std::ptrdiff_t>(indices...)};
+                          narrow_cast<std::ptrdiff_t>(indices)... };
         return this->operator[](idx);
     }
 
+	template <typename FirstIndex>
+	constexpr reference operator()(FirstIndex index) const
+	{
+		return this->operator[](narrow_cast<std::ptrdiff_t>(index));
+	}
+
+	template <typename FirstIndex, typename... OtherIndices>
+	constexpr reference operator()(FirstIndex index, OtherIndices... indices) const
+	{
+		index_type idx = { narrow_cast<std::ptrdiff_t>(index),
+			narrow_cast<std::ptrdiff_t>(indices)... };
+		return this->operator[](idx);
+	}
     constexpr reference operator[](const index_type& idx) const noexcept
     {
         return data_[bounds_.linearize(idx)];

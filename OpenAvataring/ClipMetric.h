@@ -1,12 +1,14 @@
 #pragma once
 #include <atomic>
-#include <Eigen\Dense>
-#include "ArmatureParts.h"
-//#include <ppltasks.h>
 #include <mutex>
+#include <functional>
+
+#include <Eigen\Dense>
+
+#include "ArmatureParts.h"
 #include "CCA.h"
+
 #include "Causality\Animations.h"
-//#include <boost\icl\interval_set.hpp>
 
 namespace std
 {
@@ -30,7 +32,8 @@ namespace Causality
 			ComputePcaQr = 0x8 | ComputePca,
 			ComputePairDif = 0x10,
 			ComputeVelocity = 0x20,
-			ComputeAll = ComputePcaQr | ComputeNormalize | ComputePairDif,
+			ComputeEnergy = 0x40,
+			ComputeAll = ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy,
 		};
 
 		enum PairDifLevelEnum
@@ -49,6 +52,7 @@ namespace Causality
 			Ep_AbsGravity = 8, // This term compute the hight (Y) energy from the default pose
 		};
 
+		typedef std::function<void(Eigen::RowVectorXf&)> EnergyFilterFunctionType;
 		// Construction & Meta-data acess
 	public:
 		ClipFacade();
@@ -93,7 +97,17 @@ namespace Causality
 		void							Prepare(const ShrinkedArmature& parts, int clipLength = -1, int flag = ComputeAll);
 		void							SetComputationFlags(int flags);
 
-		void							AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime);
+		void							SetEnergyTerms(unsigned energyTerms);
+		void							SetEnergyFilterFunction(const EnergyFilterFunctionType &filter)
+		{
+			m_energyFilter = filter;
+		}
+		void							SetEnergyFilterFunction(EnergyFilterFunctionType &&filter)
+		{
+			m_energyFilter = std::move(filter);
+		}
+
+		void							AnalyzeSequence(array_view<const ArmatureFrame> frames, double sequenceTime, bool cyclic);
 
 		void							SetFeatureMatrix(array_view<const ArmatureFrame> frames, double duration, bool cyclic);
 		void							SetFeatureMatrix(const Eigen::MatrixXf& X) { m_inited = false; m_X = X; }
@@ -108,6 +122,8 @@ namespace Causality
 	protected:
 		void							CaculatePartsPairMetric(PairDifLevelEnum level = ActivePartPairs);
 
+		void							CaculatePairMetric(Eigen::MatrixXf &Xij, int i, int j, Eigen::RowVectorXf &uXij);
+
 		// Part-wise metric accessers
 	public:
 		Eigen::DenseIndex				GetPartStartIndex(int pid) const
@@ -121,10 +137,20 @@ namespace Causality
 		}
 
 		float							GetPartEnergy(int pid) const { return m_Eb[pid]; }
+
+		void							SetPartEnergy(int pid, float value) { m_Eb[pid] = value; }
+
 		auto&							GetAllPartsEnergy() const
 		{
 			return m_Eb;
 		}
+
+		template <class Deirved>
+		inline void						SetAllPartsEnengy(const Eigen::DenseBase<Deirved>& eb)
+		{
+			m_Eb = eb;
+		}
+
 		auto&							GetPartDimEnergy(int pid) const
 		{
 			return m_Edim[pid];
@@ -188,7 +214,7 @@ namespace Causality
 		}
 		auto							GetPartsDifferenceCovarience(int pi, int pj) const
 		{
-			return m_difMean.block(pi*m_dimP, pj*m_dimP, m_dimP, m_dimP);
+			return m_difCov.block(pi*m_dimP, pj*m_dimP, m_dimP, m_dimP);
 		}
 
 	protected:
@@ -243,6 +269,8 @@ namespace Causality
 
 		Eigen::MatrixXf			m_difMean;
 		Eigen::MatrixXf			m_difCov;
+
+		EnergyFilterFunctionType m_energyFilter;
 	};
 
 	class CharacterClipinfo
@@ -255,7 +283,7 @@ namespace Causality
 
 		void Initialize(const ShrinkedArmature& parts);
 
-		void AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime);
+		void AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime, bool cyclic);
 
 		explicit CharacterClipinfo(const ShrinkedArmature& parts);
 
@@ -274,6 +302,7 @@ namespace Causality
 
 		bool							IsReady() const { return RcFacade.IsReady() && PvFacade.IsReady(); }
 
+		void							FilterLocalRotationEnergy(Eigen::RowVectorXf& Eb);
 	protected:
 		std::string				m_clipName;
 		const ShrinkedArmature*	m_pParts;
@@ -350,8 +379,8 @@ namespace Causality
 					m_pFeature;
 		int			m_featureDim;
 
-		std::atomic_bool	
-					m_enableCyclicDtc;
+		std::atomic_bool m_bufferInit;
+		std::atomic_bool m_enableCyclicDtc;
 		int			m_frameCounter;
 		float		m_cyclicDtcThr; // The threshold to classify as Cyclic motion
 

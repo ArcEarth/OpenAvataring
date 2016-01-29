@@ -480,6 +480,7 @@ public:
 				//std::cout << "Player Tracked, ID = '" << Id << '\'' << std::endl;
 
 				UpdateTrackedBodyData(player, pBody, LastFrameTime, isNew);
+
 			}
 			else if (player != nullptr) // Handel Losted player
 			{
@@ -578,12 +579,19 @@ public:
 
 		FrameRebuildLocal(armature, frame);
 
+		if (isNew)
+		{
+			player->SetArmatureProportion(frame);
+			std::cout << "New Player Armature Proportion Captured" << std::endl;
+		}
+
 		player->PushFrame(std::move(frame));
 
 		if (isNew)
 		{
 			pWrapper->OnPlayerTracked(*player);
 			std::cout << "New Player Tracked : ID = " << player->Id << std::endl;
+			//player->FireFrameArrivedForLatest();
 		}
 		else
 		{
@@ -730,24 +738,14 @@ KinectSensor::KinectSensor()
 //}
 
 TrackedBody::TrackedBody(size_t bufferSize)
-	: RefCount(0) , Id(0), m_IsTracked(false), m_LastTrackedTime(0), m_LostFrameCount(0), m_FrameBuffer(bufferSize)
+	: RefCount(0) , Id(0), m_IsTracked(false), m_LastTrackedTime(0), m_LostFrameCount(0), m_FrameBuffer(bufferSize), m_armature(*BodyArmature)
 {
 }
 
 void TrackedBody::PushFrame(FrameType && frame)
 {
 	m_FrameBuffer.Push(std::move(frame));
-	m_FrameBuffer.LockBuffer();
-	auto pFrame = m_FrameBuffer.PeekLatest();
-	if (!pFrame)
-	{
-		m_FrameBuffer.UnlockBuffer();
-		return;
-	}
-
-	assert(pFrame != nullptr); // since we just pushed one frame 
-	OnFrameArrived(*this, *pFrame);
-	m_FrameBuffer.UnlockBuffer();
+	FireFrameArrivedForLatest();
 }
 
 bool TrackedBody::ReadLatestFrame()
@@ -765,7 +763,9 @@ const TrackedBody::FrameType& TrackedBody::PeekFrame() const
 	return *m_FrameBuffer.GetCurrent();
 }
 
-const IArmature & TrackedBody::GetArmature() const { return *BodyArmature; }
+const IArmature & TrackedBody::GetArmature() const {
+	return m_armature; 
+}
 
 bool TrackedBody::IsAvailable() const
 {
@@ -775,6 +775,45 @@ bool TrackedBody::IsAvailable() const
 float TrackedBody::DistanceToSensor() const
 {
 	return m_Distance;
+}
+
+void replaceLclTranslation(_Out_ ArmatureFrame& frame, _In_ ArmatureFrameConstView reframe)
+{
+	using namespace DirectX;
+	for (int i = 0; i < frame.size(); i++)
+	{
+		auto& dbone = frame[i];
+		auto& rbone = reframe[i];
+		XMVECTOR V = XMVector3InverseRotate(
+			XMLoadA(rbone.LclTranslation),
+			XMLoadA(rbone.LclRotation));
+		V = XMVector3Rotate(V, dbone.LclRotation);
+		dbone.LclLength = XMVectorGetX(XMVector3Length(V));
+		XMStoreA(dbone.LclTranslation , V);
+	}
+}
+
+void TrackedBody::SetArmatureProportion(ArmatureFrameConstView frameView)
+{
+	auto& dframe = m_armature.default_frame();
+	replaceLclTranslation(dframe, frameView);
+	FrameRebuildGlobal(m_armature, dframe);
+}
+
+void TrackedBody::FireFrameArrivedForLatest()
+{
+	m_FrameBuffer.LockBuffer();
+	auto pFrame = m_FrameBuffer.PeekLatest();
+	if (!pFrame)
+	{
+		m_FrameBuffer.UnlockBuffer();
+		return;
+	}
+
+	assert(pFrame != nullptr); // since we just pushed one frame 
+	if (!OnFrameArrived.empty())
+		OnFrameArrived(*this, *pFrame);
+	m_FrameBuffer.UnlockBuffer();
 }
 
 void TrackedBody::AddRef() {

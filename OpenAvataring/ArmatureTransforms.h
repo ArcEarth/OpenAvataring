@@ -208,7 +208,7 @@ namespace Causality
 	public:
 		std::vector<P2PTransform> ActiveParts;	// Direct controlled by input armature, with stylized IK
 
-		PartilizedTransformer(const ShrinkedArmature& sParts, CharacterController & controller);
+		PartilizedTransformer(const ShrinkedArmature& sParts,const CharacterController & controller);
 
 		void SetupTrackers(double expectedError, int stepSubdiv, double vtStep, double scaleStep, double vtStDev, double scaleStDev, double tInitDistSubdiv, int vtInitDistSubdiv, int scaleInitDistSubdiv);
 
@@ -247,8 +247,8 @@ namespace Causality
 	private:
 		typedef std::pair<Vector3, Vector3> LineSegment;
 
-		CharacterController			*m_pController;
-		std::vector<LineSegment>	*m_pHandles;
+		const CharacterController	*m_pController;
+		array_view<LineSegment>		m_handles;
 
 		
 		double						m_updateFreq;

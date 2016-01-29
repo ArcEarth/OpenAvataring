@@ -389,9 +389,20 @@ StaticArmature::~StaticArmature()
 
 }
 
+StaticArmature::StaticArmature(const self_type & rhs)
+{
+	clone_from(rhs);
+}
+
 StaticArmature::StaticArmature(self_type && rhs)
 {
 	*this = std::move(rhs);
+}
+
+StaticArmature& StaticArmature::operator=(const self_type & rhs)
+{
+	clone_from(rhs);
+	return *this;
 }
 
 StaticArmature::self_type & StaticArmature::operator=(self_type && rhs)
@@ -402,6 +413,27 @@ StaticArmature::self_type & StaticArmature::operator=(self_type && rhs)
 	TopologyOrder = move(rhs.TopologyOrder);
 	DefaultFrame = move(rhs.DefaultFrame);
 	return *this;
+}
+
+void StaticArmature::clone_from(const self_type & rhs)
+{
+	this->Joints.resize(rhs.Joints.size());
+	for (int i = 0; i < Joints.size(); i++)
+	{
+		this->Joints[i] = rhs.Joints[i];
+	}
+	this->TopologyOrder = rhs.TopologyOrder;
+	this->RootIdx = rhs.RootIdx;
+	this->DefaultFrame = make_unique<ArmatureFrame>(*rhs.DefaultFrame);
+
+	// Re-construct the tree structure
+	for (int i : this->TopologyOrder)
+	{
+		if (Joints[i].ParentID >= 0 && Joints[i].ParentID != i)
+		{
+			Joints[Joints[i].ParentID].append_children_back(&Joints[i]);
+		}
+	}
 }
 
 //void GetBlendMatrices(_Out_ XMFLOAT4X4* pOut);

@@ -263,6 +263,12 @@ namespace Causality
 		{
 			MirrorJoint = nullptr;
 		}
+		Joint(const Joint& rhs)
+			: stdx::tree_node<Joint, false>()
+		{
+			MirrorJoint = nullptr;
+			JointBasicData::operator=(rhs);
+		}
 
 		void SetID(int idx) { JointBasicData::ID = idx; }
 
@@ -363,12 +369,13 @@ namespace Causality
 		StaticArmature(std::istream& file);
 		StaticArmature(size_t JointCount, int *JointsParentIndices, const char* const* Names);
 		~StaticArmature();
-		StaticArmature(const self_type& rhs) = delete;
+		StaticArmature(const self_type& rhs);
 		StaticArmature(self_type&& rhs);
 
-		self_type& operator=(const self_type& rhs) = delete;
+		self_type& operator=(const self_type& rhs);
 		self_type& operator=(self_type&& rhs);
 
+		void clone_from(const self_type& rhs);
 		//void GetBlendMatrices(_Out_ XMFLOAT4X4* pOut);
 		virtual joint_type* at(int index) override;
 		virtual joint_type* root() override;
