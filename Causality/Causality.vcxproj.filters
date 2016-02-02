@@ -54,6 +54,9 @@
     <Filter Include="Utility Foundation\stdx">
       <UniqueIdentifier>{c3bfc488-1a07-4cc5-bf40-957c5f23e282}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Avataring Control\PlayerSelectors">
+      <UniqueIdentifier>{2af210b5-95f2-47e2-ba41-4c166d2c1299}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NativeWindow.cpp">
@@ -175,6 +178,9 @@
     </ClCompile>
     <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp">
       <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="TrackedArmature.cpp">
+      <Filter>Devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -378,6 +384,15 @@
     </ClInclude>
     <ClInclude Include="..\OpenAvataring\PlayerSelector.h">
       <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\LeapPlayerSelector.h">
+      <Filter>Avataring Control\PlayerSelectors</Filter>
+    </ClInclude>
+    <ClInclude Include="TrackedArmature.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferedStreamViewer.h">
+      <Filter>Devices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

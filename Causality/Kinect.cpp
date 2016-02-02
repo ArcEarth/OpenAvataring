@@ -130,7 +130,7 @@ class KinectSensor::Impl
 
 
 public:
-	size_t											LostThreshold = 60U;
+	size_t											LostThreshold = 15U;
 	time_t											LastFrameTime = 0;
 	float											FrameRate = 30;
 	bool											m_EnableMirrow = false;
@@ -418,12 +418,12 @@ public:
 		// Process experied bodies
 		for (auto itr = m_Players.begin(), end = m_Players.end(); itr != end;)
 		{
-			itr->m_IsTracked = false;
-			if (++(itr->m_LostFrameCount) >= (int)LostThreshold)
+			itr->m_isTracked = false;
+			if (++(itr->m_lostFrameCount) >= (int)LostThreshold)
 			{
 				pWrapper->OnPlayerLost(*itr);
-				std::cout << "Player Lost : ID = " << itr->Id << std::endl;
-				if (itr->RefCount <= 0)
+				std::cout << "Player Lost : ID = " << itr->GetTrackId() << std::endl;
+				if (itr->RefCount() <= 0)
 					itr = m_Players.erase(itr);
 				else
 					++itr;
@@ -457,7 +457,7 @@ public:
 			bool isNew = false;
 
 			//FilteredPlayer* player = static_cast<FilteredPlayer*>(m_Players[Id]);
-			auto& itr = std::find_if(m_Players.begin(), m_Players.end(), [Id](const TrackedBody& body)->bool { return body.Id == Id;});
+			auto& itr = std::find_if(m_Players.begin(), m_Players.end(), [Id](const TrackedBody& body)->bool { return body.GetTrackId() == Id;});
 
 			if (itr != m_Players.end())
 				player = &(*itr);
@@ -470,8 +470,8 @@ public:
 					m_Players.emplace_back();
 					player = &m_Players.back();
 					player->m_pKinectSensor = this->pWrapper;
-					player->Id = Id;
-					player->m_IsTracked = (bool)isTracked;
+					player->m_id = Id;
+					player->m_isTracked = (bool)isTracked;
 
 					std::cout << "New Player Detected : ID = " << Id << std::endl;
 					isNew = true;
@@ -484,7 +484,7 @@ public:
 			}
 			else if (player != nullptr) // Handel Losted player
 			{
-				if (player->m_LostFrameCount > 3)
+				if (player->GetLostFrameCount() > 3)
 				{
 					//for (auto& filter : player->JointFilters)
 					//{
@@ -492,12 +492,12 @@ public:
 					//}
 				}
 
-				if (!isNew && player->m_IsTracked) // Maybe wait for couple of frames?
+				if (!isNew && player->m_isTracked) // Maybe wait for couple of frames?
 				{
 					pWrapper->OnPlayerLost(*player);
 					std::cout << "Player Lost : ID = " << Id << std::endl;
 				}
-				player->m_IsTracked = false;
+				player->m_isTracked = false;
 			}
 
 			//SafeRelease(ppBodies[i]);
@@ -513,8 +513,8 @@ public:
 
 		const static DirectX::XMVECTORF32 g_XMNegateXZ = { -1.0f, 1.0f, -1.0f, 1.0f };
 
-		player->m_IsTracked = true;
-		player->m_LostFrameCount = 0;
+		player->m_isTracked = true;
+		player->ResetLostFrameCount();
 
 		pBody->GetJoints(ARRAYSIZE(joints), joints);
 		pBody->GetJointOrientations(ARRAYSIZE(oris), oris);
@@ -585,12 +585,12 @@ public:
 			std::cout << "New Player Armature Proportion Captured" << std::endl;
 		}
 
-		player->PushFrame(std::move(frame));
+		player->PushFrame(time, std::move(frame));
 
 		if (isNew)
 		{
 			pWrapper->OnPlayerTracked(*player);
-			std::cout << "New Player Tracked : ID = " << player->Id << std::endl;
+			std::cout << "New Player Tracked : ID = " << player->GetTrackId() << std::endl;
 			//player->FireFrameArrivedForLatest();
 		}
 		else
@@ -701,6 +701,26 @@ bool KinectSensor::Resume()
 	return pImpl->Resume();
 }
 
+bool KinectSensor::Initialize(const ParamArchive * archive)
+{
+	return true;
+}
+
+bool KinectSensor::Update()
+{
+	return false;
+}
+
+bool KinectSensor::IsAsychronize() const
+{
+	return true;
+}
+
+bool KinectSensor::IsStreaming() const
+{
+	return pImpl->IsActive();
+}
+
 const std::list<TrackedBody>& KinectSensor::GetTrackedBodies() const
 {
 	return pImpl->m_Players;
@@ -728,98 +748,42 @@ KinectSensor::KinectSensor()
 	pImpl->pWrapper = this;
 }
 
-//TrackedBody::TrackedBody()
-//{
-//	//PoseFrame.resize(BodyArmature->size());
-//}
-
-//TrackedBody::TrackedBody(const TrackedBody &)
-//{
-//}
-
 TrackedBody::TrackedBody(size_t bufferSize)
-	: RefCount(0) , Id(0), m_IsTracked(false), m_LastTrackedTime(0), m_LostFrameCount(0), m_FrameBuffer(bufferSize), m_armature(*BodyArmature)
+	: TrackedArmature(*BodyArmature, bufferSize)
 {
 }
 
-void TrackedBody::PushFrame(FrameType && frame)
-{
-	m_FrameBuffer.Push(std::move(frame));
-	FireFrameArrivedForLatest();
-}
-
-bool TrackedBody::ReadLatestFrame()
-{
-	return m_FrameBuffer.MoveToLatest();
-}
-
-bool TrackedBody::ReadNextFrame()
-{
-	return m_FrameBuffer.MoveNext();
-}
-
-const TrackedBody::FrameType& TrackedBody::PeekFrame() const
-{
-	return *m_FrameBuffer.GetCurrent();
-}
-
-const IArmature & TrackedBody::GetArmature() const {
-	return m_armature; 
-}
-
-bool TrackedBody::IsAvailable() const
-{
-	return IsTracked();
-}
-
-float TrackedBody::DistanceToSensor() const
-{
-	return m_Distance;
-}
-
-void replaceLclTranslation(_Out_ ArmatureFrame& frame, _In_ ArmatureFrameConstView reframe)
-{
-	using namespace DirectX;
-	for (int i = 0; i < frame.size(); i++)
-	{
-		auto& dbone = frame[i];
-		auto& rbone = reframe[i];
-		XMVECTOR V = XMVector3InverseRotate(
-			XMLoadA(rbone.LclTranslation),
-			XMLoadA(rbone.LclRotation));
-		V = XMVector3Rotate(V, dbone.LclRotation);
-		dbone.LclLength = XMVectorGetX(XMVector3Length(V));
-		XMStoreA(dbone.LclTranslation , V);
-	}
-}
-
-void TrackedBody::SetArmatureProportion(ArmatureFrameConstView frameView)
-{
-	auto& dframe = m_armature.default_frame();
-	replaceLclTranslation(dframe, frameView);
-	FrameRebuildGlobal(m_armature, dframe);
-}
-
-void TrackedBody::FireFrameArrivedForLatest()
-{
-	m_FrameBuffer.LockBuffer();
-	auto pFrame = m_FrameBuffer.PeekLatest();
-	if (!pFrame)
-	{
-		m_FrameBuffer.UnlockBuffer();
-		return;
-	}
-
-	assert(pFrame != nullptr); // since we just pushed one frame 
-	if (!OnFrameArrived.empty())
-		OnFrameArrived(*this, *pFrame);
-	m_FrameBuffer.UnlockBuffer();
-}
-
-void TrackedBody::AddRef() {
-	++RefCount;
-}
-
-void TrackedBody::Release() {
-	--RefCount;
-}
+//void TrackedBody::PushFrame(FrameType && frame)
+//{
+//	m_FrameBuffer.Push(std::move(frame));
+//	FireFrameArrivedForLatest();
+//}
+//
+//bool TrackedBody::ReadLatestFrame()
+//{
+//	return m_FrameBuffer.MoveToLatest();
+//}
+//
+//bool TrackedBody::ReadNextFrame()
+//{
+//	return m_FrameBuffer.MoveNext();
+//}
+//
+//const TrackedBody::FrameType& TrackedBody::PeekFrame() const
+//{
+//	return *m_FrameBuffer.GetCurrent();
+//}
+//
+//const IArmature & TrackedBody::GetArmature() const {
+//	return m_armature; 
+//}
+//
+//bool TrackedBody::IsAvailable() const
+//{
+//	return IsTracked();
+//}
+//
+//float TrackedBody::DistanceToSensor() const
+//{
+//	return m_Distance;
+//}

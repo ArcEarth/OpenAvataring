@@ -301,13 +301,13 @@ namespace Causality
 		virtual size_t size() const = 0;
 		virtual const frame_type& default_frame() const = 0;
 
-		iterator_range<Joint::const_depth_first_iterator>
+		auto
 			joints() const 
 		{
 			return root()->nodes();
 		}
 
-		iterator_range<Joint::mutable_depth_first_iterator> 
+		auto 
 			joints()
 		{
 			return root()->nodes();
@@ -336,7 +336,7 @@ namespace Causality
 
 		const Bone& default_bone(int index) const;
 
-		//std::vector<size_t> TopologyOrder;
+		//std::vector<size_t> m_order;
 	};
 
 	void BuildJointMirrorRelation(Joint* root, ArmatureFrameConstView frame);
@@ -356,10 +356,10 @@ namespace Causality
 		typedef StaticArmature self_type;
 
 	private:
-		size_t						RootIdx;
-		vector<joint_type>			Joints;
-		vector<size_t>				TopologyOrder;
-		uptr<frame_type>			DefaultFrame;
+		size_t						m_rootIdx;
+		vector<joint_type>			m_joints;
+		vector<size_t>				m_order; //Topological order of joints
+		uptr<frame_type>			m_defaultFrame;
 
 	public:
 
@@ -369,37 +369,39 @@ namespace Causality
 		StaticArmature(std::istream& file);
 		StaticArmature(size_t JointCount, int *JointsParentIndices, const char* const* Names);
 		~StaticArmature();
-		StaticArmature(const self_type& rhs);
+		StaticArmature(const IArmature& rhs);
 		StaticArmature(self_type&& rhs);
 
 		self_type& operator=(const self_type& rhs);
 		self_type& operator=(self_type&& rhs);
 
-		void clone_from(const self_type& rhs);
+		//void clone_from(const self_type& rhs);
+		void clone_from(const IArmature & rhs);
+
 		//void GetBlendMatrices(_Out_ XMFLOAT4X4* pOut);
 		virtual joint_type* at(int index) override;
 		virtual joint_type* root() override;
 		virtual size_t size() const override;
 		virtual const frame_type& default_frame() const override;
-		frame_type& default_frame() { return *DefaultFrame; }
+		frame_type& default_frame() { return *m_defaultFrame; }
 		void set_default_frame(uptr<frame_type> &&pFrame);
 		// A topolical ordered joint index sequence
 		const std::vector<size_t>& joint_indices() const
 		{
-			return TopologyOrder;
+			return m_order;
 		}
 
-		//auto joints() const //-> decltype(adaptors::transform(TopologyOrder,function<const Joint&(int)>()))
+		//auto joints() const //-> decltype(adaptors::transform(m_order,function<const Joint&(int)>()))
 		//{
-		//	function<const Joint&(int)> func = [this](int idx)->const joint_type& {return Joints[idx]; };
-		//	return transform(TopologyOrder, func);
+		//	function<const Joint&(int)> func = [this](int idx)->const joint_type& {return m_joints[idx]; };
+		//	return transform(m_order, func);
 		//}
 
-		//auto joints() //-> decltype(adaptors::transform(TopologyOrder, function<Joint&(int)>()))
+		//auto joints() //-> decltype(adaptors::transform(m_order, function<Joint&(int)>()))
 		//{
 		//	using namespace boost::adaptors;
-		//	function<Joint&(int)> func = [this](int idx)->joint_type&{ return Joints[idx]; };
-		//	return transform(TopologyOrder, func);
+		//	function<Joint&(int)> func = [this](int idx)->joint_type&{ return m_joints[idx]; };
+		//	return transform(m_order, func);
 		//}
 
 

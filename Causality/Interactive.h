@@ -117,14 +117,6 @@ namespace Causality
 		Matrix4x4 toWorldTransform;
 	};
 
-	class IUserHandsInteractive abstract
-	{
-	public:
-		virtual void OnHandsTracked(const UserHandsEventArgs& e) = 0;
-		virtual void OnHandsTrackLost(const UserHandsEventArgs& e) = 0;
-		virtual void OnHandsMove(const UserHandsEventArgs& e) = 0;
-	};
-
 	class IUserPoseInteractive abstract
 	{
 	public:

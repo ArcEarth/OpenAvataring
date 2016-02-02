@@ -22,7 +22,7 @@ namespace Causality
 	namespace Devices
 	{
 		class OculusRift;
-		class LeapMotion;
+		class LeapSensor;
 		class KinectSensor;
 		class IViconClient;
 	}
@@ -51,9 +51,9 @@ namespace Causality
 		path GetResourcesDirectory() const;
 		void SetResourcesDirectory(const std::wstring& dir);
 
-		void RegisterComponent(ICursorInteractive *pComponent);
-		void RegisterComponent(IKeybordInteractive *pComponent);
-		void RegisterComponent(IUserHandsInteractive *pComponent);
+		//void RegisterComponent(ICursorInteractive *pComponent);
+		//void RegisterComponent(IKeybordInteractive *pComponent);
+		//void RegisterComponent(IUserHandsInteractive *pComponent);
 		void RegisterComponent(IAppComponent *pComponent);
 		void UnregisterComponent(IAppComponent *pComponent);
 		void XM_CALLCONV RenderToView(DirectX::FXMMATRIX view, DirectX::CXMMATRIX projection);
@@ -74,7 +74,7 @@ namespace Causality
 		// Extern Devices
 		sptr<Devices::OculusRift>						pRift;
 		sptr<Devices::KinectSensor>						pKinect;
-		sptr<Devices::LeapMotion>						pLeap;
+		sptr<Devices::LeapSensor>						pLeap;
 		sptr<Devices::IViconClient>						pVicon;
 
 		// Application Logic object

@@ -13,6 +13,8 @@
 #include "Animations.h"
 #include "Common\Filter.h"
 #include "Events.h"
+#include "TrackedArmature.h"
+#include "StreamDevice.h"
 
 namespace Causality
 {
@@ -84,142 +86,11 @@ namespace Causality
 	};
 #endif // _JointType_
 
-	template <class _Ty, class _Alloc = std::allocator<_Ty>>
-	class BufferedStreamViewer
-	{
-	public:
-		typedef const _Ty* const_pointer;
-		typedef _Ty* pointer;
-		typedef const _Ty& const_reference;
-		typedef _Ty &  reference;
-		typedef _Ty && rvalue_reference;
-
-		//enum StreamViewMode
-		//{
-		//	Latest = 0,
-		//	SequenceCaching = 1,
-		//}
-
-		BufferedStreamViewer(size_t BackBufferSize = 30U)
-			: m_paused(false), m_Capicity(BackBufferSize)
-		{
-		}
-
-		BufferedStreamViewer(const BufferedStreamViewer& rhs)
-		{
-			m_paused = rhs.m_paused;
-			std::lock_guard<std::mutex> guard(rhs.m_BufferMutex);
-			m_StreamingBuffer = rhs.m_StreamingBuffer;
-		}
-
-		BufferedStreamViewer(BufferedStreamViewer&& rhs) = default;
-
-		~BufferedStreamViewer(void)
-		{
-			m_paused = true;
-		}
-
-		void Push(const_reference frame)
-		{
-			if (m_paused) return;
-
-			std::lock_guard<std::mutex> guard(m_BufferMutex);
-			if (m_StreamingBuffer.size() >= m_StreamingBuffer.max_size())
-				m_StreamingBuffer.pop_front();
-			m_StreamingBuffer.emplace_back(frame);
-		}
-
-		void Push(rvalue_reference frame)
-		{
-			if (m_paused) return;
-
-			std::lock_guard<std::mutex> guard(m_BufferMutex);
-			if (m_StreamingBuffer.size() >= m_Capicity)
-				m_StreamingBuffer.pop_front();
-			m_StreamingBuffer.emplace_back(std::move(frame));
-		}
-
-		pointer GetCurrent() const
-		{
-			return &m_ReadingBuffer;
-		}
-
-		pointer Peek(int idx = 0) const
-		{
-			if (idx == 0)
-				return &m_ReadingBuffer;
-			else if (idx - 1 < m_StreamingBuffer.size())
-				return &m_StreamingBuffer[idx - 1];
-			else return nullptr;
-		}
-
-		pointer PeekLatest() const
-		{
-			if (m_StreamingBuffer.empty())
-				return &m_ReadingBuffer;
-			return &m_StreamingBuffer.back();
-		}
-
-		bool MoveNext()
-		{
-			if (m_StreamingBuffer.empty()) return false;
-
-			std::lock_guard<std::mutex> guard(m_BufferMutex);
-
-			m_ReadingBuffer = m_StreamingBuffer.front();
-			m_StreamingBuffer.pop_front();
-
-			return true;
-		}
-
-		int MoveToLatest()
-		{
-			if (m_StreamingBuffer.empty()) return 0;
-
-			std::lock_guard<std::mutex> guard(m_BufferMutex);
-
-			m_ReadingBuffer = m_StreamingBuffer.back();
-
-			int jump = m_StreamingBuffer.size();
-			m_StreamingBuffer.clear();
-
-			return jump;
-		}
-
-		std::deque<_Ty>& LockBuffer()
-		{
-			m_BufferMutex.lock();
-			return m_StreamingBuffer;
-		}
-
-		void UnlockBuffer()
-		{
-			m_BufferMutex.unlock();
-		}
-
-		bool Empty() const
-		{
-			return m_StreamingBuffer.empty();
-		}
-
-		void Pause(bool pause)
-		{
-			m_paused = pause;
-		}
-
-	private:
-		bool						m_paused;
-		size_t						m_Capicity;
-		mutable _Ty					m_ReadingBuffer;
-		mutable std::deque<_Ty, _Alloc > m_StreamingBuffer;
-		mutable std::mutex			m_BufferMutex;
-	};
-
 	typedef Causality::ArmatureFrame BodyFrame;
 
 	// TrackedBody will host frames streaming from the Sensor
 	// You can select to process all frams incoming or the lastest one only
-	class TrackedBody : public IArmatureStreamAnimation
+	class TrackedBody : public TrackedArmature
 	{
 	public:
 		typedef Causality::ArmatureFrame		FrameType;
@@ -231,74 +102,27 @@ namespace Causality
 	private:
 		friend Devices::KinectSensor;
 
-		int						RefCount;
-		uint64_t				Id;
-		bool					m_IsTracked;
-		time_t					m_LastTrackedTime;
-		int						m_LostFrameCount;
-		float					m_Distance;
-		StaticArmature			m_armature;
-		Devices::KinectSensor	*m_pKinectSensor;
-
-		// Current pose data
-		BufferedStreamViewer<FrameType>		m_FrameBuffer;
+		float					 m_Distance;
+		Devices::KinectSensor*   m_pKinectSensor;
 
 		// Hand States
-		std::array<HandState, 2>			m_HandStates;
-
-		void PushFrame(FrameType && frame);
+		std::array<HandState, 2> m_HandStates;
 
 	public:
-		TrackedBody(size_t bufferSize = 30U);
-		TrackedBody(const TrackedBody &) = default;
+		TrackedBody(size_t bufferSize = 32U);
+		TrackedBody(const TrackedBody &) = delete;
 		TrackedBody(TrackedBody &&) = default;
-
-		bool operator==(const TrackedBody& rhs) const { return Id == rhs.Id; }
-		bool operator!=(const TrackedBody& rhs) const { return !(Id == rhs.Id); }
 
 		void SetBufferSize(size_t pastFrame, size_t unprocessFrame);
 
-		// Advance the stream to latest and peek the frame
-		bool ReadLatestFrame() override;
-
-		// Advance the stream by 1 and peek the frame
-		bool ReadNextFrame() override;
-
-		// Peek the current frame head
-		const FrameType& PeekFrame() const override;
-
-		const IArmature& GetArmature() const override;
-
-		bool IsAvailable() const override;
-		// Get Historical or Future 
-		// relativeIndex = 0, returns latest unprocess frame
-		// relativeIndex > 0, return "future" frames
-		// relativeIndex < 0, return past frames
-		bool GetFrameAt(FrameType& outFrame, int relativeIndex) const;
-
-		// Get Historical or Future frames
-		// Body-pose is Lerp-ed between frame
-		bool GetFrameAt(FrameType& outFrame, const time_seconds& relateTimve) const;
-
-		// Accessers
 		Devices::KinectSensor& GetSensor() const { return *m_pKinectSensor; }
-		time_t	  GetLastTrackedTime() const { return m_LastTrackedTime; }
-		uint64_t  GetTrackId() const { return Id; }
 		HandState GetHandState(HandType hand) const { return m_HandStates[hand]; }
-		bool	  IsTracked() const { return m_IsTracked; }
-		float	  DistanceToSensor() const;
+		float	  DistanceToSensor() const { return m_Distance; }
 
-		void	  SetArmatureProportion(ArmatureFrameConstView frameView);
-		void	  FireFrameArrivedForLatest();
-		// Events
-		Event<const TrackedBody&, const FrameType&>	OnFrameArrived;
 	public:
 		// Skeleton Structure and basic body parameter
 		// Shared through all players since they have same structure
 		static std::unique_ptr<StaticArmature> BodyArmature;
-
-		void AddRef();
-		void Release();
 	};
 
 	class ITrackedBodySelector abstract
@@ -310,7 +134,7 @@ namespace Causality
 	namespace Devices
 	{
 		// An aggregate of Kinect Resources
-		class KinectSensor : public std::enable_shared_from_this<KinectSensor>
+		class KinectSensor : public std::enable_shared_from_this<KinectSensor>, public IStreamDevice
 		{
 		public:
 			typedef std::weak_ptr<KinectSensor>		Weakptr;
@@ -344,10 +168,15 @@ namespace Causality
 			// Process frame and trigger the events
 			void ProcessFrame();
 
-			bool Start();
-			void Stop();
+			bool Start() override;
+			void Stop() override;
 			bool Pause();
 			bool Resume();
+
+			bool Initialize(const ParamArchive * archive) override;
+			bool Update() override;
+			bool IsStreaming() const override;
+			bool IsAsychronize() const override;
 
 			// Return the list of CURRENT Tracked bodies
 			const std::list<TrackedBody> &GetTrackedBodies() const;

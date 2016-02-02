@@ -13,6 +13,7 @@ namespace Causality
 		public:
 			static sptr<IViconClient> GetFroCurrentView();
 			static sptr<IViconClient> Create(const std::string &serverIP = "");
+
 			virtual ~IViconClient();
 
 			virtual const IsometricTransform& GetWorldTransform() = 0;
@@ -27,7 +28,10 @@ namespace Causality
 			virtual void Stop() = 0;
 			virtual bool Update() = 0;
 			virtual bool Initialize(const ParamArchive * archive) = 0;
-			virtual bool IsStreaming() = 0;
+
+			virtual bool IsStreaming() const = 0;
+			virtual bool IsAsychronize() const = 0;
+
 			virtual void SetVerbose(bool verbose) = 0;
 		};
 	}

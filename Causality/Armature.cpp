@@ -307,20 +307,20 @@ namespace Causality
 StaticArmature::StaticArmature(array_view<JointBasicData> data)
 {
 	size_t jointCount = data.size();
-	Joints.resize(jointCount);
+	m_joints.resize(jointCount);
 
 	for (size_t i = 0; i < jointCount; i++)
 	{
-		Joints[i].SetID(i);
+		m_joints[i].SetID(i);
 
 		int parentID = data[i].ParentID;
 		if (parentID != i &&parentID >= 0)
 		{
-			Joints[parentID].append_children_back(&Joints[i]);
+			m_joints[parentID].append_children_back(&m_joints[i]);
 		}
 		else
 		{
-			RootIdx = i;
+			m_rootIdx = i;
 		}
 	}
 
@@ -332,25 +332,25 @@ StaticArmature::StaticArmature(std::istream & file)
 	size_t jointCount;
 	file >> jointCount;
 
-	Joints.resize(jointCount);
-	DefaultFrame.reset(new ArmatureFrame(jointCount));
+	m_joints.resize(jointCount);
+	m_defaultFrame.reset(new ArmatureFrame(jointCount));
 
 	// Joint line format: 
 	// Hip(Name) -1(ParentID)
 	// 1.5(Pitch) 2.0(Yaw) 0(Roll) 0.5(BoneLength)
 	for (size_t idx = 0; idx < jointCount; idx++)
 	{
-		auto& joint = Joints[idx];
+		auto& joint = m_joints[idx];
 		auto& bone = default_frame()[idx];
 		((JointBasicData&)joint).ID = idx;
 		file >> ((JointBasicData&)joint).Name >> ((JointBasicData&)joint).ParentID;
 		if (joint.ParentID != idx && joint.ParentID >= 0)
 		{
-			Joints[joint.ParentID].append_children_back(&joint);
+			m_joints[joint.ParentID].append_children_back(&joint);
 		}
 		else
 		{
-			RootIdx = idx;
+			m_rootIdx = idx;
 		}
 
 		Vector4 vec;
@@ -364,21 +364,21 @@ StaticArmature::StaticArmature(std::istream & file)
 }
 
 StaticArmature::StaticArmature(size_t JointCount, int * Parents, const char* const* Names)
-	: Joints(JointCount)
+	: m_joints(JointCount)
 {
-	DefaultFrame.reset(new ArmatureFrame(JointCount));
+	m_defaultFrame.reset(new ArmatureFrame(JointCount));
 	for (size_t i = 0; i < JointCount; i++)
 	{
-		Joints[i].SetID(i);
-		Joints[i].SetName(Names[i]);
-		((JointBasicData&)Joints[i]).ParentID = Parents[i];
+		m_joints[i].SetID(i);
+		m_joints[i].SetName(Names[i]);
+		((JointBasicData&)m_joints[i]).ParentID = Parents[i];
 		if (Parents[i] != i && Parents[i] >= 0)
 		{
-			Joints[Parents[i]].append_children_back(&Joints[i]);
+			m_joints[Parents[i]].append_children_back(&m_joints[i]);
 		}
 		else
 		{
-			RootIdx = i;
+			m_rootIdx = i;
 		}
 	}
 	CaculateTopologyOrder();
@@ -389,10 +389,15 @@ StaticArmature::~StaticArmature()
 
 }
 
-StaticArmature::StaticArmature(const self_type & rhs)
+StaticArmature::StaticArmature(const IArmature & rhs)
 {
 	clone_from(rhs);
 }
+
+//StaticArmature::StaticArmature(const self_type & rhs)
+//{
+//	clone_from(rhs);
+//}
 
 StaticArmature::StaticArmature(self_type && rhs)
 {
@@ -408,30 +413,53 @@ StaticArmature& StaticArmature::operator=(const self_type & rhs)
 StaticArmature::self_type & StaticArmature::operator=(self_type && rhs)
 {
 	using std::move;
-	RootIdx = rhs.RootIdx;
-	Joints = move(rhs.Joints);
-	TopologyOrder = move(rhs.TopologyOrder);
-	DefaultFrame = move(rhs.DefaultFrame);
+	m_rootIdx = rhs.m_rootIdx;
+	m_joints = move(rhs.m_joints);
+	m_order = move(rhs.m_order);
+	m_defaultFrame = move(rhs.m_defaultFrame);
 	return *this;
 }
 
-void StaticArmature::clone_from(const self_type & rhs)
-{
-	this->Joints.resize(rhs.Joints.size());
-	for (int i = 0; i < Joints.size(); i++)
-	{
-		this->Joints[i] = rhs.Joints[i];
-	}
-	this->TopologyOrder = rhs.TopologyOrder;
-	this->RootIdx = rhs.RootIdx;
-	this->DefaultFrame = make_unique<ArmatureFrame>(*rhs.DefaultFrame);
+//void StaticArmature::clone_from(const self_type & rhs)
+//{
+//	this->m_joints.resize(rhs.m_joints.size());
+//	for (int i = 0; i < m_joints.size(); i++)
+//	{
+//		this->m_joints[i] = rhs.m_joints[i];
+//	}
+//	this->m_order = rhs.m_order;
+//	this->m_rootIdx = rhs.m_rootIdx;
+//	this->m_defaultFrame = make_unique<ArmatureFrame>(*rhs.m_defaultFrame);
+//
+//	// Re-construct the tree structure
+//	for (int i : this->m_order)
+//	{
+//		if (m_joints[i].ParentID >= 0 && m_joints[i].ParentID != i)
+//		{
+//			m_joints[m_joints[i].ParentID].append_children_back(&m_joints[i]);
+//		}
+//	}
+//}
 
-	// Re-construct the tree structure
-	for (int i : this->TopologyOrder)
+void StaticArmature::clone_from(const IArmature & rhs)
+{
+	for (auto& j : rhs.joints())
+		m_order.push_back(j.ID);
+
+	this->m_joints.resize(m_order.size());
+	this->m_rootIdx = rhs.root()->ID;
+	this->m_defaultFrame = make_unique<ArmatureFrame>(rhs.default_frame());
+
+	// Copy Joint meta-data
+	for (auto& j : rhs.joints())
+		m_joints[j.ID] = j;
+
+	// rebuild structure
+	for (int i : this->m_order)
 	{
-		if (Joints[i].ParentID >= 0 && Joints[i].ParentID != i)
+		if (m_joints[i].ParentID >= 0 && m_joints[i].ParentID != i)
 		{
-			Joints[Joints[i].ParentID].append_children_back(&Joints[i]);
+			m_joints[m_joints[i].ParentID].append_children_back(&m_joints[i]);
 		}
 	}
 }
@@ -439,32 +467,32 @@ void StaticArmature::clone_from(const self_type & rhs)
 //void GetBlendMatrices(_Out_ XMFLOAT4X4* pOut);
 
 Joint * StaticArmature::at(int index) {
-	return &Joints[index];
+	return &m_joints[index];
 }
 
 Joint * StaticArmature::root()
 {
-	return &Joints[RootIdx];
+	return &m_joints[m_rootIdx];
 }
 
 size_t StaticArmature::size() const
 {
-	return Joints.size();
+	return m_joints.size();
 }
 
 const IArmature::frame_type & StaticArmature::default_frame() const
 {
-	return *DefaultFrame;
+	return *m_defaultFrame;
 	// TODO: insert return statement here
 }
 
-void Causality::StaticArmature::set_default_frame(uptr<frame_type> && frame) { DefaultFrame = std::move(frame); }
+void Causality::StaticArmature::set_default_frame(uptr<frame_type> && frame) { m_defaultFrame = std::move(frame); }
 
 void StaticArmature::CaculateTopologyOrder()
 {
-	TopologyOrder.reserve(size());
+	m_order.reserve(size());
 	for (auto& j : root()->nodes())
-		TopologyOrder.push_back(j.ID);
+		m_order.push_back(j.ID);
 }
 
 // Lerp the local-rotation and scaling, "interpolate in Time"

@@ -14,9 +14,11 @@ namespace Causality
 
 			virtual bool Start() = 0;
 			virtual void Stop() = 0;
-			virtual bool IsStreaming() = 0;
 
 			virtual bool Update() = 0;
+
+			virtual bool IsStreaming() const = 0;
+			virtual bool IsAsychronize() const = 0;
 		};
 	}
 }

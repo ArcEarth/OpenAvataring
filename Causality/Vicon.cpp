@@ -103,9 +103,14 @@ public:
 
 		return true;
 	}
-	virtual bool IsStreaming() override
+	virtual bool IsStreaming() const override
 	{
 		return true;
+	}
+
+	virtual bool IsAsychronize() const override
+	{
+		return false;
 	}
 
 private:

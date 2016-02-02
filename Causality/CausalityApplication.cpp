@@ -405,7 +405,7 @@ void App::SetupDevices(const ParamArchive* arch)
 	GetParam(setting, "enable", enable);
 	if (setting && enable)
 	{
-		pLeap = Devices::LeapMotion::GetForCurrentView();
+		pLeap = Devices::LeapSensor::GetForCurrentView();
 	}
 
 	setting = arch->FirstChildElement("kinect");
@@ -444,13 +444,12 @@ void App::RegisterComponent(IAppComponent *pComponent)
 	//auto pAnimatable = pComponent->As<ITimeAnimatable>();
 	//if (pAnimatable)
 	//	Regs.push_back(TimeElapsed += MakeEventHandler(&ITimeAnimatable::UpdateAnimation, pAnimatable));
-	auto pHands = pComponent->As<IUserHandsInteractive>();
-	if (pHands && pLeap)
-	{
-		Regs.push_back(pLeap->HandsTracked += MakeEventHandler(&IUserHandsInteractive::OnHandsTracked, pHands));
-		Regs.push_back(pLeap->HandsLost += MakeEventHandler(&IUserHandsInteractive::OnHandsTrackLost, pHands));
-		Regs.push_back(pLeap->HandsMove += MakeEventHandler(&IUserHandsInteractive::OnHandsMove, pHands));
-	}
+	//auto pHands = pComponent->As<IUserHandsInteractive>();
+	//if (pHands && pLeap)
+	//{
+	//	Regs.push_back(pLeap->HandsTracked += MakeEventHandler(&IUserHandsInteractive::OnHandsTracked, pHands));
+	//	Regs.push_back(pLeap->HandsLost += MakeEventHandler(&IUserHandsInteractive::OnHandsTrackLost, pHands));
+	//}
 	//Components.push_back(std::move(pComponent));
 }
 
@@ -469,14 +468,14 @@ void App::OnExit()
 
 bool App::OnIdle()
 {
-	if (pLeap)
-		pLeap->PullFrame();
+	if (pLeap && !pLeap->IsAsychronize())
+		pLeap->Update();
 
-	if (pVicon)
+	if (pVicon && !pVicon->IsAsychronize())
 		pVicon->Update();
 
-	//if (pKinect)
-	//	pKinect->ProcessFrame();
+	if (pKinect && !pKinect->IsAsychronize())
+		pKinect->Update();
 
 	for (auto& pScene : Scenes)
 	{

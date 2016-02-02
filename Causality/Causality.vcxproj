@@ -419,6 +419,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClCompile Include="SkinningModelFromFbx.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="StreamDevice.cpp" />
+    <ClCompile Include="TrackedArmature.cpp" />
     <ClCompile Include="Vicon.cpp" />
     <ClCompile Include="VisualObject.cpp" />
   </ItemGroup>
@@ -438,6 +439,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="..\OpenAvataring\ClipMetric.h" />
     <ClInclude Include="..\OpenAvataring\GaussianProcess.h" />
     <ClInclude Include="..\OpenAvataring\GestureTracker.h" />
+    <ClInclude Include="..\OpenAvataring\LeapPlayerSelector.h" />
     <ClInclude Include="..\OpenAvataring\PlayerSelector.h" />
     <ClInclude Include="..\OpenAvataring\PcaCcaMap.h" />
     <ClInclude Include="..\OpenAvataring\pch.h" />
@@ -451,6 +453,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="BCL.h" />
     <ClInclude Include="Animations.h" />
     <ClInclude Include="AssetDictionary.h" />
+    <ClInclude Include="BufferedStreamViewer.h" />
     <ClInclude Include="CausalityApplication.h" />
     <ClInclude Include="CharacterBehavier.h" />
     <ClInclude Include="CharacterObject.h" />
@@ -475,6 +478,7 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="SmartPointers.h" />
     <ClInclude Include="StreamDevice.h" />
     <ClInclude Include="String.h" />
+    <ClInclude Include="TrackedArmature.h" />
     <ClInclude Include="Vicon.h" />
     <ClInclude Include="VisualObject.h" />
     <ClInclude Include="OculusRift.h" />
