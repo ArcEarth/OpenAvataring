@@ -147,6 +147,7 @@ bool CharacterObject::StartAction(const string & key, time_seconds begin_time, b
 	if (!m_pBehavier->Contains(key))
 		return false;
 	auto& anim = (*m_pBehavier)[key];
+	std::lock_guard<std::mutex> guard(m_ActionMutex);
 	m_pCurrentAction = &anim;
 	m_CurrentActionTime = begin_time;
 	m_LoopCurrentAction = loop;
@@ -155,6 +156,7 @@ bool CharacterObject::StartAction(const string & key, time_seconds begin_time, b
 
 bool CharacterObject::StopAction(time_seconds transition_time)
 {
+	std::lock_guard<std::mutex> guard(m_ActionMutex);
 	m_pCurrentAction = nullptr;
 	m_LoopCurrentAction = false;
 	return true;
@@ -172,15 +174,16 @@ void CharacterObject::SetFreeze(bool freeze)
 void CharacterObject::SetRenderModel(DirectX::Scene::IModelNode * pMesh, int LoD)
 {
 	m_pSkinModel = dynamic_cast<ISkinningModel*>(pMesh);
-	m_BoneTransforms.resize(m_pSkinModel->GetBonesCount());
-	//XMMATRIX identity = XMMatrixIdentity();
-	//for (auto& t : m_BoneTransforms)
-	//	XMStoreA(t, identity);
 
 	if (m_pSkinModel == nullptr && pMesh != nullptr)
 	{
 		throw std::exception("Render model doesn't support Skinning interface.");
 	}
+
+	m_BoneTransforms.resize(m_pSkinModel->GetBonesCount());
+	//XMMATRIX identity = XMMatrixIdentity();
+	//for (auto& t : m_BoneTransforms)
+	//	XMStoreA(t, identity);
 
 	VisualObject::SetRenderModel(pMesh, LoD);
 }
@@ -188,11 +191,14 @@ void CharacterObject::SetRenderModel(DirectX::Scene::IModelNode * pMesh, int LoD
 void CharacterObject::Update(time_seconds const & time_delta)
 {
 	SceneObject::Update(time_delta);
-	if (m_pCurrentAction != nullptr)
+	if (m_pCurrentAction != nullptr && m_ActionMutex.try_lock())
 	{
+		std::lock_guard<std::mutex> guard(m_ActionMutex, std::adopt_lock);
 		m_CurrentActionTime += time_delta;
 		this->MapCurrentFrameForUpdate();
-		m_pCurrentAction->GetFrameAt(m_CurrentFrame, m_CurrentActionTime);
+
+		if (m_pCurrentAction != nullptr)
+			m_pCurrentAction->GetFrameAt(m_CurrentFrame, m_CurrentActionTime);
 		//ScaleFrame(m_CurrentFrame, Armature().default_frame(), 0.95);
 		//m_CurrentFrame.RebuildGlobal(Armature());
 		this->ReleaseCurrentFrameFrorUpdate();

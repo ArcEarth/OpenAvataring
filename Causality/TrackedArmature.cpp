@@ -6,6 +6,11 @@ using namespace Causality;
 
 typedef TrackedArmature::FrameType FrameType;
 
+TrackedArmature::TrackedArmature(size_t bufferSize)
+	:m_frameBuffer(bufferSize)
+{
+}
+
 TrackedArmature::TrackedArmature(const IArmature& armature, size_t bufferSize)
 	:m_frameBuffer(bufferSize), m_armature(armature)
 {

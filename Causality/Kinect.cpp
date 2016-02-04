@@ -168,20 +168,7 @@ public:
 	HRESULT Initalize()
 	{
 
-		if (TrackedBody::BodyArmature == nullptr)
-		{
-			int parents[JointType_Count];
-			std::copy_n(KinectSensor::JointsParent, (int) JointType_Count, parents);
-			TrackedBody::BodyArmature = std::make_unique<StaticArmature>(JointType_Count, parents, JointNames);
-			auto& armature = *TrackedBody::BodyArmature;
-			for (int i = 0; i < armature.size(); i++)
-			{
-				if (JointsMirrows[i] < JointType_Count)
-				{
-					armature[i]->MirrorJoint = armature[JointsMirrows[i]];
-				}
-			}
-		}
+		InitializeBodyArmature();
 		using namespace Microsoft::WRL;
 		using namespace std;
 		HRESULT hr;
@@ -230,6 +217,24 @@ public:
 		m_pCoordinateMapper = move(pCoordinateMapper);
 		std::cout << "[DEBUG] Kinect is intialized succuessfuly!" << std::endl;
 		return hr;
+	}
+
+	void InitializeBodyArmature()
+	{
+		if (TrackedBody::BodyArmature == nullptr)
+		{
+			int parents[JointType_Count];
+			std::copy_n(KinectSensor::JointsParent, (int)JointType_Count, parents);
+			TrackedBody::BodyArmature = std::make_unique<StaticArmature>(JointType_Count, parents, JointNames);
+			auto& armature = *TrackedBody::BodyArmature;
+			for (int i = 0; i < armature.size(); i++)
+			{
+				if (JointsMirrows[i] < JointType_Count)
+				{
+					armature[i]->MirrorJoint = armature[JointsMirrows[i]];
+				}
+			}
+		}
 	}
 
 	IBodyFrameReader* BodyFrameReader() const
@@ -418,11 +423,14 @@ public:
 		// Process experied bodies
 		for (auto itr = m_Players.begin(), end = m_Players.end(); itr != end;)
 		{
-			itr->m_isTracked = false;
 			if (++(itr->m_lostFrameCount) >= (int)LostThreshold)
 			{
-				pWrapper->OnPlayerLost(*itr);
-				std::cout << "Player Lost : ID = " << itr->GetTrackId() << std::endl;
+				if (itr->m_isTracked)
+				{
+					itr->m_isTracked = false;
+					pWrapper->OnPlayerLost(*itr);
+					std::cout << "Player Lost : ID = " << itr->GetTrackId() << std::endl;
+				}
 				if (itr->RefCount() <= 0)
 					itr = m_Players.erase(itr);
 				else

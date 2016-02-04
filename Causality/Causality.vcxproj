@@ -439,7 +439,6 @@ copy $(LeapSDK_Root)\lib\$(PlatformTarget)\Leap.dll "$(OutDir)"</Command>
     <ClInclude Include="..\OpenAvataring\ClipMetric.h" />
     <ClInclude Include="..\OpenAvataring\GaussianProcess.h" />
     <ClInclude Include="..\OpenAvataring\GestureTracker.h" />
-    <ClInclude Include="..\OpenAvataring\LeapPlayerSelector.h" />
     <ClInclude Include="..\OpenAvataring\PlayerSelector.h" />
     <ClInclude Include="..\OpenAvataring\PcaCcaMap.h" />
     <ClInclude Include="..\OpenAvataring\pch.h" />

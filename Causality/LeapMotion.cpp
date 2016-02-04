@@ -70,7 +70,7 @@ int TrackedHand::s_HandArmatureParentMap[TrackedHand::JointType_Count]=
 void TrackedHand::IntializeHandArmature()
 {
 	if (s_pHandArmature) return;
-	auto pArmature = new StaticArmature((size_t)JointType_Count, s_HandArmatureParentMap, HandJointNames);
+	s_pHandArmature.reset(new StaticArmature((size_t)JointType_Count, s_HandArmatureParentMap, HandJointNames));
 }
 
 class Devices::Internal::LeapListener : public Leap::Listener
@@ -81,8 +81,13 @@ public:
 		m_pSensor = pLeap;
 		m_pause = false;
 		m_hasNewFrame = false;
-		m_lostThreshold = 15;
+		m_lostThreshold = 30;
 	}
+	~LeapListener()
+	{
+	}
+
+	LeapListener(const LeapListener&) = delete;
 
 	virtual void onConnect(const Leap::Controller & controller) override;
 	virtual void onDisconnect(const Leap::Controller &controller) override;
@@ -94,13 +99,13 @@ public:
 
 	void processHand(const Leap::Hand& leaphand, TrackedHand& hand, bool isNew, time_t time);
 
+	LeapSensor*					m_pSensor;
+	Leap::Frame					m_frame;
 	Matrix4x4					m_world;
 	int							m_lostThreshold;
 	bool						m_pause;
 	bool						m_hasNewFrame;
-	Leap::Frame					m_frame;
 	std::list<TrackedHand>		m_hands;
-	LeapSensor*					m_pSensor;
 };
 
 std::weak_ptr<LeapSensor> LeapSensor::wpCurrentDevice;
@@ -120,9 +125,14 @@ std::shared_ptr<LeapSensor> Causality::Devices::LeapSensor::GetForCurrentView()
 }
 
 LeapSensor::LeapSensor()
-	:pListener(new LeapListener(this)), pController(new Leap::Controller), m_useEvent(false), m_isFixed(true), m_started(false), m_connected (false)
+	:
+	m_useEvent(false),
+	m_isFixed(true),
+	m_started(false),
+	m_connected(false)
 {
-	TrackedHand::IntializeHandArmature();
+	pController.reset(new Leap::Controller());
+	pListener.reset(new LeapListener(this));
 }
 
 LeapSensor::LeapSensor(bool useEvent, bool isFixed)
@@ -133,8 +143,11 @@ LeapSensor::LeapSensor(bool useEvent, bool isFixed)
 
 void LeapSensor::Initialize(bool useEvent, bool isFixed)
 {
+	TrackedHand::IntializeHandArmature();
+
 	if (m_started)
 		Stop();
+
 	using namespace DirectX;
 	m_useEvent = useEvent;
 	m_isFixed = isFixed;
@@ -144,7 +157,10 @@ void LeapSensor::Initialize(bool useEvent, bool isFixed)
 
 LeapSensor::~LeapSensor()
 {
-	pController->removeListener(*pListener.get());
+	if (pListener && pController)
+		pController->removeListener(*pListener.get());
+	pListener.reset();
+	pController.reset();
 }
 
 Leap::Controller & LeapSensor::Controller() {
@@ -164,7 +180,8 @@ const Leap::Controller & LeapSensor::Controller() const {
 void LeapSensor::SetDeviceWorldCoord(const DirectX::Matrix4x4 & m)
 {
 	using namespace DirectX;
-	pListener->m_world = XMMatrixScalingFromVector(XMVectorReplicate(0.001f)) * (XMMATRIX)m;
+	if (pListener)
+		pListener->m_world = m;
 }
 
 DirectX::XMMATRIX LeapSensor::ToWorldTransform() const
@@ -230,11 +247,17 @@ void LeapListener::processLostHands()
 {
 	for (auto itr = m_hands.begin(), end = m_hands.end(); itr != end;)
 	{
-		itr->m_isTracked = false;
-		if (++(itr->m_lostFrameCount) >= m_lostThreshold)
+		itr->IncreaseLostFrameCount();
+		if (itr->GetLostFrameCount() >= m_lostThreshold)
 		{
-			m_pSensor->HandLost(*itr);
-			std::cout << "Hands Lost : ID = " << itr->GetTrackId() << std::endl;
+			if (itr->m_isTracked)
+			{
+				itr->m_isTracked = false;
+				itr->Lost(*itr);
+				m_pSensor->HandLost(*itr);
+				int refcount = itr->RefCount();
+				std::cout << "Hands Lost : ID = " << itr->GetTrackId() << "RefCount = " << refcount << std::endl;
+			}
 			if (itr->RefCount() <= 0)
 				itr = m_hands.erase(itr);
 			else
@@ -310,7 +333,7 @@ void LeapListener::processHand(const Leap::Hand& leaphand, TrackedHand& hand, bo
 bool LeapSensor::Initialize(const ParamArchive * archive)
 {
 	IsometricTransform world;
-	world.Scale = Vector3(0.01f); // convert unit mm to m , factor 1mm = 0.01m
+	world.Scale = Vector3(0.001f); // convert unit mm to m , factor 1mm = 0.01m
 	GetParam(archive, "translation", world.Translation);
 	GetParam(archive, "scale", world.Scale);
 	Vector3 eular;
@@ -319,7 +342,7 @@ bool LeapSensor::Initialize(const ParamArchive * archive)
 	SetDeviceWorldCoord(world.TransformMatrix());
 
 	bool useEvent = false, isFixed = true;
-	GetParam(archive, "asyhnchronize", useEvent);
+	GetParam(archive, "asynchronize", useEvent);
 	GetParam(archive, "fixed", isFixed);
 	Initialize(useEvent, isFixed);
 
@@ -371,7 +394,7 @@ bool LeapSensor::Update()
 
 bool LeapSensor::IsStreaming() const
 {
-	return !pListener && pController->isConnected();
+	return !pListener && pController->isConnected() && m_started;
 }
 
 bool LeapSensor::IsAsychronize() const
@@ -391,9 +414,23 @@ bool LeapSensor::Resume()
 	return true;
 }
 
+const std::list<TrackedHand>& Causality::Devices::LeapSensor::GetTrackedHands() const
+{
+	return pListener->m_hands;
+}
+
+std::list<TrackedHand>& Causality::Devices::LeapSensor::GetTrackedHands()
+{
+	return pListener->m_hands;
+}
+
 TrackedHand::TrackedHand(int64_t id, bool isLeft)
 	: TrackedArmature(*s_pHandArmature)
 {
 	m_id = id;
 	m_isLeft = isLeft;
+}
+
+TrackedHand::~TrackedHand()
+{
 }

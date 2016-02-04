@@ -61,6 +61,7 @@ namespace Causality
 		friend Devices::Internal::LeapListener;
 
 		TrackedHand(int64_t id, bool isLeft);
+		~TrackedHand();
 
 		bool IsRight() const;
 		bool IsLeft() const;
@@ -95,6 +96,7 @@ namespace Causality
 			Leap::Controller& Controller();
 			const Leap::Controller& Controller() const;
 
+			sptr<LeapSensor> GetRef() { return shared_from_this(); }
 
 			//void SetMotionProvider(DirectX::ILocatable* pHeadLoc, DirectX::IOriented *pHeadOrient);
 			// Assign Leap motion's coordinate in world space
@@ -126,15 +128,15 @@ namespace Causality
 			std::list<TrackedHand>		 &GetTrackedHands();
 
 		private:
+			std::unique_ptr<Leap::Controller>
+				pController;
+			std::unique_ptr<Internal::LeapListener>
+				pListener;
+
 			bool			 m_useEvent;
 			bool			 m_isFixed;
 			bool			 m_started;
 			std::atomic_bool m_connected;
-
-			std::unique_ptr<Internal::LeapListener>
-				pListener;
-			std::unique_ptr<Leap::Controller>
-				pController;
 		};
 	}
 }

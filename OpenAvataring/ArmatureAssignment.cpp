@@ -412,7 +412,7 @@ namespace Causality
 			}
 		}
 
-		DEBUGOUT(C);
+		//DEBUGOUT(C);
 	}
 
 }

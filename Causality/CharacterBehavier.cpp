@@ -43,7 +43,6 @@ BehavierSpace::animation_type & BehavierSpace::AddAnimationClip(const std::strin
 	m_AnimClips.emplace_back(name);
 	auto& anim = m_AnimClips.back();
 	anim.SetArmature(*m_pArmature);
-	anim.SetDefaultFrame(m_pArmature->default_frame());
 	return anim;
 }
 
@@ -71,7 +70,7 @@ void BehavierSpace::SetArmature(IArmature & armature) {
 	//UpdateArmatureParts();
 }
 
-const BehavierSpace::frame_type & BehavierSpace::RestFrame() const { return Armature().default_frame(); }
+BehavierSpace::frame_const_view BehavierSpace::RestFrame() const { return Armature().default_frame(); }
 
 void BehavierSpace::UniformQuaternionsBetweenClips()
 {

@@ -94,6 +94,7 @@ namespace Causality
 		const IArmature*					m_pPlayerArmature;
 
 		uptr<ShrinkedArmature>				m_pParts;
+		vector<Color, DirectX::XMAllocator>	m_boneColors;
 		int									m_Id;
 
 		sptr<IPlayerSelector>				m_pSelector;

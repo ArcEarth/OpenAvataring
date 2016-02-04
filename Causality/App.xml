@@ -1,6 +1,6 @@
 <application>
 	<kinect enable="true"></kinect>
-	<leap enable="false"></leap>
+	<leap enable="true" asynchronize="true" fixed="true" scale="0.01"></leap>
 	<vicon sever_ip="172.21.12.17" enable="false" verbose="false" scale="0.001"></vicon>
 
 	<assets path="..\Assets\"></assets>

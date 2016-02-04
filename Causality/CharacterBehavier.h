@@ -13,6 +13,8 @@ namespace Causality
 	public:
 		typedef ArmatureFrameAnimation animation_type;
 		typedef ArmatureFrame frame_type;
+		typedef ArmatureFrameView frame_view;
+		typedef ArmatureFrameConstView frame_const_view;
 		typedef BoneVelocityFrame velocity_frame_type;
 		typedef vector<ArmatureFrameAnimation> container_type;
 
@@ -36,7 +38,7 @@ namespace Causality
 		const IArmature&		Armature() const;
 		IArmature&				Armature();
 		void					SetArmature(IArmature& armature);
-		const frame_type&		RestFrame() const; // RestFrame should be the first fram in Rest Animation
+		frame_const_view		RestFrame() const; // RestFrame should be the first fram in Rest Animation
 
 		void					UniformQuaternionsBetweenClips();
 	};

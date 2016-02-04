@@ -61,6 +61,7 @@ namespace Causality
 
 
 		string								Name;
+		FrameType							DefaultFrame;
 		std::list<KeyFrame<FrameType>>		KeyFrames;
 		TimeScalarType						Duration;
 		TimeScalarType						FrameInterval;
@@ -68,8 +69,6 @@ namespace Causality
 		// A function map : (BeginTime,EndTime) -> (BeginTime,EndTime),  that handels the easing effect between frames
 		// Restriction : TimeWarp(KeyFrameTime(i)) must equals to it self
 		/*std::function<TimeScalarType(TimeScalarType)> TimeWarpFunction;*/
-	protected:
-		const FrameType * m_pDefaultFrame; // Use to generate
 	public:
 		typedef KeyframeAnimation self_type;
 
@@ -82,11 +81,6 @@ namespace Causality
 
 		KeyframeAnimation(self_type&& rhs) = default;
 
-		const FrameType& DefaultFrame() const { return *m_pDefaultFrame; }
-		void SetDefaultFrame(const FrameType &default_frame)
-		{
-			m_pDefaultFrame = &default_frame;
-		}
 		// Duration of this clip
 		TimeScalarType	Length() const { return Duration; }
 		// Is this clip a loopable animation : last frame == first frame
@@ -115,13 +109,60 @@ namespace Causality
 		return false;
 	}
 
+	class ArmatureFrameBuffer
+	{
+	public:
+		ArmatureFrameBuffer() : m_bones(0), m_frames(0) {}
+		ArmatureFrameBuffer(size_t bones, size_t frames): m_bones(bones), m_frames(frames), m_buffer(bones*frames)
+		{}
+		ArmatureFrameBuffer(const IArmature& armature, size_t frames)
+		: m_bones(armature.size()), m_frames(frames), m_buffer(armature.size()*frames)
+		{}
+
+		void resize(size_t joints, size_t frames)
+		{
+			m_buffer.resize(joints*frames);
+		}
+	
+		void resize(size_t frames) {
+			assert(m_bones > 0);
+			resize(m_bones, frames);
+		}
+
+		size_t size() const { return m_frames; }
+		size_t frames() const { return m_frames; }
+		size_t bones() const { return m_bones; }
+
+		void push_back(ArmatureFrameConstView frame)
+		{
+			assert(frame.size() == m_bones);
+			m_buffer.insert(m_buffer.end(), frame.begin(), frame.end());
+		}
+
+		Bone& bone(size_t frame, size_t bid) { return m_buffer[frame*m_bones + bid]; }
+		const Bone& bone(size_t frame, size_t bid) const { return m_buffer[frame*m_bones + bid]; }
+
+		ArmatureFrameView at(size_t frame) { return ArmatureFrameView(&m_buffer[frame*m_bones], m_bones); }
+		ArmatureFrameConstView at(size_t frame) const { return ArmatureFrameConstView(&m_buffer[frame*m_bones], m_bones); }
+
+		inline ArmatureFrameView frame(size_t frameid) { return at(frameid); }
+		inline ArmatureFrameConstView frame(size_t frameid) const { return at(frameid); }
+
+		inline ArmatureFrameView operator[](size_t frame) { return at(frame); }
+		inline ArmatureFrameConstView operator[](size_t frame) const { return at(frame); }
+
+	private:
+		size_t m_bones, m_frames;
+		std::vector<Bone, DirectX::XMAllocator> m_buffer;
+	};
+
 	class ArmatureFrameAnimation : public KeyframeAnimation<ArmatureFrame, ArmatureFrameView>
 	{
 	public:
 		typedef ArmatureFrameAnimation self_type;
 		typedef KeyframeAnimation<ArmatureFrame, ArmatureFrameView> base_type;
 
-		self_type() = default;
+		self_type() { pArmature = nullptr; }
 		self_type(const self_type& rhs) = default;
 		//self_type& operator=(const self_type& rhs) = default;
 
@@ -136,7 +177,7 @@ namespace Causality
 		//self_type& operator=(const self_type&& rhs);
 
 		const IArmature& Armature() const { return *pArmature; }
-		void SetArmature(IArmature& armature) { pArmature = &armature; }
+		void SetArmature(const IArmature& armature);
 		// get the pre-computed frame buffer which contains interpolated frame
 		const std::vector<frame_type>& GetFrameBuffer() const { return frames; }
 		std::vector<frame_type>& GetFrameBuffer() { return frames; }
@@ -162,9 +203,9 @@ namespace Causality
 		void Deserialize(std::istream& binary);
 
 	private:
-		IArmature*			pArmature;
-		size_t				bonesCount;
-		std::vector<frame_type>	frames;
+		const IArmature*			pArmature;
+		size_t						bonesCount;
+		std::vector<frame_type>		frames;
 	//public:
 	//	Eigen::MatrixXf		animMatrix; // 20N x F matrix
 	//	Eigen::RowVectorXf  Ecj;	// Jointwise Energy

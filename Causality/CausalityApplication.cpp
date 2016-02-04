@@ -406,6 +406,7 @@ void App::SetupDevices(const ParamArchive* arch)
 	if (setting && enable)
 	{
 		pLeap = Devices::LeapSensor::GetForCurrentView();
+		pLeap->Initialize(setting);
 	}
 
 	setting = arch->FirstChildElement("kinect");
@@ -419,7 +420,7 @@ void App::SetupDevices(const ParamArchive* arch)
 				XMQuaternionRotationRollPitchYaw(-XM_PI / 12.0f, XM_PI, 0), // Orientation
 				XMVectorSet(0, 0.0, 1.0f, 1.0f)); // Position
 			pKinect->SetDeviceCoordinate(kinectCoord);
-			pKinect->Start();
+			//pKinect->Start();
 		}
 	}
 

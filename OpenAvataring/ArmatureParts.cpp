@@ -40,7 +40,7 @@ void ShrinkedArmature::SetArmature(const IArmature & armature)
 			});
 			if (itr != m_Parts.end())
 			{
-				(*itr)->SymetricPair == part;
+				(*itr)->SymetricPair = part;
 				part->SymetricPair = *itr;
 			}
 		}

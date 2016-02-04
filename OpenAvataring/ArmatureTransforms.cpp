@@ -1162,7 +1162,7 @@ CharacterActionTracker::InputVectorType CharacterActionTracker::GetCorrespondVec
 void CharacterActionTracker::GetScaledFrame(_Out_ ArmatureFrameView frame, ScalarType t, ScalarType s) const
 {
 	m_Animation.GetFrameAt(frame, time_seconds(t));
-	FrameScale(frame, m_Animation.DefaultFrame(), s);
+	FrameScale(frame, m_Animation.DefaultFrame, s);
 	FrameRebuildGlobal(m_Animation.Armature(), frame);
 }
 

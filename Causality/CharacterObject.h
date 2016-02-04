@@ -4,6 +4,7 @@
 #include "CharacterBehavier.h"
 #include "Common\Filter.h"
 #include <atomic>
+#include <mutex>
 
 namespace Causality
 {
@@ -76,6 +77,7 @@ namespace Causality
 		frame_type								m_LastFrame;
 		velocity_frame_type						m_VelocityFrame;
 
+		std::mutex								m_ActionMutex;
 		std::atomic_bool						m_UpdateLock;
 		bool									m_IsAutoDisplacement;
 	};

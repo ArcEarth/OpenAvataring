@@ -25,8 +25,8 @@
 #include "Causality\Scene.h"
 #include "Causality\Settings.h"
 #include "Causality\CameraObject.h"
-
-
+#include "Causality\Kinect.h"
+#include "Causality\LeapMotion.h"
 
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
 
@@ -52,34 +52,26 @@ const static Eigen::IOFormat CSVFormat(StreamPrecision, DontAlignCols, ", ", "\n
 std::map<string, string> g_DebugLocalMotionAction;
 bool					 g_DebugLocalMotion = false;
 
-static const DirectX::XMVECTORF32 HumanBoneColors[JointType_Count] = {
-	{ 0.0f,0.0f,0.0f,0.0f },//JointType_SpineBase = 0,
-	{ 0.4f,0.4f,0.1f,0.0f },//JointType_SpineMid = 1,
-	{ 0.9f,0.3f,0.9f,1.0f },//JointType_Neck = 2,
-	{ 0.9f,0.3f,0.9f,1.0f },//JointType_Head = 3,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_ShoulderLeft = 4,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_ElbowLeft = 5,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_WristLeft = 6,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_HandLeft = 7,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_ShoulderRight = 8,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_ElbowRight = 9,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_WristRight = 10,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_HandRight = 11,
-	{ 0.9f,0.9f,0.3f,1.0f },//JointType_HipLeft = 12,
-	{ 0.9f,0.9f,0.3f,1.0f },//JointType_KneeLeft = 13,
-	{ 0.9f,0.9f,0.3f,1.0f },//JointType_AnkleLeft = 14,
-	{ 0.9f,0.9f,0.3f,1.0f },//JointType_FootLeft = 15,
-	{ 0.3f,0.9f,0.9f,1.0f },//JointType_HipRight = 16,
-	{ 0.3f,0.9f,0.9f,1.0f },//JointType_KneeRight = 17,
-	{ 0.3f,0.9f,0.9f,1.0f },//JointType_AnkleRight = 18,
-	{ 0.3f,0.9f,0.9f,1.0f },//JointType_FootRight = 19,
-	{ 0.0f,0.0f,0.0f,0.0f },//JointType_SpineShoulder = 20,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_HandTipLeft = 21,
-	{ 0.9f,0.3f,0.3f,1.0f },//JointType_ThumbLeft = 22,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_HandTipRight = 23,
-	{ 0.3f,0.3f,0.9f,1.0f },//JointType_ThumbRight = 24,
-	//JointType_Count = (JointType_ThumbRight + 1)
+#define RGB0(R,G,B) {R,G,B,1.0f}
+static const DirectX::Color PartColorList[] = {
+	RGB0(.0f,0.675f,0.627f),
+	RGB0(1.f,0.933f,.0f),
+	RGB0(0.545f,0.008f,0.714f),
+	RGB0(1.f,0.435f,.0f),
+	RGB0(.0f,0.976f,0.902f),
+	RGB0(0.894f,0.835f,.0f),
+	RGB0(0.745f,0.012f,0.976f),
+	RGB0(0.894f,0.388f,.0f),
+	RGB0(.0f,0.863f,0.8f),
+	RGB0(0.749f,0.698f,.0f),
+	RGB0(0.451f,0.012f,0.592f),
+	RGB0(0.749f,0.325f,.0f),
+	RGB0(.0f,0.549f,0.51f),
+	RGB0(0.671f,0.008f,0.882f),
+	RGB0(0.38f,0.016f,0.494f),
+	RGB0(.0f,0.459f,0.427f),
 };
+#undef RGB0
 
 /*
 pair<JointType, JointType> XFeaturePairs[] = {
@@ -123,7 +115,7 @@ float BoneRadius[JointType_Count] = {
 #define BEGIN_TO_END(range) range.begin(), range.end()
 
 
-void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const CharacterController& controller);
+void SetGlowBoneColor(CharacterGlowParts* glow, const ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller);
 
 // Player Proxy methods
 void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const IArmatureStreamAnimation::FrameType& frame)
@@ -174,6 +166,16 @@ void PlayerProxy::ResetPlayerArmature(const IArmature* playerArmature)
 {
 	m_pPlayerArmature = playerArmature;
 	InitializeShrinkedPlayerArmature();
+	m_boneColors.resize(m_pPlayerArmature->size());
+	for (auto& part : *m_pParts)
+	{
+		auto pcolor = PartColorList[part->Index % std::size(PartColorList)];
+
+		for (auto& joint : part->Joints)
+		{
+			m_boneColors[joint->ID] = pcolor;
+		}
+	}
 	cout << "Initializing Cyclic Info..." << endl;
 	m_CyclicInfo.Initialize(*m_pParts, time_seconds(0.5), time_seconds(3), 30, 0);
 	cout << "Cyclic Info Initited!" << endl;
@@ -317,37 +319,43 @@ void PlayerProxy::Parse(const ParamArchive * store)
 	auto sel = GetFirstChildArchive(store, "player_controller.selector");
 	sel = GetFirstChildArchive(sel);
 	string name = GetArchiveName(sel);
-	if (name == "kinect_player_selector")
+
+	PlayerSelectorBase::SelectionMode mode;
+	unsigned umode = PlayerSelectorBase::ClosestStickly;
+	GetParam(sel, "mode", umode);
+	mode = (PlayerSelectorBase::SelectionMode)umode;
+	sptr<IPlayerSelector> pSelector;
+
+	if (name == "kinect_source")
 	{
 		auto pKinect = Devices::KinectSensor::GetForCurrentView();
-		KinectPlayerSelector::SelectionMode mode;
-		unsigned umode = KinectPlayerSelector::ClosestStickly;
-		GetParam(sel, "mode", umode);
-		mode = (KinectPlayerSelector::SelectionMode)umode;
-		auto pSelector = make_shared<KinectPlayerSelector>(pKinect.get(), mode);
-		SetPlayerSelector(pSelector);
+		pSelector = make_shared<KinectPlayerSelector>(pKinect.get(), mode);
 		pKinect->Start();
 	}
-	else if (name == "leap_selector")
+	else if (name == "leap_source")
+	{
+		auto pLeap = Devices::LeapSensor::GetForCurrentView();
+		pSelector = make_shared<LeapPlayerSelector>(pLeap.get(), mode);
+		pLeap->Start();
+	}
+	else if (name == "virutal_character_source")
 	{
 
 	}
-	else if (name == "virutal_character_selector")
-	{
 
-	}
+	if (pSelector)
+		SetPlayerSelector(pSelector);
 }
 
-void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const DirectX::XMVECTORF32 *colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
+void SetGlowBoneColorPartPair(CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
 
-void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const CharacterController& controller)
+void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller)
 {
 	auto pTrans = &controller.Binding();
 	auto pCcaTrans = dynamic_cast<const BlockizedCcaArmatureTransform*>(pTrans);
 	auto pPartTrans = dynamic_cast<const PartilizedTransformer*>(pTrans);
 
 	auto& cparts = controller.ArmatureParts();
-	auto& colors = HumanBoneColors;
 
 	//auto& carmature = controller.Character().Armature();
 	//for (int i = 0; i <= carmature.size(); i++)
@@ -387,7 +395,7 @@ void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmatur
 
 }
 
-void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const DirectX::XMVECTORF32 *colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
+void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
 {
 	using namespace Math;
 	XMVECTOR color;
@@ -465,7 +473,7 @@ void PlayerProxy::SetActiveController(int idx)
 			{
 				glow->SetEnabled(true);
 				std::lock_guard<std::mutex> guard(controller.GetBindingMutex());
-				SetGlowBoneColor(glow, *m_pParts, controller);
+				SetGlowBoneColor(glow, *m_pParts, m_boneColors, controller);
 			}
 
 			assert(m_pSelector && m_pSelector->Get());
@@ -489,7 +497,7 @@ void PlayerProxy::SetActiveController(int idx)
 		auto glow = chara.FirstChildOfType<CharacterGlowParts>();
 		if (glow)
 		{
-			SetGlowBoneColor(glow, *m_pParts, controller);
+			SetGlowBoneColor(glow, *m_pParts, m_boneColors, controller);
 			glow->SetEnabled(!g_DebugView);
 		}
 	}
@@ -853,9 +861,9 @@ void PlayerProxy::UpdateSelfMotionBinder(const Causality::time_seconds & time_de
 		auto& actionName = g_DebugLocalMotionAction[chara.Name];
 		if (actionName.empty())
 			continue;
-		auto& action = controller.Character().Behavier()[actionName];
-		auto& target_frame = controller.Character().MapCurrentFrameForUpdate();
-		auto frame = controller.Character().Armature().default_frame();
+		auto& action = chara.Behavier()[actionName];
+		auto& target_frame = chara.MapCurrentFrameForUpdate();
+		ArmatureFrame frame (chara.Armature().default_frame() );
 
 		target_frame = frame;
 		last_frame = frame;
@@ -1060,7 +1068,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		if (IsMapped())
 			color.A(0.3f);
 
-		DrawArmature(player.GetArmature(), frame, reinterpret_cast<const Color*>(HumanBoneColors));
+		DrawArmature(player.GetArmature(), frame, m_boneColors.data());
 	}
 
 	// IsMapped() && 

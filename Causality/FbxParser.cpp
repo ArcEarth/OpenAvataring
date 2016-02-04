@@ -668,7 +668,7 @@ namespace Causality
 			}
 			//default_frame.RebuildGlobal(*pArmature);
 
-			BuildJointMirrorRelation(pArmature->root(), default_frame);
+			BuildJointMirrorRelation(*pArmature);
 			return pArmature;
 		}
 

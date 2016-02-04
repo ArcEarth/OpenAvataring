@@ -82,7 +82,7 @@ namespace Causality
 
 	public:
 		// number of float elements per bone
-		static const auto BoneWidth = 28;
+		static const auto BoneWidth = 24;
 
 		//typedef Eigen::Map<Eigen::Matrix<float, BoneWidth, 1>, Eigen::Aligned> EigenType;
 		//EigenType AsEigenType()
@@ -143,14 +143,12 @@ namespace Causality
 		explicit ArmatureFrame(size_t size);
 		// copy from default frame
 		explicit ArmatureFrame(const IArmature& armature);
-		explicit ArmatureFrame(ArmatureFrameView frameView);
-		explicit ArmatureFrame(ArmatureFrameConstView frameView);
+		explicit ArmatureFrame(const ArmatureFrameConstView & frameView);
 		ArmatureFrame(const ArmatureFrame&);
 		ArmatureFrame(ArmatureFrame&& rhs);
 		ArmatureFrame& operator=(const ArmatureFrame&);
 		ArmatureFrame& operator=(ArmatureFrame&& rhs);
-		ArmatureFrame& operator=(ArmatureFrameView frameView);
-		ArmatureFrame& operator=(ArmatureFrameConstView frameView);
+		ArmatureFrame& operator=(const ArmatureFrameConstView &frameView);
 
 
 		// number of float elements per bone
@@ -225,9 +223,10 @@ namespace Causality
 	{
 	};
 
-	class Joint : public stdx::tree_node<Joint, false>, public JointBasicData
+	class Joint : public stdx::tree_node<Joint>, public JointBasicData
 	{
 	public:
+		static constexpr int		nullid = -1;
 		Joint*						MirrorJoint; // the symetric pair of this joint
 		JointSemanticProperty		Semantic;
 		RotationConstriant			RotationConstraint;
@@ -244,31 +243,13 @@ namespace Causality
 		float						ExtrinsicSaliency;
 
 	public:
-		Joint()
-		{
-			JointBasicData::ID = -1;
-			JointBasicData::ParentID = -1;
-			MirrorJoint = nullptr;
-		}
+		Joint();
 
-		Joint(int id)
-		{
-			JointBasicData::ID = id;
-			JointBasicData::ParentID = -1;
-			MirrorJoint = nullptr;
-		}
+		explicit Joint(int id);
 
-		Joint(const JointBasicData& data)
-			: JointBasicData(data)
-		{
-			MirrorJoint = nullptr;
-		}
-		Joint(const Joint& rhs)
-			: stdx::tree_node<Joint, false>()
-		{
-			MirrorJoint = nullptr;
-			JointBasicData::operator=(rhs);
-		}
+		explicit Joint(const JointBasicData& data);
+		Joint(const Joint& rhs);
+		~Joint();
 
 		void SetID(int idx) { JointBasicData::ID = idx; }
 
@@ -276,6 +257,8 @@ namespace Causality
 		void SetParentID(int id) { JointBasicData::ParentID = id; }
 
 		const JointSemanticProperty& AssignSemanticsBasedOnName();
+
+		int reindex(int baseid);
 
 		//const JointSemanticProperty& Semantics() const;
 		//JointSemanticProperty& Semantics();
@@ -288,7 +271,11 @@ namespace Causality
 	class IArmature
 	{
 	public:
+		typedef Joint joint_type;
+
 		typedef ArmatureFrame frame_type;
+		typedef ArmatureFrameView frame_view;
+		typedef ArmatureFrameConstView frame_const_view;
 
 		virtual ~IArmature() {}
 
@@ -299,16 +286,15 @@ namespace Causality
 			return const_cast<IArmature*>(this)->root();
 		}
 		virtual size_t size() const = 0;
-		virtual const frame_type& default_frame() const = 0;
+		virtual frame_const_view default_frame() const = 0;
 
-		auto
-			joints() const 
+		bool empty() { return root() == nullptr; }
+		auto joints() const 
 		{
 			return root()->nodes();
 		}
 
-		auto 
-			joints()
+		auto joints()
 		{
 			return root()->nodes();
 		}
@@ -317,7 +303,7 @@ namespace Causality
 		// if and only if rhs is a "base tree" of "this" in the sense of "edge shrink"
 		//bool IsCompatiableWith(IArmature* rhs) const;
 
-		const Joint* at(int index) const
+		inline const Joint* at(int index) const
 		{
 			return const_cast<IArmature*>(this)->at(index);
 		}
@@ -334,12 +320,15 @@ namespace Causality
 			return at(idx);
 		}
 
-		const Bone& default_bone(int index) const;
+		inline const Bone& default_bone(int index) const
+		{
+			return default_frame()[at(index)->ID];
+		}
 
 		//std::vector<size_t> m_order;
 	};
 
-	void BuildJointMirrorRelation(Joint* root, ArmatureFrameConstView frame);
+	void BuildJointMirrorRelation(IArmature& armature);
 
 	enum SymetricTypeEnum
 	{
@@ -352,25 +341,24 @@ namespace Causality
 	class StaticArmature : public IArmature
 	{
 	public:
-		typedef Joint joint_type;
 		typedef StaticArmature self_type;
 
 	private:
-		size_t						m_rootIdx;
+		int							m_rootIdx;
 		vector<joint_type>			m_joints;
-		vector<size_t>				m_order; //Topological order of joints
-		uptr<frame_type>			m_defaultFrame;
+		vector<int>					m_order; //Topological order of joints
+		frame_type					m_defaultFrame;
 
 	public:
 
+		StaticArmature();
 		StaticArmature(array_view<JointBasicData> data);
-
 		// deserialization
 		StaticArmature(std::istream& file);
 		StaticArmature(size_t JointCount, int *JointsParentIndices, const char* const* Names);
-		~StaticArmature();
 		StaticArmature(const IArmature& rhs);
 		StaticArmature(self_type&& rhs);
+		~StaticArmature();
 
 		self_type& operator=(const self_type& rhs);
 		self_type& operator=(self_type&& rhs);
@@ -382,11 +370,11 @@ namespace Causality
 		virtual joint_type* at(int index) override;
 		virtual joint_type* root() override;
 		virtual size_t size() const override;
-		virtual const frame_type& default_frame() const override;
-		frame_type& default_frame() { return *m_defaultFrame; }
-		void set_default_frame(uptr<frame_type> &&pFrame);
+		virtual frame_const_view default_frame() const override;
+		frame_type& default_frame() { return m_defaultFrame; }
+		void set_default_frame(frame_type &&pFrame);
 		// A topolical ordered joint index sequence
-		const std::vector<size_t>& joint_indices() const
+		const std::vector<int>& joint_indices() const
 		{
 			return m_order;
 		}
@@ -415,28 +403,61 @@ namespace Causality
 	{
 	};
 
-	// For future use
+	// The armature strucuture which provide full ability in editing
+	// but lesser performance in query
 	class DynamicArmature : public IArmature
 	{
-		void CopyFrom(IArmature* pSrc);
+	public:
+		typedef DynamicArmature self_type;
+		typedef std::pair<int, joint_type*> Index_Item;
 
-		void ChangeRoot(Joint* pNewRoot);
-		void RemoveJoint(unsigned int jointID);
-		void RemoveJoint(Joint* pJoint);
-		void AppendJoint(Joint* pTargetJoint, Joint* pSrcJoint);
+		void clone_from(const IArmature& rhs);
+		void clone_from(const joint_type& root);
 
-		std::map<int, int> AppendSkeleton(Joint* pTargetJoint, DynamicArmature* pSkeleton, bool IsCoordinateRelative = false);
+		void reroot(joint_type* pNewRoot);
+		void remove(unsigned int jointID);
+		void remove(joint_type* pJoint);
+
+		DynamicArmature();
+		~DynamicArmature();
+
+		explicit DynamicArmature(const IArmature& rhs);
+		explicit DynamicArmature(DynamicArmature&& rhs);
+		explicit DynamicArmature(std::unique_ptr<joint_type>&& root, frame_type&& defaultframe);
+		explicit DynamicArmature(const joint_type & root);
+
+		std::map<int, int> append(joint_type* pTargetJoint, std::unique_ptr<joint_type>&& pSrcJoint);
+		std::map<int, int> append(joint_type* pTargetJoint, DynamicArmature* pSkeleton, bool IsCoordinateRelative = false);
 
 		// This method adjust Joint Index automaticly to DFS order
 		// Anyway , lets just return the value since we have Rvalue && move sementic now
-		std::map<int, int> Reindex();
+		std::map<int, int> reindex();
 
-	public:
-		std::unordered_map<int, Joint*> Index;
-		typedef std::pair<int, Joint*> Index_Item;
+		bool contains(const joint_type* pJoint) const {
+			if (!pJoint) return false;
+			auto itr = this->m_index.find(pJoint->ID);
+			return (itr != m_index.end()) && (itr->second == pJoint);
+		}
+
+		bool contains(unsigned int jointID) const {
+			return (m_index.find(jointID) != m_index.end());
+		}
+
+		virtual joint_type* at(int index) override;
+
+		virtual joint_type* root() override;
+
+		virtual size_t size() const override;
+
+		virtual frame_const_view default_frame() const override;
+
+		frame_type& default_frame();
+		void set_default_frame(frame_type &&frame);
 
 	protected:
-		Joint* _root;
+		unique_ptr<joint_type>			m_root;
+		std::map<int, Joint*>			m_index;
+		frame_type						m_defaultFrame;
 	};
 
 }

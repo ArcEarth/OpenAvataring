@@ -1012,12 +1012,13 @@ namespace stdx
 		// clone this tree structure into a new storage
 		pointer clone() const
 		{
-			pointer newnode = new value_type(*this);
+			pointer newnode = new value_type(static_cast<const_reference>(*this));
 			const_pointer child = _first_child;
 			while (child != nullptr)
 			{
 				pointer newchild = child->clone();
 				newnode->append_children_back(newchild);
+				child = child->_next_sibling;
 			}
 			return newnode;
 		}
@@ -1108,17 +1109,14 @@ namespace stdx
 		// and remove it from the oringinal parent
 		// this method ensure the rest of tree structure is not affected
 		void isolate() {
-			if (!this->_parent)
-#ifdef _DEBUG
-				throw new std::exception("Can not separate the root tree_node.");
-#else
-				return;
-#endif
 
-			if (this->_parent->_first_child == this)
-				this->_parent->_first_child = this->_next_sibling;
-			if (this->_parent->_last_child == this)
-				this->_parent->_last_child = this->_prev_sibling;
+			if (this->_parent)
+			{
+				if (this->_parent->_first_child == this)
+					this->_parent->_first_child = this->_next_sibling;
+				if (this->_parent->_last_child == this)
+					this->_parent->_last_child = this->_prev_sibling;
+			}
 
 			if (this->_prev_sibling)
 				this->_prev_sibling->_next_sibling = this->_next_sibling;

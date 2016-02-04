@@ -138,13 +138,13 @@
     <phong_material name="watchtower_mat" diffuse_map="Fortress_Watchtower.dds" normal_map="Pine_tree_normal.dds" alpha_discard="false"></phong_material>
 
     <phong_material name="horse_material" alpha_discard="true" diffuse_map="Horse_D.dds"></phong_material>
-    <!--<phong_material name="spider_material" diffuse_map="spider-tex.dds"></phong_material>
+    <phong_material name="spider_material" diffuse_map="spider-tex.dds"></phong_material>
     <phong_material name="insect_material" diffuse_map="Insect_Diff.dds" normal_map="Insect_NM.dds"></phong_material>
     <phong_material name="kitten_Body" diffuse_color="#FFCCCCCC" diffuse_map="kitten_Albedo.dds" normal_map="kitten_Normal.dds"></phong_material>
     <phong_material name="kitten_Hair" diffuse_color="#FFCCCCCC" diffuse_map="kitten_Albedo.dds" alpha_discard="true"></phong_material>
     <phong_material name="kitten_Cornea" diffuse_map="kitten_Albedo.dds" normal_map="kitten_Normal.dds" specular_map="kitten_Specular.dds" alpha="0.25" diffuse_color="#20000000" specular_color="#FFFFFFFF" alpha_discard="true"></phong_material>
     <phong_material name="kitten_EyeballB" diffuse_map="kitten_Albedo.dds"></phong_material>
-    <phong_material name="kitten_EyeballA" diffuse_map="kitten_Albedo.dds"></phong_material>-->
+    <phong_material name="kitten_EyeballA" diffuse_map="kitten_Albedo.dds"></phong_material>
     <!--<phong_material name="allosaurus_material" diffuse_map="Allosaurus_diffuse.dds" normal_map="Allosaurus_normal.dds"></phong_material>-->
 
 
@@ -175,8 +175,8 @@
     <mesh name="watchtower_window" src="Enviroments\Watchtower_Window.fbx" material="{watchtower_mat}"></mesh>-->
 
     <mesh name="horse_mesh" src="Characters\Horse.fbx" material="{horse_material}" ></mesh>
-    <!--<mesh name="spider_mesh" src="Characters\spider.fbx" material="{spider_material}"></mesh>
-    <mesh name="cat_mesh" src="Characters\kitten.fbx"></mesh>-->
+    <mesh name="spider_mesh" src="Characters\spider.fbx" material="{spider_material}"></mesh>
+    <mesh name="cat_mesh" src="Characters\kitten.fbx"></mesh>
     <!--<mesh name="insect_mesh" src="Characters\Insect.fbx" material="{insect_material}"></mesh>-->
     <!--<mesh name="allosaurus_mesh" src="allosaurus.fbx" material="{allosaurus_material}"></mesh>-->
   </scene.assets>
@@ -229,11 +229,12 @@
      <!--<object name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}"/>-->
      <player_controller name="player" position="0,0.0,0">
        <player_controller.selector>
-         <kinect_player_selector mode="3"/>
+         <!--<kinect_source mode="3"/>-->
+         <leap_source mode="16"/>
        </player_controller.selector>
 
        <!--<action name="idle" src="Horse_Idle.fbx"/>-->
-       <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+       <!--<creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
           <creature.behavier>
             <behavier name="horse_behavier" armature="Horse_Idle.fbx">
               <behavier.actions>
@@ -242,13 +243,13 @@
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>
+        </creature>-->
 
-        <!--<creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
+        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
-        </creature>-->
+        </creature>
        
        
        <!--<creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">

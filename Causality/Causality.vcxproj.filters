@@ -385,9 +385,6 @@
     <ClInclude Include="..\OpenAvataring\PlayerSelector.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\LeapPlayerSelector.h">
-      <Filter>Avataring Control\PlayerSelectors</Filter>
-    </ClInclude>
     <ClInclude Include="TrackedArmature.h">
       <Filter>Devices</Filter>
     </ClInclude>

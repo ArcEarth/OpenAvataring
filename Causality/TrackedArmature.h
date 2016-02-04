@@ -22,7 +22,7 @@ namespace Causality
 
 		int  GetLostFrameCount() const { return m_lostFrameCount; }
 		void ResetLostFrameCount() { m_lostFrameCount = 0; }
-		int  IncreaseLostFrameCount(int frames = 1) { m_lostFrameCount += frames; }
+		int  IncreaseLostFrameCount(int frames = 1) { m_lostFrameCount += frames; return m_lostFrameCount; }
 
 		bool operator==(const TrackedObject& rhs) const { return m_id == rhs.m_id; }
 		bool operator!=(const TrackedObject& rhs) const { return m_id != rhs.m_id; }
@@ -40,6 +40,8 @@ namespace Causality
 		bool operator<=(uint64_t id) const { return m_id <= id; }
 		bool operator>=(uint64_t id) const { return m_id >= id; }
 
+		// The event that signals this object is lost and will be destroy
+		Event<const TrackedObject&> Lost;
 	protected:
 		uint64_t				m_id;
 		std::atomic_int			m_refCount;
@@ -53,6 +55,7 @@ namespace Causality
 	{
 	public:
 		typedef ArmatureFrame		FrameType;
+		TrackedArmature(size_t bufferSize = 32U);
         TrackedArmature(const IArmature& armature, size_t bufferSize = 32U);
         
 		void SetArmature(const IArmature& armature);
@@ -71,7 +74,6 @@ namespace Causality
 		void PushFrame(time_t time, FrameType && frame);
 		void FireFrameArrivedForLatest();
 		void SetArmatureProportion(ArmatureFrameConstView frameView);
-
 	protected:
 		StaticArmature			m_armature;
 
