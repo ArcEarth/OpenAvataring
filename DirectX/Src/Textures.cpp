@@ -195,8 +195,18 @@ void DynamicTexture2D::SetData(ID3D11DeviceContext* pContext, const void* Raw_Da
 	D3D11_MAPPED_SUBRESOURCE Resouce;
 	auto hr = pContext->Map(m_pResource.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Resouce);
 	ThrowIfFailed(hr);
-
-	memcpy(Resouce.pData, Raw_Data, element_size * Width() * Height());
+	int srcRowPitch = element_size * Width();
+	if (Resouce.RowPitch == srcRowPitch)
+		memcpy(Resouce.pData, Raw_Data, element_size * Width() * Height());
+	else
+	{
+		for (int r = 0; r < Height(); r++)
+		{
+			memcpy((char *)(Resouce.pData) + r *  Resouce.RowPitch,
+				   (const char *)(Raw_Data) + r * srcRowPitch,
+				   srcRowPitch);
+		}
+	}
 	pContext->Unmap(m_pResource.Get(), 0);
 }
 

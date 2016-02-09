@@ -1,6 +1,6 @@
 #pragma once
 #include "Causality\CharacterObject.h"
-#include "Causality\Kinect.h"
+#include "Causality\KinectSensor.h"
 #include "Causality\Animations.h"
 #include "Causality\Interactive.h"
 

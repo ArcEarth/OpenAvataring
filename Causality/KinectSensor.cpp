@@ -1,12 +1,12 @@
 #include "pch_bcl.h"
-#include "Kinect.h"
+#include <Kinect.h>
+#include "KinectSensor.h"
 //#include <boost\range.hpp>
 #include <iostream>
 #include <chrono>
 #include <wrl\event.h>
 
 
-#include <Kinect.h>
 #pragma comment(lib,"Kinect20.lib")
 
 using namespace Causality;

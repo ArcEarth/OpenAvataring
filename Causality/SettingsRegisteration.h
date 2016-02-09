@@ -52,6 +52,7 @@ SETTING_REGISTERATION(bool, UseJointLengthWeight, false)
 
 SETTING_REGISTERATION(bool, UseStylizedIK, true)
 SETTING_REGISTERATION(bool, UseVelocity, false)
+SETTING_REGISTERATION(bool, NormalizeVelocity, false)
 SETTING_REGISTERATION(float, VelocityNormalizeThreshold, 0.01)
 
 
@@ -70,6 +71,7 @@ SETTING_REGISTERATION(double, DynamicTraderSpeedFilterCutoffFrequency, 1.0)
 SETTING_REGISTERATION(double, CharacterJointFilterCutoffFrequency, 1.0)
 
 SETTING_REGISTERATION(float, DefaultTrackerCovierence, 1000000000)
+SETTING_REGISTERATION(bool, TrackerUseVelocity, false)
 SETTING_REGISTERATION(int, TrackerTopK, 30)
 SETTING_REGISTERATION(int, TrackerSubStep, 5)
 SETTING_REGISTERATION(int, TrackerVtSubdivide, 1)

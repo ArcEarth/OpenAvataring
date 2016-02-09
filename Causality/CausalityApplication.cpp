@@ -6,7 +6,7 @@
 #include <PrimitiveVisualizer.h>
 #include <ppltasks.h>
 
-#include "Kinect.h"
+#include "KinectSensor.h"
 #include "OculusRift.h"
 #include "LeapMotion.h"
 #include "Vicon.h"

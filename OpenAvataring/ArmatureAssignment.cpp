@@ -646,14 +646,14 @@ CtrlTransformInfo Causality::CreateControlTransform(const CharacterController & 
 		corrlations.bottomRows(misAlign) = corrlations.topRows(misAlign);
 		{
 			int mPhis = 0;
-			float mScore = numeric_limits<float>::min();;
+			float scorePhase = numeric_limits<float>::min();;
 			for (int i = 0; i < Ts; i++)
 			{
 				float score = corrlations.middleRows(i, misAlign).colwise().maxCoeff().sum();
-				if (score > mScore)
+				if (score > scorePhase)
 				{
 					mPhis = i;
-					mScore = score;
+					scorePhase = score;
 				}
 			}
 
@@ -666,7 +666,7 @@ CtrlTransformInfo Causality::CreateControlTransform(const CharacterController & 
 			}
 
 			// Combine the score from qudratic assignment with phase matching
-			maxScore = maxScore * mScore;
+			maxScore = maxScore /** scorePhase*/;
 
 			//_ASSERTE( _CrtCheckMemory( ) );
 

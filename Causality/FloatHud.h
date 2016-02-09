@@ -22,8 +22,8 @@ namespace Causality
 		virtual void Render(IRenderContext * pContext, IEffect* pEffect = nullptr) override;
 		virtual void XM_CALLCONV UpdateViewMatrix(FXMMATRIX view, CXMMATRIX projection) override;
 
-		XMVECTOR GetSize() const;
-		void	 SetSize(FXMVECTOR size);
+		//XMVECTOR GetSize() const;
+		//void	 SetSize(FXMVECTOR size);
 
 		bool	 GetBoundingBox(BoundingBox& box) const override;
 		bool	 GetBoundingGeometry(BoundingGeometry& geo) const override;

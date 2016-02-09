@@ -14,6 +14,8 @@
 
 namespace Causality
 {
+	class MatrixVisualizer;
+
 	struct TransformPair
 	{
 		int Jx, Jy;
@@ -164,6 +166,8 @@ namespace Causality
 		void			SetStepSubdivition(int subdiv);
 
 		void			SetParticalesSubdiv(int timeSubdiv, int scaleSubdiv, int vtSubdiv);
+
+		const ArmatureFrameAnimation& Animation() const { return m_Animation; }
 	protected:
 		void			SetInputState(const InputVectorType & input, ScalarType dt) override;
 		ScalarType		Likilihood(int idx, const TrackingVectorBlockType & x) override;
@@ -182,6 +186,7 @@ namespace Causality
 		InputVectorType					m_CurrentInput;
 		std::shared_ptr<IArmaturePartFeature>	m_pFeature;
 
+		bool							m_currentValiad;
 		int								m_stepSubdiv;
 		int								m_tSubdiv;
 		int								m_vtSubdiv;
@@ -201,6 +206,9 @@ namespace Causality
 		ScalarType						m_varS;
 		ScalarType						m_uS;
 		ScalarType						m_uVt;
+
+		static constexpr size_t FrameCacheSize = 100;
+		static thread_local Bone s_frameCache0[FrameCacheSize], s_frameCache1[FrameCacheSize];
 	};
 
 	class PartilizedTransformer : public BlockizedArmatureTransform
@@ -215,6 +223,8 @@ namespace Causality
 		virtual void Transform(_Out_ frame_view target_frame, _In_ const_frame_view source_frame) override;
 
 		virtual void Transform(_Out_ frame_view target_frame, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, float frame_time) override;
+
+		void SetTrackerVisualization();
 
 		void DrivePartsTrackers(Eigen::Matrix<double, 1, -1> &_x, float frame_time, frame_view target_frame);
 		double DrivePartsTracker(int whichTracker, Eigen::Matrix<double, 1, -1> & _x, float frame_time, Causality::ArmatureFrameView target_frame);
@@ -239,9 +249,9 @@ namespace Causality
 		std::vector<P2PTransform> AccesseryParts; // These parts will be animated based on active parts (and driven parts?)
 
 		typedef Eigen::RowVectorXf InputVectorType;
-		InputVectorType GetInputVector(_In_ const P2PTransform& Ctrl, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, _In_ float frame_time, bool has_velocity) const;
+		InputVectorType GetInputVector(_In_ const P2PTransform& Ctrl, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, _In_ float frame_time, int has_velocity) const;
 
-		InputVectorType GetCharacterInputVector(_In_ const P2PTransform& Ctrl, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, _In_ float frame_time, bool has_velocity) const;
+		InputVectorType GetCharacterInputVector(_In_ const P2PTransform& Ctrl, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, _In_ float frame_time, int has_velocity) const;
 
 		double GetInputKinectEnergy(_In_ const P2PTransform& Ctrl, _In_ const_frame_view source_frame, _In_ const_frame_view last_frame, _In_ double frame_time) const;
 	private:
@@ -249,6 +259,7 @@ namespace Causality
 
 		const CharacterController	*m_pController;
 		array_view<LineSegment>		m_handles;
+		MatrixVisualizer			*m_matvis;
 
 		
 		double						m_updateFreq;

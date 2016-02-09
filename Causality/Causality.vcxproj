@@ -81,7 +81,7 @@
   </ImportGroup>
   <PropertyGroup>
     <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -194,7 +194,7 @@
     <ClCompile Include="Settings.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="CharacterBehavier.cpp"/>
+    <ClCompile Include="CharacterBehavier.cpp" />
     <ClCompile Include="BasicKeyboardMouseControlLogic.cpp" />
     <ClCompile Include="CameraObject.cpp" />
     <ClCompile Include="CharacterObject.cpp" />
@@ -202,16 +202,16 @@
     <ClCompile Include="InverseKinematics.cpp" />
     <ClCompile Include="LightObject.cpp" />
     <ClCompile Include="MatrixVisualizer.cpp" />
-    <ClCompile Include="Animations.cpp"/>
+    <ClCompile Include="Animations.cpp" />
     <ClCompile Include="AssetDictionary.cpp" />
     <ClCompile Include="CausalityApplication.cpp" />
     <ClCompile Include="FbxParser.cpp" />
-    <ClCompile Include="Kinect.cpp" />
+    <ClCompile Include="KinectSensor.cpp" />
     <ClCompile Include="LeapMotion.cpp" />
     <ClCompile Include="NativeWindow.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Armature.cpp"/>
+    <ClCompile Include="Armature.cpp" />
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="SceneParser.cpp" />
     <ClCompile Include="Serialization.cpp" />
@@ -248,6 +248,7 @@
     <ClInclude Include="..\OpenAvataring\QudraticAssignment.h" />
     <ClInclude Include="..\OpenAvataring\RegressionModel.h" />
     <ClInclude Include="..\OpenAvataring\StylizedIK.h" />
+    <ClInclude Include="..\OpenAvataring\TrackerVisualizer.h" />
     <ClInclude Include="AnimationObject.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="BasicKeyboardMouseControlLogic.h" />
@@ -268,7 +269,7 @@
     <ClInclude Include="GSL\string_view.h" />
     <ClInclude Include="Interactive.h" />
     <ClInclude Include="InverseKinematics.h" />
-    <ClInclude Include="Kinect.h" />
+    <ClInclude Include="KinectSensor.h" />
     <ClInclude Include="LeapMotion.h" />
     <ClInclude Include="LightObject.h" />
     <ClInclude Include="MatrixVisualizer.h" />
@@ -298,7 +299,7 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(FftwDir)libfftw3f-3.dll">
-      <DeploymentContent >true</DeploymentContent>
+      <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
       <Command>xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
       <Outputs>$(OutDir)libfftw3f-3.dll</Outputs>

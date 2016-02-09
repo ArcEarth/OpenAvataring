@@ -27,7 +27,7 @@ namespace DirectX
 		nv = XMVectorMultiplyAdd(v, v1, v2); // convert from [-1,1]x[1,-1] to [0,1]x[0,1] range (Y is fliped)
 		v1 = XMVectorAndInt(viewport, g_XMMaskXY.v);
 		v2 = XMVectorShiftLeft<2>(viewport, XMVectorZero());
-		nv = XMVectorMultiplyAdd(nv, v1, v2); // convert to viewport size and add viewport leff-top
+		nv = XMVectorMultiplyAdd(nv, v2, v1); // convert to viewport size and add viewport leff-top
 		return nv;
 	}
 

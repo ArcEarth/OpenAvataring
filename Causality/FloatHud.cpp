@@ -25,10 +25,11 @@ SpriteObject::SpriteObject()
 
 bool SpriteObject::IsVisible(const BoundingGeometry & viewFrustum) const
 {
-	BoundingGeometry geo;
-	GetBoundingGeometry(geo);
 	auto pVisual = FirstAncesterOfType<IVisual>();
-	return m_pTexture!=nullptr && pVisual && pVisual->IsVisible(viewFrustum) && viewFrustum.Contains(geo);
+	return m_pTexture != nullptr && pVisual && pVisual->IsVisible(viewFrustum);
+	//BoundingGeometry geo;
+	//GetBoundingGeometry(geo);
+	//return  && viewFrustum.Contains(geo);
 }
 
 RenderFlags SpriteObject::GetRenderFlags() const
@@ -44,10 +45,18 @@ void SpriteObject::Render(IRenderContext * pContext, IEffect * pEffect)
 
 	XMVECTOR vp = XMLoadFloat4(&viewport.TopLeftX);
 	XMVECTOR sp = XMVector3ConvertToTextureCoord(XMLoad(m_positionProj), vp);
+	Vector2 cen = sp;
+	Vector2 sz = m_sizeProj / 2;
+	sp = XMVectorZero();
 
 	auto sprites = g_PrimitiveDrawer.GetSpriteBatch();
-	sprites->Begin(SpriteSortMode_Immediate);
-	sprites->Draw(m_pTexture->ShaderResourceView(), sp);
+	sprites->Begin(SpriteSortMode_Immediate,nullptr,g_PrimitiveDrawer.GetStates()->PointClamp());
+	RECT trect;
+	trect.left = cen.x - sz.x;
+	trect.right = cen.x + sz.x;
+	trect.top = cen.y - sz.y;
+	trect.bottom = cen.y + sz.y;
+	sprites->Draw(m_pTexture->ShaderResourceView(), sp,nullptr,Colors::White,0,Vector2::Zero,m_Transform.GblScaling,SpriteEffects_None,m_positionProj.z);
 	sprites->End();
 }
 
@@ -61,22 +70,23 @@ void XM_CALLCONV SpriteObject::UpdateViewMatrix(FXMMATRIX view, CXMMATRIX projec
 	//XMVector3ConvertToTextureCoord(GetPosition(), viewport, view*projection);
 }
 
-XMVECTOR SpriteObject::GetSize() const
-{
-	return GetScale();
-}
-
-void SpriteObject::SetSize(FXMVECTOR size)
-{
-	Vector3 s = size;
-	s.z = 0.001f;
-	SetScale(s);
-}
+//XMVECTOR SpriteObject::GetSize() const
+//{
+//	return GetScale();
+//}
+//
+//void SpriteObject::SetSize(FXMVECTOR size)
+//{
+//	Vector3 s = size;
+//	s.z = 0.001f;
+//	SetScale(s);
+//}
 
 bool SpriteObject::GetBoundingBox(BoundingBox & box) const
 {
 	auto transform = GetGlobalTransform().TransformMatrix();
 	BoundingBox tbox;
+	tbox.Extents = GetScale();
 	tbox.Transform(box, transform);
 	return true;
 }
@@ -86,6 +96,7 @@ bool SpriteObject::GetBoundingGeometry(BoundingGeometry & geo) const
 	auto transform = GetGlobalTransform().TransformMatrix();
 	BoundingGeometry tgeo;
 	tgeo.AxisAlignedBox = BoundingBox();
+	tgeo.AxisAlignedBox.Extents = GetScale();
 	tgeo.Transform(geo, transform);
 	return false;
 }

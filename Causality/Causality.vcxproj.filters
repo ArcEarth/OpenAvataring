@@ -68,9 +68,6 @@
     <ClCompile Include="LeapMotion.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
-    <ClCompile Include="Kinect.cpp">
-      <Filter>Devices</Filter>
-    </ClCompile>
     <ClCompile Include="Animations.cpp">
       <Filter>Armature Animation</Filter>
     </ClCompile>
@@ -152,6 +149,200 @@
     <ClCompile Include="TrackedArmature.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
     <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
     <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
     <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
@@ -382,6 +573,299 @@
     <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
     <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
     <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control\Aniamtion Anaylze</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control\Algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control\PlayerSelectors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
+      <Filter>Avataring Control\StylizedIK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="KinectSensor.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -394,9 +878,6 @@
       <Filter>Devices</Filter>
     </ClInclude>
     <ClInclude Include="LeapMotion.h">
-      <Filter>Devices</Filter>
-    </ClInclude>
-    <ClInclude Include="Kinect.h">
       <Filter>Devices</Filter>
     </ClInclude>
     <ClInclude Include="Armature.h">
@@ -582,13 +1063,19 @@
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\PlayerSelector.h">
-      <Filter>Avataring Control</Filter>
-    </ClInclude>
     <ClInclude Include="TrackedArmature.h">
       <Filter>Devices</Filter>
     </ClInclude>
     <ClInclude Include="BufferedStreamViewer.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\PlayerSelector.h">
+      <Filter>Avataring Control\PlayerSelectors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\TrackerVisualizer.h">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="KinectSensor.h">
       <Filter>Devices</Filter>
     </ClInclude>
   </ItemGroup>

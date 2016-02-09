@@ -67,7 +67,7 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 		auto partical = m_sample.block<1, -1>(i, 1, 1, dim);
 
 		Progate(partical);
-		m_sample(i, 0) = Likilihood(i, partical);
+		m_sample(i, 0) *= Likilihood(i, partical);
 	}
 
 	m_liks = sample.col(0);
@@ -113,7 +113,7 @@ void ParticaleFilterBase::Resample(MatrixType & resampled, const MatrixType & sa
 		auto itr = std::lower_bound(cdf.data(), cdf.data() + n, x);
 		auto idx = itr - cdf.data();
 
-		resampled.block<1, -1>(i, 1, 1, dim) = sample.block<1, -1>(i, 1, 1, dim);
+		resampled.block<1, -1>(i, 1, 1, dim) = sample.block<1, -1>(idx, 1, 1, dim);
 	}
 
 	cdf.array() = 1 / (ScalarType)n;

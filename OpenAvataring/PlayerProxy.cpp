@@ -25,9 +25,9 @@
 #include "Causality\Scene.h"
 #include "Causality\Settings.h"
 #include "Causality\CameraObject.h"
-#include "Causality\Kinect.h"
+#include "Causality\KinectSensor.h"
 #include "Causality\LeapMotion.h"
-
+#include "Causality\MatrixVisualizer.h"
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
 
 //float				g_NoiseInterpolation = 1.0f;
@@ -310,6 +310,17 @@ void PlayerProxy::AddChild(SceneObject* pChild)
 			glow->Scene = this->Scene;
 			glow->SetEnabled(false);
 			pChara->AddChild(glow);
+		}
+
+		auto mat = pChara->FirstChildOfType<MatrixVisualizer>();
+		if (mat == nullptr)
+		{
+			mat = new MatrixVisualizer();
+			mat->Scene = this->Scene;
+			IsometricTransform lt;
+			lt.Translation = Vector3(0, 0.5, 0);
+			mat->SetLocalTransform(lt);
+			pChara->AddChild(mat);
 		}
 	}
 }
@@ -799,7 +810,7 @@ void PlayerProxy::UpdateThreadRuntime()
 		if (IsMapped() && m_controlMutex.try_lock())
 		{
 			std::lock_guard<std::mutex> guard(m_controlMutex,std::adopt_lock);
-			cout << "getting mutext" << endl;
+			//cout << "getting mutext" << endl;
 			auto& controller = CurrentController();
 			float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
 

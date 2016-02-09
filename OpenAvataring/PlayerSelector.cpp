@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "PlayerSelector.h"
-#include <Causality\Kinect.h>
+#include <Causality\KinectSensor.h>
 #include <Causality\LeapMotion.h>
 using namespace Causality;
 using namespace Causality::Devices;
