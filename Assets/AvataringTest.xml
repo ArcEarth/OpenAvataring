@@ -70,12 +70,12 @@
     <!--Animation Tracker-->
     <TrackerTopK>30</TrackerTopK>
     <TrackerSubStep>1</TrackerSubStep>
-    <TrackerTimeSubdivide>3.0</TrackerTimeSubdivide>
-    <TrackerVtSubdivide>1</TrackerVtSubdivide>
+    <TrackerTimeSubdivide>5.0</TrackerTimeSubdivide>
+    <TrackerVtSubdivide>2</TrackerVtSubdivide>
     <TrackerSclSubdivide>3</TrackerSclSubdivide>
     <TrackerStDevVt>0.3</TrackerStDevVt>
     <TrackerStDevScale>0.3</TrackerStDevScale>
-    <TrackerVtProgationStep>0.02</TrackerVtProgationStep>
+    <TrackerVtProgationStep>0.1</TrackerVtProgationStep>
     <TrackerScaleProgationStep>0.02</TrackerScaleProgationStep>
     <TrackerSwitchCondifidentThreshold>0.0</TrackerSwitchCondifidentThreshold>
     <TrackerSwitchTimeThreshold>1.0</TrackerSwitchTimeThreshold>

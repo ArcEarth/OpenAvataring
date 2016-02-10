@@ -971,6 +971,8 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 		tracker.SetLikihoodVarience(var.cast<IGestureTracker::ScalarType>());
 		// dt = 1/30s, ds = 0.01, s = 0.3? 
 		tracker.SetTrackingParameters(vtStep, sqr(vtStDev), scaleStep, sqr(scaleStDev));
+		tracker.SetVelocityTolerance(vtStDev + 1.0);
+		tracker.SetScaleTolerance(scaleStDev);
 		tracker.SetStepSubdivition(stepSubdiv);
 		tracker.SetParticalesSubdiv(anim.GetFrameBuffer().size() * tInitDistSubdiv, scaleInitDistSubdiv, vtInitDistSubdiv);
 		tracker.Reset();
@@ -1105,7 +1107,8 @@ CharacterActionTracker::CharacterActionTracker(const ArmatureFrameAnimation & an
 	m_Transformer(transfomer),
 	m_confidentThre(0.00001),
 	m_uS(1.0),
-	m_uVt(0.0),
+	m_thrVt(1.3),
+	m_thrS(0.2),
 	m_stepSubdiv(1),
 	m_tSubdiv(75),
 	m_scaleSubdiv(3),
@@ -1146,7 +1149,7 @@ void CharacterActionTracker::Reset()
 		{
 			v[1] = s;
 
-			float vt = m_uVt;//-stdevV;
+			float vt = .0f;//-stdevV;
 			if (vchunck > 1)
 				vt -= stdevV;
 			for (int k = 0; k < vchunck; k++, vt += 2 * stdevV / (vchunck - 1))
@@ -1219,9 +1222,9 @@ CharacterActionTracker::ScalarType CharacterActionTracker::Likilihood(int idx, c
 	likilihood = exp(-likilihood);
 
 	// Scale factor distribution
-	likilihood *= exp(-sqr(max(abs(x[1] - m_uS)-0.2f,.0)) / m_varS);
+	likilihood *= exp(-sqr(max(abs(x[1] - m_uS)- m_thrS,.0)) / m_varS);
 	// Speed scale distribution
-	likilihood *= exp(-sqr(min(abs(x[2]), abs(abs(x[2]) - 1.0f))) / m_varVt);
+	likilihood *= exp(-sqr(max(abs(x[2] - m_thrVt),.0)) / m_varVt);
 
 	//return 1.0;
 	return likilihood;
@@ -1293,6 +1296,16 @@ void CharacterActionTracker::SetTrackingParameters(ScalarType stdevDVt, ScalarTy
 	m_varVt = varVt;
 	m_stdevDs = stdevDs;
 	m_varS = varS;
+}
+
+void CharacterActionTracker::SetVelocityTolerance(ScalarType thrVt)
+{
+	m_thrVt = thrVt;
+}
+
+void CharacterActionTracker::SetScaleTolerance(ScalarType thrS)
+{
+	m_thrS = thrS;
 }
 
 void CharacterActionTracker::SetStepSubdivition(int subdiv) {

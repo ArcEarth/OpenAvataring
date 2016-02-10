@@ -162,6 +162,8 @@ namespace Causality
 		void			SetLikihoodVarience(const InputVectorType& v);
 
 		void			SetTrackingParameters(ScalarType stdevDVt, ScalarType varVt, ScalarType stdevDs, ScalarType varS);
+		void			SetVelocityTolerance(ScalarType thrVt);
+		void			SetScaleTolerance(ScalarType thrS);
 
 		void			SetStepSubdivition(int subdiv);
 
@@ -205,7 +207,8 @@ namespace Causality
 		ScalarType						m_stdevDs;
 		ScalarType						m_varS;
 		ScalarType						m_uS;
-		ScalarType						m_uVt;
+		ScalarType						m_thrVt;
+		ScalarType						m_thrS;
 
 		static constexpr size_t FrameCacheSize = 100;
 		static thread_local Bone s_frameCache0[FrameCacheSize], s_frameCache1[FrameCacheSize];

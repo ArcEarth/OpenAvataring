@@ -753,13 +753,20 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 		return;
 	}
 
+	thrh *= m_Eb.maxCoeff();
+
 	MatrixXf Xij(ClipFrames(), m_dimP);
 	RowVectorXf uXij(m_dimP);
 
 	for (int i = 0; i < parts.size(); i++)
 	{
 		if (m_Eb[i] < thrh) continue;
-		for (int j = 0; j < parts.size(); j++)
+
+		auto pi = parts[i]->parent();
+		if (pi)
+			CaculatePairMetric(Xij, i, pi->Index, uXij);
+
+		for (int j = i + 1; j < parts.size(); j++)
 		{
 			// Always caculate the metric of a part to its parent
 			if ((m_Eb[j] < thrh))
@@ -767,9 +774,6 @@ void ClipFacade::CaculatePartsPairMetric(PairDifLevelEnum level)
 
 			CaculatePairMetric(Xij, i, j, uXij);
 		}
-		auto pi = parts[i]->parent();
-		if (pi)
-			CaculatePairMetric(Xij, i, pi->Index, uXij);
 	}
 }
 
