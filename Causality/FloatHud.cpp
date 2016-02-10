@@ -39,6 +39,8 @@ RenderFlags SpriteObject::GetRenderFlags() const
 
 void SpriteObject::Render(IRenderContext * pContext, IEffect * pEffect)
 {
+	if (!m_pTexture)
+		return;
 	UINT numViewport = 1;
 	D3D11_VIEWPORT viewport;
 	pContext->RSGetViewports(&numViewport, &viewport);
