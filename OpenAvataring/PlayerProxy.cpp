@@ -38,6 +38,9 @@ using namespace Eigen;
 using namespace std;
 using namespace ArmaturePartFeatures;
 
+//MatrixXf g_Testing(100000, 10000);
+
+
 REGISTER_SCENE_OBJECT_IN_PARSER(player_controller, PlayerProxy);
 REGISTER_SCENE_OBJECT_IN_PARSER(kinect_visualizer, KinectVisualizer);
 
@@ -330,6 +333,8 @@ void PlayerProxy::Parse(const ParamArchive * store)
 	auto sel = GetFirstChildArchive(store, "player_controller.selector");
 	sel = GetFirstChildArchive(sel);
 	string name = GetArchiveName(sel);
+
+	//g_Testing.setRandom();
 
 	PlayerSelectorBase::SelectionMode mode;
 	unsigned umode = PlayerSelectorBase::ClosestStickly;
@@ -874,7 +879,7 @@ void PlayerProxy::UpdateSelfMotionBinder(const Causality::time_seconds & time_de
 			continue;
 		auto& action = chara.Behavier()[actionName];
 		auto& target_frame = chara.MapCurrentFrameForUpdate();
-		ArmatureFrame frame (chara.Armature().default_frame() );
+		ArmatureFrame frame (chara.Armature().bind_frame() );
 
 		target_frame = frame;
 		last_frame = frame;

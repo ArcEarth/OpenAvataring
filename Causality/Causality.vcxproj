@@ -273,6 +273,7 @@
     <ClInclude Include="LeapMotion.h" />
     <ClInclude Include="LightObject.h" />
     <ClInclude Include="MatrixVisualizer.h" />
+    <ClInclude Include="ImportOption.h" />
     <ClInclude Include="NativeWindow.h" />
     <ClInclude Include="Serialization.h" />
     <ClInclude Include="SkyDome.h" />

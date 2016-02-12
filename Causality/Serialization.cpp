@@ -14,6 +14,7 @@ namespace Causality
 	{
 		bool GetString(const ParamArchive * store, const char * name, const char *(&param))
 		{
+			if (!store) return false;
 			auto str = store->Attribute(name);
 			if (str != nullptr)
 			{
@@ -34,6 +35,7 @@ namespace Causality
 
 		bool GetString(const ParamArchive * store, const char * name, string & param)
 		{
+			if (!store) return false;
 			auto str = store->Attribute(name);
 			if (str != nullptr)
 			{
@@ -53,6 +55,7 @@ namespace Causality
 		}
 
 #define GetTypedParam(Type) \
+			if (!store) return false; \
 			if (store->Query##Type##Attribute(name, &param)) \
 			{ \
 				store = store->FirstChildElement(name); \

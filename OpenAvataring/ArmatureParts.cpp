@@ -51,7 +51,7 @@ void ShrinkedArmature::SetArmature(const IArmature & armature)
 
 void ShrinkedArmature::ComputeWeights()
 {
-	const auto& frame = m_pArmature->default_frame();
+	const auto& frame = m_pArmature->bind_frame();
 
 	// Reverse Depth first visit, thus child must be visited before parent
 	auto rparts = make_range(m_Parts.rbegin(), m_Parts.rend());

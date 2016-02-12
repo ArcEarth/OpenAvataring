@@ -152,6 +152,7 @@
     <ClCompile Include="..\OpenAvataring\pch.cpp" />
     <ClCompile Include="..\OpenAvataring\pch.cpp" />
     <ClCompile Include="..\OpenAvataring\pch.cpp" />
+    <ClCompile Include="..\OpenAvataring\pch.cpp" />
     <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
     <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
     <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
@@ -242,19 +243,6 @@
     <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
     <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
     <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
-    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
-    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
-    <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
-    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp" />
-    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp" />
-    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp" />
-    <ClCompile Include="..\OpenAvataring\pch.cpp" />
-    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp" />
-    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp" />
-    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp" />
-    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
-      <Filter>Avataring Control</Filter>
-    </ClCompile>
     <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp" />
     <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp" />
     <ClCompile Include="..\OpenAvataring\CharacterController.cpp" />
@@ -866,6 +854,15 @@
     <ClCompile Include="KinectSensor.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
+    <ClCompile Include="..\OpenAvataring\*.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -1077,6 +1074,9 @@
     </ClInclude>
     <ClInclude Include="KinectSensor.h">
       <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="ImportOption.h">
+      <Filter>Input Parsers Settings</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

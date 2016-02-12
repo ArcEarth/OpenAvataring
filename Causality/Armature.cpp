@@ -135,7 +135,7 @@ ArmatureFrame::ArmatureFrame(size_t size)
 ArmatureFrame::ArmatureFrame(const IArmature & armature)
 {
 	assert(this->size() == armature.size());
-	auto df = armature.default_frame();
+	auto df = armature.bind_frame();
 	BaseType::assign(df.begin(), df.end());
 }
 
@@ -382,7 +382,7 @@ StaticArmature::StaticArmature(std::istream & file)
 	for (size_t idx = 0; idx < jointCount; idx++)
 	{
 		auto& joint = m_joints[idx];
-		auto& bone = default_frame()[idx];
+		auto& bone = bind_frame()[idx];
 		((JointBasicData&)joint).ID = idx;
 		file >> ((JointBasicData&)joint).Name >> ((JointBasicData&)joint).ParentID;
 		if (joint.ParentID != idx && joint.ParentID >= 0)
@@ -401,7 +401,7 @@ StaticArmature::StaticArmature(std::istream & file)
 	}
 
 	CaculateTopologyOrder();
-	FrameRebuildGlobal(*this, default_frame());
+	FrameRebuildGlobal(*this, bind_frame());
 }
 
 StaticArmature::StaticArmature(size_t JointCount, int * Parents, const char* const* Names)
@@ -493,7 +493,7 @@ void StaticArmature::clone_from(const IArmature & rhs)
 
 	this->m_joints.resize(m_order.size());
 	this->m_rootIdx = rhs.root()->ID;
-	this->m_defaultFrame = rhs.default_frame();
+	this->m_defaultFrame = rhs.bind_frame();
 
 	// Copy Joint meta-data
 	for (auto& j : rhs.joints())
@@ -525,7 +525,7 @@ size_t StaticArmature::size() const
 	return m_joints.size();
 }
 
-StaticArmature::frame_const_view StaticArmature::default_frame() const
+StaticArmature::frame_const_view StaticArmature::bind_frame() const
 {
 	return m_defaultFrame;
 	// TODO: insert return statement here
@@ -623,7 +623,7 @@ bool is_similar(_In_ const stdx::tree_node<Derived, ownnersip> *p, _In_ const st
 void Causality::BuildJointMirrorRelation(IArmature& armature)
 {
 	Joint* root = armature.root();
-	ArmatureFrameConstView frame = armature.default_frame();
+	ArmatureFrameConstView frame = armature.bind_frame();
 
 	float epsilon = 1.00f;
 	auto _children = root->descendants();
@@ -682,8 +682,8 @@ size_t DynamicArmature::size() const
 {
 	return m_index.size();
 }
-DynamicArmature::frame_const_view DynamicArmature::default_frame() const { return m_defaultFrame; }
-DynamicArmature::frame_type & DynamicArmature::default_frame() { return m_defaultFrame; }
+DynamicArmature::frame_const_view DynamicArmature::bind_frame() const { return m_defaultFrame; }
+DynamicArmature::frame_type & DynamicArmature::bind_frame() { return m_defaultFrame; }
 void DynamicArmature::set_default_frame(frame_type && frame) { m_defaultFrame = std::move(frame); }
 //	void DynamicArmature::clone_from(const IArmature & rhs)
 //	{

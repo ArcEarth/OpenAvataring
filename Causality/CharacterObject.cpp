@@ -115,6 +115,7 @@ const CharacterObject::frame_type & CharacterObject::GetCurrentFrame() const
 CharacterObject::frame_type & CharacterObject::MapCurrentFrameForUpdate()
 {
 	m_UpdateLock = true;
+	m_FrameDirty = true;
 	m_LastFrame = m_CurrentFrame;
 	return m_CurrentFrame;
 }
@@ -135,7 +136,7 @@ const BehavierSpace & CharacterObject::Behavier() const { return *m_pBehavier; }
 void CharacterObject::SetBehavier(BehavierSpace & behaver) {
 	m_pBehavier = &behaver;
 	m_pArmature = &m_pBehavier->Armature();
-	m_CurrentFrame.resize(m_pArmature->size());
+	m_CurrentFrame = m_pBehavier->RestFrame();
 }
 
 const ArmatureFrameAnimation * CharacterObject::CurrentAction() const { return m_pCurrentAction; }
@@ -173,6 +174,9 @@ void CharacterObject::SetFreeze(bool freeze)
 
 void CharacterObject::SetRenderModel(DirectX::Scene::IModelNode * pMesh, int LoD)
 {
+	if (!pMesh)
+		return;
+
 	m_pSkinModel = dynamic_cast<ISkinningModel*>(pMesh);
 
 	if (m_pSkinModel == nullptr && pMesh != nullptr)
@@ -180,6 +184,7 @@ void CharacterObject::SetRenderModel(DirectX::Scene::IModelNode * pMesh, int LoD
 		throw std::exception("Render model doesn't support Skinning interface.");
 	}
 
+	m_FrameDirty = false;
 	m_BoneTransforms.resize(m_pSkinModel->GetBonesCount());
 	//XMMATRIX identity = XMMatrixIdentity();
 	//for (auto& t : m_BoneTransforms)
@@ -199,7 +204,7 @@ void CharacterObject::Update(time_seconds const & time_delta)
 
 		if (m_pCurrentAction != nullptr)
 			m_pCurrentAction->GetFrameAt(m_CurrentFrame, m_CurrentActionTime);
-		//ScaleFrame(m_CurrentFrame, Armature().default_frame(), 0.95);
+		//ScaleFrame(m_CurrentFrame, Armature().bind_frame(), 0.95);
 		//m_CurrentFrame.RebuildGlobal(Armature());
 		this->ReleaseCurrentFrameFrorUpdate();
 	}
@@ -210,10 +215,11 @@ void CharacterObject::Update(time_seconds const & time_delta)
 		DisplaceByVelocityFrame();
 	}
 
-	if (m_pSkinModel)
+	if (m_pSkinModel && m_FrameDirty)
 	{
 		auto pBones = m_BoneTransforms.data();
-		FrameTransformMatrix(pBones, Armature().default_frame(), m_CurrentFrame, m_pSkinModel->GetBonesCount());
+		FrameTransformMatrix(pBones, Armature().bind_frame(), m_CurrentFrame, m_pSkinModel->GetBonesCount());
+		m_FrameDirty = false;
 	}
 }
 
@@ -248,7 +254,7 @@ void CharacterObject::Render(IRenderContext * pContext, DirectX::IEffect* pEffec
 		using Visualizers::g_PrimitiveDrawer;
 		const auto& frame = m_CurrentFrame;
 		//g_PrimitiveDrawer.Begin();
-		//const auto& dframe = Armature().default_frame();
+		//const auto& dframe = Armature().bind_frame();
 
 		auto trans = this->GlobalTransformMatrix();
 
@@ -309,6 +315,7 @@ CharacterObject::CharacterObject()
 	m_pBehavier = nullptr;
 	m_pArmature = nullptr;
 	m_pLastAction = nullptr;
+	m_FrameDirty = false;
 }
 
 

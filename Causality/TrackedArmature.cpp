@@ -70,7 +70,7 @@ void replaceLclTranslation(_Out_ ArmatureFrame& frame, _In_ ArmatureFrameConstVi
 
 void TrackedArmature::SetArmatureProportion(ArmatureFrameConstView frameView)
 {
-	auto& dframe = m_armature.default_frame();
+	auto& dframe = m_armature.bind_frame();
 	replaceLclTranslation(dframe, frameView);
 	FrameRebuildGlobal(m_armature, dframe);
 }

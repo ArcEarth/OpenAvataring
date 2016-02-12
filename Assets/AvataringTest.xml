@@ -35,7 +35,7 @@
     <CharacterSubactiveEnergy>0.06</CharacterSubactiveEnergy>
 
     <PlayerPcaCutoff>0.04</PlayerPcaCutoff>
-    <PlayerActiveEnergy>0.4</PlayerActiveEnergy>
+    <PlayerActiveEnergy>0.5</PlayerActiveEnergy>
     <PlayerSubactiveEnergy>0.03</PlayerSubactiveEnergy>
 
 
@@ -147,7 +147,7 @@
     <phong_material name="kitten_Cornea" diffuse_map="kitten_Albedo.dds" normal_map="kitten_Normal.dds" specular_map="kitten_Specular.dds" alpha="0.25" diffuse_color="#20000000" specular_color="#FFFFFFFF" alpha_discard="true"></phong_material>
     <phong_material name="kitten_EyeballB" diffuse_map="kitten_Albedo.dds"></phong_material>
     <phong_material name="kitten_EyeballA" diffuse_map="kitten_Albedo.dds"></phong_material>
-    <!--<phong_material name="allosaurus_material" diffuse_map="Allosaurus_diffuse.dds" normal_map="Allosaurus_normal.dds"></phong_material>-->
+    <phong_material name="allosaurus_material" diffuse_map="Allosaurus_diffuse.dds" normal_map="Allosaurus_normal.dds"></phong_material>
 
 
     <!--<mesh name="cube_mesh" src="cube.obj"></mesh>-->
@@ -179,8 +179,8 @@
     <mesh name="horse_mesh" src="Characters\Horse.fbx" material="{horse_material}" ></mesh>
     <mesh name="spider_mesh" src="Characters\spider.fbx" material="{spider_material}"></mesh>
     <mesh name="cat_mesh" src="Characters\kitten.fbx"></mesh>
-    <!--<mesh name="insect_mesh" src="Characters\Insect.fbx" material="{insect_material}"></mesh>-->
-    <!--<mesh name="allosaurus_mesh" src="allosaurus.fbx" material="{allosaurus_material}"></mesh>-->
+    <mesh name="insect_mesh" src="Characters\Insect.fbx" material="{insect_material}"></mesh>
+    <mesh name="allosaurus_mesh" src="Characters\Allosaurus.fbx" material="{allosaurus_material}" file_axis_system="DirectX"></mesh>
   </scene.assets>
   <scene.content>
     <grid name="root">
@@ -191,6 +191,11 @@
         <first_person_keyboard_mouse_control />
       </shadow_camera>
 
+      <!--<hmd_camera name="camera" primary="true" background="#FFFFFFFF" position="0,1.7,5.0" focus="0,1.78,0" up="0,1,0" near="0.1" far="100" ipd="0.065" fov="75" perspective="true">
+        <first_person_keyboard_mouse_control />
+        --><!--<tracked_object name="camera_tracker" index="0"  translation="( 0.007, 0.036,-0.060)" rotation="{-0.705, 0.091, 0.092,-0.697}"/>--><!--
+      </hmd_camera>-->
+      
       <skydome name="sky" background="Sunny_01B.dds"/>
 
       <coordinate_axis max="8" zx="true"/>
@@ -228,15 +233,35 @@
         <object name="watchtower_flag_001" mesh="{watchtower_flag}"/>
       </object>-->
 
-     <!--<object name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}"/>-->
-     <player_controller name="player" position="0,0.0,0">
-       <player_controller.selector>
-         <kinect_source mode="3"/>
-         <!--<leap_source mode="16"/>-->
-       </player_controller.selector>
 
-       <!--<action name="idle" src="Horse_Idle.fbx"/>-->
-       <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+      <!--<creature name="allosaurus" position="2.5,0.0,-0.5" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
+        <creature.behavier>
+          <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
+            <behavier.actions>
+              <action name="idle" src="Allosaurus_Idle.FBX"/>
+              <action name="walk" src="Allosaurus_Walk.FBX"/>
+              <action name="run" src="Allosaurus_Run.FBX"/>
+              <action name="attack" src="Allosaurus_Attack01.FBX"/>
+              <action name="die" src="Allosaurus_Die.FBX"/>
+            </behavier.actions>
+          </behavier>
+        </creature.behavier>
+      </creature>
+      
+      <creature name="insect" position="0.5,0.0,-0.5" scale="0.5" action="Walk" mesh="{insect_mesh}">
+        <creature.behavier>
+          <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
+        </creature.behavier>
+      </creature>-->
+      
+      <player_controller name="player" position="0,0.0,0">
+        <player_controller.selector>
+          <kinect_source mode="3"/>
+          <!--<leap_source mode="16"/>-->
+        </player_controller.selector>
+
+        <!--<action name="idle" src="Horse_Idle.fbx"/>-->
+        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
           <creature.behavier>
             <behavier name="horse_behavier" armature="Horse_Idle.fbx">
               <behavier.actions>
@@ -247,14 +272,14 @@
           </creature.behavier>
         </creature>
 
-        <!--<creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
+        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
-        </creature>-->
-       
-       
-       <!--<creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
+        </creature>
+
+
+        <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
           <creature.behavier>
             <behavier name="cat_beyhavier" armature="Characters\kitten.fbx">
               <behavier.actions>
@@ -262,11 +287,11 @@
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>-->
-       <!--<action name="run" src="kitten_Run.fbx"/>
+        </creature>
+        <!--<action name="run" src="kitten_Run.fbx"/>
        <action name="jump" src="kitten_Jump.fbx"/>-->
 
-       <!--<creature name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}">
+        <!--<creature name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}">
           <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
           </creature.behavier>

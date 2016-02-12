@@ -40,7 +40,7 @@ ArmatureFrameAnimation::ArmatureFrameAnimation(const std::string & name)
 {
 }
 
-void ArmatureFrameAnimation::SetArmature(const IArmature & armature) { pArmature = &armature; DefaultFrame = armature.default_frame(); }
+void ArmatureFrameAnimation::SetArmature(const IArmature & armature) { pArmature = &armature; DefaultFrame = armature.bind_frame(); }
 
 bool ArmatureFrameAnimation::InterpolateFrames(double frameRate)
 {

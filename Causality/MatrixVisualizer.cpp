@@ -31,7 +31,7 @@ MatrixVisualizer::~MatrixVisualizer()
 bool MatrixVisualizer::IsVisible(const BoundingGeometry & viewFrustum) const
 {
 	auto pVisual = FirstAncesterOfType<IVisual>();
-	return pVisual && !empty() && pVisual->IsVisible(viewFrustum);
+	return m_IsEnabled && pVisual && !empty() && pVisual->IsVisible(viewFrustum);
 }
 
 void MatrixVisualizer::Render(IRenderContext * pContext, IEffect * pEffect)

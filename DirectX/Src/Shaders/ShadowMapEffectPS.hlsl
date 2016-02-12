@@ -51,7 +51,7 @@ float3 SpecularContribution(
 	// compute specular contribution
 	float3 vHalf = normalize(lightNormal + toEye);
 	float specularAmount = saturate(dot(surfaceNormal, vHalf));
-	specularAmount = pow(specularAmount, max(materialSpecularPower, 0.0001f)) * lightSpecularIntensity;
+	specularAmount = pow(specularAmount, materialSpecularPower) * lightSpecularIntensity;
 	float3 specular = materialSpecularColor * lightColor * specularAmount;
 
 	return specular;

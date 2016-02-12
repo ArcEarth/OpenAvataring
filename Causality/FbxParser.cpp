@@ -51,6 +51,10 @@ namespace Causality
 		{
 			m_Armature = nullptr;
 			m_Behavier = nullptr;
+			m_Options.FileAxisSystem = AxisSystem::Unknown;
+			m_Options.FlipNormals = false;
+			m_Options.RewindTriangles = false;
+			m_Options.ImportMode = (unsigned)Mode::None;
 		}
 
 		weak_ptr<fbx::FbxManager>   sw_SdkManager;
@@ -58,16 +62,16 @@ namespace Causality
 		vector<fbx::FbxMesh*>		m_MeshNodes;
 		vector<fbx::FbxNode*>		m_BoneNodes;
 
-		BehavierSpace*         m_Behavier;
-		StaticArmature*        m_Armature;
+		BehavierSpace*          m_Behavier;
+		StaticArmature*         m_Armature;
 
-		std::list<SkinMeshData>  m_SkinnedMeshes;
+		std::list<SkinMeshData> m_SkinnedMeshes;
 		vector<int>				m_ParentMap;
 		int						m_FrameCount;
 		fbx::FbxTime			m_FrameInterval;
 		fbx::FbxTime			m_AnimationTime;
 		int						m_NodeIdx = 0;
-		bool					m_Rewind;
+		FbxFileImportOptions	m_Options;
 
 
 		void SetupAnimationPivots()
@@ -142,16 +146,112 @@ namespace Causality
 			binaryFile << (float)v[0] << (float)v[1];
 		}
 
+		void SetTransformFromFbxMatrix(IsometricTransform& iso, const fbx::FbxAMatrix& glbM)
+		{
+			auto gt = glbM.GetT();
+			auto gq = glbM.GetQ();
+			auto gs = glbM.GetS();
+			iso.Rotation = Quaternion(gq[0], gq[1], gq[2], gq[3]);//q;
+			iso.Scale = Vector3(gs[0], gs[1], gs[2]);
+			iso.Translation = Vector3(gt[0], gt[1], gt[2]);
+		}
+
+		void SetBoneGblFromFbxMatrix(Bone& bone, const fbx::FbxAMatrix& glbM)
+		{
+			auto gt = glbM.GetT();
+			auto gq = glbM.GetQ();
+			auto gs = glbM.GetS();
+			bone.GblRotation = Quaternion(gq[0], gq[1], gq[2], gq[3]);//q;
+			bone.GblScaling = Vector3(gs[0], gs[1], gs[2]);
+			bone.GblTranslation = Vector3(gt[0], gt[1], gt[2]);
+		}
+		// Get the geometry deformation local to a node. It is never inherited by the
+		// children.
+		fbx::FbxAMatrix GetGeometry(FbxNode* pNode)
+		{
+			fbx::FbxVector4 lT, lR, lS;
+			fbx::FbxAMatrix lGeometry;
+
+			lT = pNode->GetGeometricTranslation(FbxNode::eSourcePivot);
+			lR = pNode->GetGeometricRotation(FbxNode::eSourcePivot);
+			lS = pNode->GetGeometricScaling(FbxNode::eSourcePivot);
+
+			lGeometry.SetT(lT);
+			lGeometry.SetR(lR);
+			lGeometry.SetS(lS);
+
+			return lGeometry;
+		}
+
 
 		SkinMeshData BuildSkinnedMesh(fbx::FbxMesh* pMesh)
 		{
+			auto lNode = pMesh->GetNode();
 			assert(pMesh->IsTriangleMesh());
+
+			auto lScene = pMesh->GetScene();
+
+			auto numDef = pMesh->GetDeformerCount(fbx::FbxDeformer::eSkin);
+			size_t numBones;
+
+			constexpr int RootBoneId = 0;
+
+			assert(numDef <= 1);
+			if (numDef == 0)
+				numBones = 0;
+
+
+			fbx::FbxAMatrix bindpose;
+			bool useBindPose = false;
+
+			for (int poseid = 0; poseid < lScene->GetPoseCount(); poseid++)
+			{
+				auto lPose = lScene->GetPose(poseid);
+				auto pid = lPose->Find(lNode);
+				if (pid != -1)
+				{
+					auto mat = lPose->GetMatrix(pid);
+					bindpose = reinterpret_cast<const fbx::FbxAMatrix&>(mat);
+					useBindPose = true;
+					break;
+				}
+			}
 
 			fbx::FbxAMatrix pivot;
 			pMesh->GetPivot(pivot);
 			assert(pivot.IsIdentity());
 
-			pivot = pMesh->GetNode()->EvaluateGlobalTransform();
+			fbx::FbxAMatrix geo = GetGeometry(lNode);
+			fbx::FbxAMatrix gbl = lNode->EvaluateGlobalTransform();
+			fbx::FbxAMatrix bindTra; // default to identity
+
+			if (numDef)
+			{
+				fbx::FbxStatus states;
+				auto pDeformer = pMesh->GetDeformer(0, fbx::FbxDeformer::eSkin);
+				fbx::FbxSkin* pSkin = static_cast<fbx::FbxSkin*>(pDeformer);
+				auto numClusters = pSkin->GetClusterCount();
+				if (numClusters)
+				{
+					auto pCluster = pSkin->GetCluster(0);
+
+					if (pCluster)
+					{
+						//! In most case, this transform matrix is identical to all clusters
+						//! Thus we hack the detail code with this
+						auto link = pCluster->GetLink();
+						auto name = link->GetName();
+						pCluster->GetTransformMatrix(bindTra);
+					}
+				}
+			}
+
+			//pivot = geo;
+			//if (useBindPose)
+			//	pivot = bindpose * geo;
+			//else
+			pivot = /*gbl * */bindTra * geo;
+
 			//pivot.SetR(fbxEular);
 			pMesh->SetPivot(pivot);
 			pMesh->ApplyPivot();
@@ -179,16 +279,9 @@ namespace Causality
 			ZeroMemory(blendWeights.data(), sizeof(float[MaxBlendSize])*numPositions);
 			ZeroMemory(blendIndices.data(), sizeof(uint8_t[MaxBlendSize])*numPositions);
 
-			auto numDef = pMesh->GetDeformerCount();
-			size_t numBones;
-			assert(numDef <= 1);
-			if (numDef == 0)
-				numBones = 0;
-
 			for (int i = 0; i < numDef; i++)
 			{
-				fbx::FbxStatus states;
-				auto pDeformer = pMesh->GetDeformer(i, &states);
+				auto pDeformer = pMesh->GetDeformer(i, fbx::FbxDeformer::eSkin);
 				assert(pDeformer->GetDeformerType() == fbx::FbxDeformer::eSkin);
 				fbx::FbxSkin* pSkin = static_cast<fbx::FbxSkin*>(pDeformer);
 				auto numClusters = pSkin->GetClusterCount();
@@ -198,6 +291,10 @@ namespace Causality
 				for (size_t cId = 0; cId < numClusters; cId++)
 				{
 					auto pCluster = pSkin->GetCluster(cId);
+					auto lClusterMode = pCluster->GetLinkMode();
+
+					assert(lClusterMode != fbx::FbxCluster::eAdditive);
+
 					auto pBone = pCluster->GetLink();
 					auto boneID = GetBoneNodeId(pBone);
 
@@ -226,7 +323,27 @@ namespace Causality
 
 				v.SetColor(DirectX::Colors::White.v);
 
-				if (filled[i] > ReducedBlendSize)
+				if (filled[i] == 0)
+				{
+					filled[i] = 1;
+					blendWeights[i][0] = 1.0f;
+					blendIndices[i][0] = RootBoneId;
+				}
+				else if (filled[i] <= ReducedBlendSize) // normalize weights
+				{
+					//__assume(filled[i] > 0 && filled[i] <= ReducedBlendSize);
+
+					float sum = std::accumulate(&blendWeights[i][0], &blendWeights[i][filled[i]],.0f);
+
+					if (abs(sum - 1.0f) > 0.01f)
+					{
+						using DirectX::operator/=;
+						auto v = DirectX::XMLoadFloat4(&blendWeights[i][0]);
+						v /= sum;
+						DirectX::XMStoreFloat4(&blendWeights[i][0], v);
+					}
+
+				} else if (filled[i] > ReducedBlendSize)
 				{
 					for (size_t j = 0; j < std::min(4, filled[i]); j++)
 					{
@@ -257,16 +374,6 @@ namespace Causality
 					DirectX::XMStoreFloat4(&blendWeights[i][0], v);
 
 				}
-
-				//float sum = blendWeights[i][0] + blendWeights[i][1] + blendWeights[i][2] + blendWeights[i][3];
-
-				//if (abs(sum - 1.0f) > 0.01f)
-				//{
-				//	auto v = DirectX::XMLoadFloat4(&blendWeights[i][0]);
-				//	v /= sum;
-				//	DirectX::XMStoreFloat4(&blendWeights[i][0], v);
-				//}
-
 
 				v.SetBlendIndices(DirectX::XMUINT4(blendIndices[i][0], blendIndices[i][1], blendIndices[i][2], blendIndices[i][3]));
 				v.SetBlendWeights(reinterpret_cast<DirectX::XMFLOAT4&>(blendWeights[i]));
@@ -477,7 +584,7 @@ namespace Causality
 				}
 			}
 
-			if (m_Rewind)
+			if (m_Options.RewindTriangles)
 			{
 				for (int i = 0; i < numPolygons; i++)
 				{
@@ -642,9 +749,53 @@ namespace Causality
 			}
 
 			auto pArmature = new StaticArmature(numBones, m_ParentMap.data(), boneNames.data());
-			auto &default_frame = pArmature->default_frame();
+			BuildBindFrame(*pArmature);
 
-			default_frame.resize(numBones);
+			//ConstructDefaultFrameFromTimeZero(numBones, bind_frame);
+			//bind_frame.RebuildGlobal(*pArmature);
+
+			BuildJointMirrorRelation(*pArmature);
+			return pArmature;
+		}
+
+		void BuildBindFrame(StaticArmature& armature)
+		{
+			auto &bind_frame = armature.bind_frame();
+			bind_frame.resize(armature.size());
+
+			auto lScene = m_BoneNodes[0]->GetScene();
+			auto numPoses = lScene->GetPoseCount();
+
+			for (int bid = 0; bid < m_BoneNodes.size(); bid++)
+			{
+				bool found = false;
+				auto node = m_BoneNodes[bid];
+				for (int poseidx = 0; poseidx < numPoses; poseidx++)
+				{
+					auto pose = lScene->GetPose(poseidx);
+					assert(pose->IsBindPose());
+					auto pid = pose->Find(node);
+					if (pid != -1)
+					{
+						auto nonaffine = pose->GetMatrix(pid);
+						auto& affine = reinterpret_cast<const fbx::FbxAMatrix&>(nonaffine);
+						SetBoneGblFromFbxMatrix(bind_frame[bid], affine);
+						found = true;
+						break;
+					}
+				}
+
+				if (!found) // Not found the bind pose, fall back to use the gbl transform at time-zero
+				{
+					auto affine = node->EvaluateGlobalTransform();
+					SetBoneGblFromFbxMatrix(bind_frame[bid], affine);
+				}
+			}
+			FrameRebuildLocal(armature, bind_frame);
+		}
+
+		void ConstructDefaultFrameFromTimeZero(const size_t &numBones, Causality::ArmatureFrame & bind_frame)
+		{
 			for (size_t nodeIdx = 0; nodeIdx < numBones; nodeIdx++)
 			{
 				auto pNode = m_BoneNodes[nodeIdx];
@@ -653,7 +804,7 @@ namespace Causality
 				auto t = lclM.GetT();
 				auto q = lclM.GetQ();
 				auto s = lclM.GetS();
-				auto& bone = default_frame[nodeIdx];
+				auto& bone = bind_frame[nodeIdx];
 				bone.LclRotation = Quaternion(q[0], q[1], q[2], q[3]);//q;
 				bone.LclScaling = Vector3(s[0], s[1], s[2]);
 				bone.LclTranslation = Vector3(t[0], t[1], t[2]);
@@ -666,13 +817,9 @@ namespace Causality
 				bone.GblTranslation = Vector3(gt[0], gt[1], gt[2]);
 				//bone.LclTranslation = DirectX::XMVector3Rotate(DirectX::XMLoadA(bone.LclTranslation), DirectX::XMQuaternionInverse(DirectX::XMLoadA(bone.LclRotation)));
 			}
-			//default_frame.RebuildGlobal(*pArmature);
-
-			BuildJointMirrorRelation(*pArmature);
-			return pArmature;
 		}
 
-		FbxScene* ImportSceneFromFile(const string& file, bool convert_axis = false)
+		FbxScene* ImportSceneFromFile(const string& file)
 		{
 			if (sw_SdkManager.expired())
 			{
@@ -708,35 +855,57 @@ namespace Causality
 			// Import the contents of the file into the scene.
 			lImporter->Import(lScene);
 
-			fbx::FbxAxisSystem axisSys(fbx::FbxAxisSystem::EUpVector::eYAxis, fbx::FbxAxisSystem::EFrontVector::eParityEven, fbx::FbxAxisSystem::ECoordSystem::eRightHanded);
-
-			if (convert_axis)
+			// Convert Axis System to what is used in this example, if needed
+			if (m_Options.FileAxisSystem != AxisSystem::Unknown)
 			{
-				lScene->GetGlobalSettings().SetAxisSystem(fbx::FbxAxisSystem::MayaZUp);
+				fbx::FbxAxisSystem axisSys;
+				if (m_Options.FileAxisSystem == AxisSystem::DirectX)
+				{
+					axisSys = fbx::FbxAxisSystem(fbx::FbxAxisSystem::eYAxis, static_cast<fbx::FbxAxisSystem::EFrontVector>(-(fbx::FbxAxisSystem::eParityOdd)), fbx::FbxAxisSystem::eRightHanded);
+				}
+				else
+				{
+					auto epdfa = static_cast<fbx::FbxAxisSystem::EPreDefinedAxisSystem>(m_Options.FileAxisSystem);
+					axisSys = fbx::FbxAxisSystem(epdfa);
+				}
+
+				lScene->GetGlobalSettings().SetAxisSystem(axisSys);
+			}
+
+			auto gblAxis = lScene->GetGlobalSettings().GetAxisSystem();
+			fbx::FbxAxisSystem axisSys(fbx::FbxAxisSystem::EUpVector::eYAxis, fbx::FbxAxisSystem::EFrontVector::eParityOdd, fbx::FbxAxisSystem::ECoordSystem::eRightHanded);
+			if (gblAxis != axisSys)
+			{
 				axisSys.ConvertScene(lScene);
 			}
-			//auto gblAxis = lScene->GetGlobalSettings().GetAxisSystem();
-			//if (lScene->GetGlobalSettings().GetAxisSystem() != axisSys)
-			//	axisSys.ConvertScene(lScene);
+
+			// Convert Unit System to what is used in this example, if needed
+			auto gblUnit = lScene->GetGlobalSettings().GetSystemUnit();
+			if (gblUnit.GetScaleFactor() != 1.0)
+			{
+				//The unit in this example is meter.
+				FbxSystemUnit::m.ConvertScene(lScene);
+			}
+
+
 
 			// The file has been imported; we can get rid of the importer.
 			lImporter->Destroy();
 			return lScene;
 		}
 
-		bool Load(const string & file, unsigned mode, const char* anim_name = nullptr, bool convert_axis = false)
+		bool Load(const string & file, unsigned mode, const char* anim_name = nullptr)
 		{
 
-			auto lScene = ImportSceneFromFile(file, convert_axis);
+			auto lScene = ImportSceneFromFile(file);
 			if (lScene == nullptr)
 				return false;
 
 			if (mode & (unsigned)Mode::ImportMeshs)
 			{
 				fbx::FbxGeometryConverter converter(m_SdkManger.get());
-
-				//converter.SplitMeshesPerMaterial(lScene, true);
-				converter.Triangulate(lScene, true);
+				auto succ = converter.Triangulate(lScene, true);
+				assert(succ);
 			}
 
 			if (mode & (unsigned)Mode::CreateBehavierAndArmature)
@@ -756,11 +925,24 @@ namespace Causality
 			if (mode & (unsigned)Mode::ImportMeshs)
 			{
 				fbx::FbxGeometryConverter converter(m_SdkManger.get());
-				for (auto pMesh : m_MeshNodes)
+				bool bReplace = true;
+
+				for (auto& pMesh : m_MeshNodes)
 				{
 					//converter.SplitMeshesPerMaterial(lScene, true);
 					//converter.EmulateNormalsByPolygonVertex(pMesh);
-					converter.Triangulate(lScene, true);
+
+					if (!pMesh->IsTriangleMesh())
+					{
+						// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
+						int32_t LayerSmoothingCount = pMesh->GetLayerCount(fbx::FbxLayerElement::eSmoothing);
+						for (int32_t i = 0; i < LayerSmoothingCount; i++)
+							converter.ComputePolygonSmoothingFromEdgeSmoothing(pMesh, i);
+
+						auto ConvertedNode = converter.Triangulate(pMesh, bReplace);
+						if (ConvertedNode != nullptr && ConvertedNode->GetAttributeType() == fbx::FbxNodeAttribute::eMesh)
+							pMesh = ConvertedNode->GetNode()->GetMesh();
+					}
 
 					m_SkinnedMeshes.emplace_back(BuildSkinnedMesh(pMesh));
 				}
@@ -815,7 +997,7 @@ namespace Causality
 		{
 			auto numBones = m_Armature->size();
 			auto& buffer = anim.GetFrameBuffer();
-			auto& dframe = m_Armature->default_frame();
+			auto& dframe = m_Armature->bind_frame();
 			auto nLayer = pAnimStack->GetMemberCount<FbxAnimLayer>();
 			auto pLayer = pAnimStack->GetMember<FbxAnimLayer>();
 
@@ -1008,6 +1190,39 @@ namespace Causality
 	};
 
 
+	FbxParser::AxisSystem FbxParser::ParseAxisSystem(const char * name)
+	{
+		if (!name)
+			return AxisSystem::Unknown;
+
+		gsl::cstring_span<> sv(name, strlen(name));
+
+#define MAKE_OPTION_AXIS_SYS(Enum) if (sv == #Enum) return AxisSystem::Enum;
+#define MAKE_ELSE_OPTION_AXIS_SYS(Enum) else MAKE_OPTION_AXIS_SYS(Enum)
+
+		MAKE_OPTION_AXIS_SYS	 (MayaZUp)
+		MAKE_ELSE_OPTION_AXIS_SYS(MayaYUp)
+		MAKE_ELSE_OPTION_AXIS_SYS(Max)
+		MAKE_ELSE_OPTION_AXIS_SYS(MotionBuilder)
+		MAKE_ELSE_OPTION_AXIS_SYS(OpenGL)
+		MAKE_ELSE_OPTION_AXIS_SYS(DirectX)
+		MAKE_ELSE_OPTION_AXIS_SYS(Lightwave)
+		return AxisSystem::Unknown;
+	}
+
+	FbxParser::FbxParser(const ParamArchive * parameters)
+	{
+		m_pImpl.reset(new FbxParser::Impl);
+
+		if (!parameters) 
+			return;
+		const char * axisname = nullptr;
+		GetParam(parameters, "file_axis_system", axisname);
+		auto axisSys = ParseAxisSystem(axisname);
+
+		SetFileAxisSystemOverhaul(axisSys);
+	}
+
 	FbxParser::FbxParser(const string & file, unsigned mode)
 	{
 		Load(file, mode);
@@ -1039,7 +1254,7 @@ namespace Causality
 		return m_pImpl->Load(file, (unsigned)Mode::CreateBehavierAndArmature);
 	}
 
-	bool FbxParser::ImportMesh(const string & file, bool rewind)
+	bool FbxParser::ImportMesh(const string & file, bool rewind , bool flipNormal)
 	{
 		if (!m_pImpl)
 			m_pImpl.reset(new FbxParser::Impl);
@@ -1047,7 +1262,8 @@ namespace Causality
 		//m_pImpl->m_SkinnedMeshes.emplace_back();
 		//auto& mesh = m_pImpl->m_SkinnedMeshes.back();
 
-		m_pImpl->m_Rewind = rewind;
+		m_pImpl->m_Options.RewindTriangles = rewind;
+		m_pImpl->m_Options.FlipNormals = flipNormal;
 		return m_pImpl->Load(file, (unsigned)Mode::ImportMeshs);
 	}
 
@@ -1056,6 +1272,16 @@ namespace Causality
 		if (!m_pImpl)
 			m_pImpl.reset(new FbxParser::Impl);
 		return m_pImpl->Load(file, (unsigned)Mode::ImportAnimations, animationName.c_str());
+	}
+
+	void FbxParser::SetAdditionalTransform(const IsometricTransform & transform)
+	{
+		m_pImpl->m_Options.AdditionalTransform = transform;
+	}
+
+	void FbxParser::SetFileAxisSystemOverhaul(AxisSystem axis)
+	{
+		m_pImpl->m_Options.FileAxisSystem = axis;
 	}
 
 	const std::list<SkinMeshData>& FbxParser::GetMeshs()

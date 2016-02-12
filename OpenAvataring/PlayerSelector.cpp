@@ -345,7 +345,7 @@ PlayerSelectorBase::MergedTrackedArmature::MergedTrackedArmature(const std::vect
 	m_armature.clone_from(darm);
 
 	// We are not using the SetArmatureProportion here since we don't kown good default pose
-	auto& frame = m_armature.default_frame();
+	auto& frame = m_armature.bind_frame();
 	ComposeFrame(frame);
 
 	BuildJointMirrorRelation(m_armature);

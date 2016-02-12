@@ -461,7 +461,7 @@ PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, con
 	auto& ucinfo = controller.GetUnitedClipinfo();
 
 	pOF->InitPcas(parts.size());
-	pOF->SetDefaultFrame(armature.default_frame());
+	pOF->SetDefaultFrame(armature.bind_frame());
 	pOF->InitializeWeights(parts);
 
 	auto& facade = ucinfo.RcFacade;
@@ -582,28 +582,37 @@ void PartilizedTransformer::Transform(frame_view target_frame, const_frame_view 
 
 void PartilizedTransformer::SetTrackerVisualization()
 {
-	auto& tracker = m_Trackers[m_currentTracker];
-	auto& sample = tracker.GetSampleMatrix();
-	g_Sample = sample.leftCols(4).cast<float>();
-	g_Sample.col(0) /= g_Sample.col(0).maxCoeff();
-	g_Sample.col(1) /= (float)tracker.Animation().Length().count();
-	g_Sample.col(2).array() = (g_Sample.col(2).array() - (1 - g_TrackerStDevScale)) / 2 *g_TrackerStDevScale + 0.5;
-	g_Sample.col(3).array() = (g_Sample.col(3).array() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
-	g_Sample = g_Sample.cwiseMax(0).cwiseMin(1.0);
-	g_Sample.col(1).swap(g_Sample.col(3));
-	g_Sample.col(1).swap(g_Sample.col(2));
+	if (g_DebugView)
+	{
+		m_matvis->SetEnabled();
 
-	auto n = g_Sample.rows();
-	g_Sample.transposeInPlace();
-	auto *pair = reinterpret_cast<Vector4*>(g_Sample.data());
-	std::sort(pair, pair + n, [](const auto& a, const auto& b) {
-		return a.w < b.w;
-	});
-	g_Sample.transposeInPlace();
+		auto& tracker = m_Trackers[m_currentTracker];
+		auto& sample = tracker.GetSampleMatrix();
+		g_Sample = sample.leftCols(4).cast<float>();
+		g_Sample.col(0) /= g_Sample.col(0).maxCoeff();
+		g_Sample.col(1) /= (float)tracker.Animation().Length().count();
+		g_Sample.col(2).array() = (g_Sample.col(2).array() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
+		g_Sample.col(3).array() = (g_Sample.col(3).array() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
+		g_Sample = g_Sample.cwiseMax(0).cwiseMin(1.0);
+		g_Sample.col(1).swap(g_Sample.col(3));
+		g_Sample.col(1).swap(g_Sample.col(2));
 
-	m_matvis->SetAutoContrast(false);
-	m_matvis->SetScale(Vector3(1920.0f / (float)n, 16, 1));
-	m_matvis->UpdateMatrix(as_span(g_Sample));
+		auto n = g_Sample.rows();
+		g_Sample.transposeInPlace();
+		auto *pair = reinterpret_cast<Vector4*>(g_Sample.data());
+		std::sort(pair, pair + n, [](const auto& a, const auto& b) {
+			return a.w < b.w;
+		});
+		g_Sample.transposeInPlace();
+
+		m_matvis->SetAutoContrast(false);
+		m_matvis->SetScale(Vector3(1920.0f / (float)n, 16, 1));
+		m_matvis->UpdateMatrix(as_span(g_Sample));
+	}
+	else
+	{
+		m_matvis->SetEnabled(false);
+	}
 
 }
 
@@ -996,7 +1005,7 @@ void PartilizedTransformer::DrivePartsTrackers(Eigen::Matrix<double, 1, -1> &_x,
 	{
 		auto spFeature = make_shared < RelativeDeformation <
 			AllJoints < CharacterFeature > >> ();
-		spFeature->SetDefaultFrame(m_tArmature->default_frame());
+		spFeature->SetDefaultFrame(m_tArmature->bind_frame());
 		m_pTrackerFeature = spFeature;
 	}
 

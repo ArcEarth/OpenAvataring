@@ -58,14 +58,14 @@ namespace Causality
 		animation_clip_type* ParseAnimation(const ParamArchive* store);
 		behavier_type*		 ParseBehavier(const ParamArchive* store);
 
-		mesh_type*		     LoadObjMesh(const string & key, const string& fileName, bool flipNormal = false);
-		mesh_type*		     LoadFbxMesh(const string & key, const string& fileName, const std::shared_ptr<material_type> &pMaterial = nullptr);
-		mesh_type*		     LoadFbxMesh(const string & key, const string& fileName, bool importMaterial);
+		mesh_type*		     LoadObjMesh(const string & key, const string& fileName, bool flipNormal = false, const ParamArchive* aditionalOptions = nullptr);
+		mesh_type*		     LoadFbxMesh(const string & key, const string& fileName, const std::shared_ptr<material_type> &pMaterial = nullptr, const ParamArchive* aditionalOptions = nullptr);
+		mesh_type*		     LoadFbxMesh(const string & key, const string& fileName, bool importMaterial, const ParamArchive* aditionalOptions = nullptr);
 		texture_type*	     LoadTexture(const string & key, const string& fileName);
-		armature_type*	     LoadArmature(const string & key, const string& fileName);
-		animation_clip_type* LoadAnimation(const string& key, const string& fileName);
-		behavier_type*		 LoadBehavierFbx(const string & key, const string & fileName);
-		behavier_type*		 LoadBehavierFbxs(const string & key, const string& armature, list<std::pair<string, string>>& animations);
+		armature_type*	     LoadArmature(const string & key, const string& fileName, const ParamArchive* aditionalOptions = nullptr);
+		animation_clip_type* LoadAnimation(const string& key, const string& fileName, const ParamArchive* aditionalOptions = nullptr);
+		behavier_type*		 LoadBehavierFbx(const string & key, const string & fileName, const ParamArchive* aditionalOptions = nullptr);
+		behavier_type*		 LoadBehavierFbxs(const string & key, const string& armature, list<std::pair<string, string>>& animations, const ParamArchive* aditionalOptions = nullptr);
 
 		// Async loading methods
 /*		task<mesh_type*>&			LoadMeshAsync(const string & key, const string& fileName);

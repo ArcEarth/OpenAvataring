@@ -9,6 +9,9 @@ cbuffer ShadowMapEffectCBuffer REGISTER(b0)
 	float3   EyePosition;
 	float	 Bias;
 
+    float4   FogColor;
+    float4   FogVector;
+
 	float4	 MaterialAmbient;
 	float4	 MaterialDiffuse;
 	float3   MaterialSpecular;

@@ -286,7 +286,7 @@ namespace Causality
 			return const_cast<IArmature*>(this)->root();
 		}
 		virtual size_t size() const = 0;
-		virtual frame_const_view default_frame() const = 0;
+		virtual frame_const_view bind_frame() const = 0;
 
 		bool empty() { return root() == nullptr; }
 		auto joints() const 
@@ -322,7 +322,7 @@ namespace Causality
 
 		inline const Bone& default_bone(int index) const
 		{
-			return default_frame()[at(index)->ID];
+			return bind_frame()[at(index)->ID];
 		}
 
 		//std::vector<size_t> m_order;
@@ -370,8 +370,8 @@ namespace Causality
 		virtual joint_type* at(int index) override;
 		virtual joint_type* root() override;
 		virtual size_t size() const override;
-		virtual frame_const_view default_frame() const override;
-		frame_type& default_frame() { return m_defaultFrame; }
+		virtual frame_const_view bind_frame() const override;
+		frame_type& bind_frame() { return m_defaultFrame; }
 		void set_default_frame(frame_type &&pFrame);
 		// A topolical ordered joint index sequence
 		const std::vector<int>& joint_indices() const
@@ -449,9 +449,9 @@ namespace Causality
 
 		virtual size_t size() const override;
 
-		virtual frame_const_view default_frame() const override;
+		virtual frame_const_view bind_frame() const override;
 
-		frame_type& default_frame();
+		frame_type& bind_frame();
 		void set_default_frame(frame_type &&frame);
 
 	protected:

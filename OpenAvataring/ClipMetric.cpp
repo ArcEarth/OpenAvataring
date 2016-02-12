@@ -68,7 +68,7 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	ClipFacade::SetActiveEnergy(g_PlayerActiveEnergy, g_PlayerSubactiveEnergy);
 	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy);
 	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive /*| Ep_AbsGravity*/);
-	ClipFacade::SetGravityReference(parts.Armature().default_frame());
+	ClipFacade::SetGravityReference(parts.Armature().bind_frame());
 	ClipFacade::SetEnergyFilterFunction([&parts](Eigen::RowVectorXf& Eb) {
 		for (int i = 0; i < parts.size(); i++)
 		{
@@ -89,7 +89,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 	m_pParts = &parts;
 
 	auto pRcF = std::make_shared<CharacterJRSFeature>();
-	pRcF->SetDefaultFrame(parts.Armature().default_frame());
+	pRcF->SetDefaultFrame(parts.Armature().bind_frame());
 	pRcF->InitializeWeights(parts);
 
 	RcFacade.SetFeature(pRcF);
@@ -525,7 +525,7 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 
 	int fLength = m_partDim.back() + m_partSt.back();
 
-	auto& dframe = parts.Armature().default_frame();
+	auto& dframe = parts.Armature().bind_frame();
 	SetGravityReference(dframe);
 
 	if (clipLength > 0)

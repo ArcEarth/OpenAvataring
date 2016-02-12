@@ -70,7 +70,7 @@ void BehavierSpace::SetArmature(IArmature & armature) {
 	//UpdateArmatureParts();
 }
 
-BehavierSpace::frame_const_view BehavierSpace::RestFrame() const { return Armature().default_frame(); }
+BehavierSpace::frame_const_view BehavierSpace::RestFrame() const { return Armature().bind_frame(); }
 
 void BehavierSpace::UniformQuaternionsBetweenClips()
 {

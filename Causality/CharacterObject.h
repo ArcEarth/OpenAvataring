@@ -79,6 +79,7 @@ namespace Causality
 
 		std::mutex								m_ActionMutex;
 		std::atomic_bool						m_UpdateLock;
+		bool									m_FrameDirty;
 		bool									m_IsAutoDisplacement;
 	};
 

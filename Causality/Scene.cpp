@@ -160,7 +160,7 @@ void Scene::Render(IRenderContext * context)
 		{
 			Lps[i].view = pView->GetViewMatrix();
 			Lps[i].proj = pView->GetProjectionMatrix();
-			Lps[i].bias = 0.0005f;
+			Lps[i].bias = 0.001f;
 		}
 	}
 

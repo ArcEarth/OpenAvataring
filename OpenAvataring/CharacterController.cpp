@@ -70,7 +70,7 @@ void InitializeExtractor(AllJointRltLclRotLnQuatPcad& ft, const ShrinkedArmature
 {
 	// Init 
 	ft.InitPcas(parts.size());
-	ft.SetDefaultFrame(parts.Armature().default_frame());
+	ft.SetDefaultFrame(parts.Armature().bind_frame());
 	for (auto part : parts)
 	{
 		//ft.SetPca(part->Index, part->ChainPcaMatrix, part->ChainPcaMean);
@@ -115,7 +115,7 @@ public:
 		auto& ucinfo = pController->GetUnitedClipinfo();
 
 		outputExtractor.InitPcas(parts.size());
-		outputExtractor.SetDefaultFrame(pBlockArmature->Armature().default_frame());
+		outputExtractor.SetDefaultFrame(pBlockArmature->Armature().bind_frame());
 		outputExtractor.InitializeWeights(parts);
 
 		auto& facade = ucinfo.RcFacade;
@@ -595,7 +595,7 @@ vector<ArmatureFrame> CreateReinforcedFrames(const BehavierSpace& behavier)
 	auto& clips = behavier.Clips();
 	//auto& parts = behavier.ArmatureParts();
 	auto& armature = behavier.Armature();
-	auto& dframe = armature.default_frame();
+	auto& dframe = armature.bind_frame();
 
 	float factors[] = { /*0.5f,0.75f,*/1.0f/*,1.25f */ };
 	int k = size(factors);
@@ -661,8 +661,8 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		m_SIKs[i].reset(new StylizedChainIK(parts[i]->Joints.size()));
 	}
 
-	PotientialFrame = armature.default_frame();
-	m_charaFrame = armature.default_frame();
+	PotientialFrame = armature.bind_frame();
+	m_charaFrame = armature.bind_frame();
 	m_PvHandles.resize(armature.size());
 
 	//parts.ComputeWeights();
@@ -979,7 +979,7 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 	{
 		// paramter caching 
 		const auto&	partName = joints[0]->Name;
-		auto &dframe = Character().Armature().default_frame();
+		auto &dframe = Character().Armature().bind_frame();
 
 		auto& sik = *m_SIKs[pid];
 		auto& gpr = sik.Gplvm();
