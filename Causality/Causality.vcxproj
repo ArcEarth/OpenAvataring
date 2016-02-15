@@ -88,10 +88,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -126,6 +129,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -137,6 +141,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -177,12 +182,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <GroupAvatarControl Include="..\OpenAvataring\ArmatureAssignment.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\ArmatureParts.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\ArmatureTransforms.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\CharacterController.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\ClipMetric.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\GaussianProcess.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\GestureTracker.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\PlayerSelector.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\PlayerProxy.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\StylizedIK.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\OpenAvataring\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
-    <ClCompile Include="..\OpenAvataring\*.cpp" Exclude="..\OpenAvataring\pch.cpp">
+    <ClCompile Include="@(GroupAvatarControl)">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
@@ -226,12 +243,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\CompositeFlag.h" />
-    <ClInclude Include="..\Common\Filter.h" />
-    <ClInclude Include="..\Common\iterator_range.h" />
-    <ClInclude Include="..\Common\signal.hpp" />
-    <ClInclude Include="..\Common\stride_range.h" />
-    <ClInclude Include="..\Common\tree.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h" />
     <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />
@@ -249,6 +260,14 @@
     <ClInclude Include="..\OpenAvataring\RegressionModel.h" />
     <ClInclude Include="..\OpenAvataring\StylizedIK.h" />
     <ClInclude Include="..\OpenAvataring\TrackerVisualizer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common\CompositeFlag.h" />
+    <ClInclude Include="..\Common\Filter.h" />
+    <ClInclude Include="..\Common\iterator_range.h" />
+    <ClInclude Include="..\Common\signal.hpp" />
+    <ClInclude Include="..\Common\stride_range.h" />
+    <ClInclude Include="..\Common\tree.h" />
     <ClInclude Include="AnimationObject.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="BasicKeyboardMouseControlLogic.h" />

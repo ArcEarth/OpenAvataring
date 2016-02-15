@@ -143,6 +143,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{83b715af-8ad0-4f25-84a6-103cb7b9a3ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Generated">
+      <UniqueIdentifier>{425d8738-36bf-4275-9d92-85be760da919}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Src\Shaders\CompileShaders.cmd">
@@ -156,6 +159,177 @@
     </None>
     <None Include="Src\Shaders\Common.hlsli">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_AlphaAsDepthPassBy.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_Blur.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_Combination.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_DownScale3x3.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_DownScale3x3Ex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_PassBy.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\BlurEffect_UpScale.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\QuadVertexShader_QuadVertexShader.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_BinaryOneLightNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_BinaryOneLightTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_OneLightNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_OneLightTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_OneLightTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_OneLightTexBumpSpecular.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_ScreenSpaceNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_ScreenSpaceTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectPS_PS_ScreenSpaceTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_BinaryOneLightFourBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_BinaryOneLightFourBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_BinaryOneLightNoBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_BinaryOneLightNoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightFourBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightFourBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightFourBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightNoBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightNoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_OneLightNoBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceFourBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceFourBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceFourBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceNoBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceNoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceNoBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceOneBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceOneBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceOneBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapEffectVS_VS_ScreenSpaceTwoBoneTexBump.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_PS_ColorNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_PS_ColorTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_PS_DepthNoTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_PS_DepthTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_PS_VertexColor.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_FourBone.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_FourBoneColor.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_FourBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_NoBone.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_NoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_OneBone.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_OneBoneColor.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_OneBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_TwoBone.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_TwoBoneColor.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\ShadowMapGen_VS_TwoBoneTex.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\SkyDomeEffect_PS.inc">
+      <Filter>Shaders\Generated</Filter>
+    </None>
+    <None Include="Src\Shaders\Windows\SkyDomeEffect_VS.inc">
+      <Filter>Shaders\Generated</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

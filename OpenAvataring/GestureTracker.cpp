@@ -2,6 +2,10 @@
 #include "GestureTracker.h"
 #include <numeric>
 #include <random>
+#define _AMP_GPU_PARA_ 1
+#ifdef _AMP_GPU_PARA_
+#include <amp.h>
+#endif
 #ifndef _DEBUG
 #define openMP
 #endif
@@ -59,6 +63,16 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 	int n = sample.rows();
 	auto dim = sample.cols() - 1;
 
+#ifdef _AMP_GPU_PARA_
+	concurrency::array_view<ScalarType, 2> sampleView(concurrency::extent<2>(n,dim + 1), m_sample.data());
+	concurrency::array_view<float, 2> animationView(concurrency::extent<2>());
+	concurrency::parallel_for_each(concurrency::extent<1>(n),
+		[sampleView](concurrency::index<1> idx) restrict(amp)
+	{
+		
+	});
+
+#else
 #if defined(openMP)
 #pragma omp parallel for
 #endif
@@ -69,6 +83,16 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 		Progate(partical);
 		m_sample(i, 0) *= Likilihood(i, partical);
 	}
+#endif
+
+	return ExtractMLE();
+}
+
+double Causality::ParticaleFilterBase::ExtractMLE()
+{
+	auto& sample = m_sample;
+	int n = sample.rows();
+	auto dim = sample.cols() - 1;
 
 	m_liks = sample.col(0);
 	auto w = sample.col(0).sum();
@@ -77,10 +101,10 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 		//! Averaging state variable may not be a good choice
 		m_waState = (sample.rightCols(dim).array() * sample.col(0).replicate(1, dim).array()).colwise().sum();
 		m_waState /= w;
-		
+
 		Eigen::Index idx;
 		sample.col(0).maxCoeff(&idx);
-		m_mleState = sample.block<1, -1>(idx, 1,1,sample.cols()-1);
+		m_mleState = sample.block<1, -1>(idx, 1, 1, sample.cols() - 1);
 	}
 	else // critial bug here, but we will use the mean particle as a dummy
 	{

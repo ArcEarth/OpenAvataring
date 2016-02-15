@@ -67,6 +67,8 @@ namespace Causality
 	protected:
 		ScalarType StepParticals();
 
+		double ExtractMLE();
+
 		void Resample(_Out_ MatrixType& resampled, _In_ const MatrixType& sample);
 
 		int			m_maxK;
