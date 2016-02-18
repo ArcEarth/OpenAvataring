@@ -194,6 +194,7 @@
     <GroupAvatarControl Include="..\OpenAvataring\StylizedIK.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp" />
     <ClCompile Include="..\OpenAvataring\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -248,6 +249,7 @@
     <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureTransforms.h" />
     <ClInclude Include="..\OpenAvataring\BoneFeatures.h" />
+    <ClInclude Include="..\OpenAvataring\CharacterActionTracker.h" />
     <ClInclude Include="..\OpenAvataring\CharacterController.h" />
     <ClInclude Include="..\OpenAvataring\ClipMetric.h" />
     <ClInclude Include="..\OpenAvataring\GaussianProcess.h" />
@@ -357,6 +359,18 @@
     <ProjectReference Include="..\ViconReader\ViconReader.vcxproj">
       <Project>{4afcff85-5953-4b9d-b8f6-6a1711597081}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\OpenAvataring\TrackerCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

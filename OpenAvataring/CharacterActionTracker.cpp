@@ -11,14 +11,30 @@
 using namespace Causality;
 using namespace Eigen;
 
+namespace hlsl
+{
+	using namespace concurrency::graphics;
+	using namespace concurrency::fast_math;
+	using namespace concurrency::direct3d;
+
+	using float4 = float_4;
+	using float3 = float_3;
+	using float2 = float_2;
+
+	using namespace concurrency::fast_math;
+
+	#include "Quaternion.hlsli"
+
+}
+
 struct CharacterActionTracker::GpuImpl
 {
 public:
 	const static int MaxEndEffectorCount = 32;
 
 
-	using particle_vector_type = 
-	std::conditional_t<std::is_same<ScalarType, float>::value, concurrency::graphics::float_4, concurrency::graphics::double_4>;
+	using particle_vector_type =
+		std::conditional_t<std::is_same<ScalarType, float>::value, concurrency::graphics::float_4, concurrency::graphics::double_4>;
 
 	concurrency::array_view<particle_vector_type, 1>		 sampleView;// samples
 	concurrency::array_view<const particle_vector_type, 2>	 animationView;	// animation matrix array

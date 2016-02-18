@@ -471,7 +471,7 @@ namespace DirectX
 #endif
 
 		XMDUALVECTOR() {}
-		XMDUALVECTOR(CXMVECTOR V0, CXMVECTOR V1) { r[0] = V0; r[1] = V1; }
+		XMDUALVECTOR(FXMVECTOR V0, FXMVECTOR V1) { r[0] = V0; r[1] = V1; }
 		XMDUALVECTOR(float m00, float m01, float m02, float m03,
 			float m10, float m11, float m12, float m13)
 		{
@@ -493,6 +493,16 @@ namespace DirectX
 			return dvResult;
 		}
 
+		inline XMVECTOR operator[](int row) const
+		{
+			assert(row >= 0 && row <= 1);
+			return r[row];
+		}
+		inline XMVECTOR& operator[](int row)
+		{
+			assert(row >= 0 && row <= 1);
+			return r[row];
+		}
 
 		XMDUALVECTOR& XM_CALLCONV operator+= (FXMDUALVECTOR M)
 		{
@@ -652,6 +662,7 @@ namespace DirectX
 		XMDUALVECTOR dqRes;
 		dqRes.r[0] = Q;
 		dqRes.r[1] = XMVectorZero();
+		return dqRes;
 	}
 
 	inline XMDUALVECTOR XM_CALLCONV XMDualQuaternionRigidTransform(FXMVECTOR RotationOrigin, FXMVECTOR RotationQuaternion, FXMVECTOR Translation)
@@ -734,9 +745,10 @@ namespace DirectX
 	inline XMDUALVECTOR XM_CALLCONV XMDualQuaternionMultipy(FXMDUALVECTOR DQ0, GXMDUALVECTOR DQ1)
 	{
 		XMDUALVECTOR dvResult;
-		dvResult.r[0] = XMQuaternionMultiply(DQ0.r[0], DQ1.r[1]);
+		dvResult.r[0] = XMQuaternionMultiply(DQ0.r[0], DQ1.r[0]);
 		dvResult.r[1] = XMQuaternionMultiply(DQ0.r[0], DQ1.r[1]);
-		dvResult.r[1] += XMQuaternionMultiply(DQ0.r[1], DQ1.r[0]);
+		XMVECTOR temp = XMQuaternionMultiply(DQ0.r[1], DQ1.r[0]);
+		dvResult.r[1] += temp;
 		return dvResult;
 	}
 
@@ -780,8 +792,7 @@ namespace DirectX
 	{
 		XMVECTOR Qr = RotationQuaternion;
 		XMVECTOR Qe = TranslationQuaternion;
-		XMVECTOR Dual = XMVector4Dot(Qr, Qe);
-		assert(XMVector4NearEqual(Dual, XMVectorZero(), XMVectorReplicate(0.01f)));
+		assert("The dual quaternion is invaliad: the dual part must be zero," && XMVector4NearEqual(XMVector4Dot(Qr, Qe), XMVectorZero(), XMVectorReplicate(0.0001f)));
 
 		XMVECTOR vRes = XMVector3Rotate(V, Qr);
 		Qr = XMQuaternionConjugate(Qr);
