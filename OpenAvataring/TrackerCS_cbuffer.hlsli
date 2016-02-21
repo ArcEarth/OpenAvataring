@@ -1,7 +1,7 @@
 #define MAX_BONES 128
 #define MAX_EFFECTORS 16
 
-cbuffer Constants
+__CBUFFER(constants)
 {
     uint numBones;
     uint numEffectors;

@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "amp_stl_algorithms", "vs120\amp_stl_algorithms.vcxproj", "{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D74703F-3A58-A860-884D-7B64204109BA} = {3D74703F-3A58-A860-884D-7B64204109BA}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "amp_algorithms", "vs120\amp_algorithms.vcxproj", "{3D74703F-3A58-A860-884D-7B64204109BA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{78D4E5AC-D404-4FC0-87F2-A153E1808C5A}"
+	ProjectSection(SolutionItems) = preProject
+		pre_checkin_build.ps1 = pre_checkin_build.ps1
+		readme.txt = readme.txt
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Debug|Win32.Build.0 = Debug|Win32
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Debug|x64.ActiveCfg = Debug|x64
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Debug|x64.Build.0 = Debug|x64
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Release|Win32.ActiveCfg = Release|Win32
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Release|Win32.Build.0 = Release|Win32
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Release|x64.ActiveCfg = Release|x64
+		{B1F30CF1-0A13-545A-75F2-7CCF8BA1A18F}.Release|x64.Build.0 = Release|x64
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Debug|Win32.Build.0 = Debug|Win32
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Debug|x64.ActiveCfg = Debug|x64
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Debug|x64.Build.0 = Debug|x64
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Release|Win32.ActiveCfg = Release|Win32
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Release|Win32.Build.0 = Release|Win32
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Release|x64.ActiveCfg = Release|x64
+		{3D74703F-3A58-A860-884D-7B64204109BA}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

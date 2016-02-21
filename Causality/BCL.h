@@ -25,8 +25,9 @@
 //#include <boost\format.hpp>
 //#include <boost\filesystem.hpp>
 
-#include "Common\stride_range.h"
-#include "Common\tree.h"
+#include <stride_range.h>
+#include <tree.h>
+#include <minmax>
 
 #include "Math3D.h"
 #include "SmartPointers.h"

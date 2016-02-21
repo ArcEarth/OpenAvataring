@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{818d51e8-872f-4d5d-9f0a-867ff95f1cbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{c4e1abf8-f6f7-4f89-961b-6a183ec916d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="BLAS Tests">
+      <UniqueIdentifier>{7840d553-913d-4d08-9c0e-9f7c200e9312}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ampblas_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ampblas_test_list.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ampblas_test_timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="amax_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="asum_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="axpy_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="copy_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="dot_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="gemm_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="gemv_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="nrm2_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ger_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="rot_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="scal_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="syr_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="trsm_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="swap_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="syrk_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="syr2k_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="symv_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="trmv_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="trmm_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="trsv_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="symm_test.cpp">
+      <Filter>BLAS Tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ampblas_test_bench.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ampblas_test_list.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ampblas_test_timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ampblas_test_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ampxblas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

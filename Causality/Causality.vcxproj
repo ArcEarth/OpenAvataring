@@ -32,6 +32,7 @@
     <DLibDir>..\dlib\</DLibDir>
     <EigenDir>..\Eigen\</EigenDir>
     <FftwDir>..\fftw\</FftwDir>
+    <AmpDir>..\amp</AmpDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -80,7 +81,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(IncludePath)</IncludePath>
+    <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(AmpDir)\ampalgorithms\inc\;$(AmpDir)\amprng\inc\;$(AmpDir)\amphlsl\inc\;$(IncludePath)</IncludePath>
     <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
@@ -192,9 +193,9 @@
     <GroupAvatarControl Include="..\OpenAvataring\PlayerSelector.cpp" />
     <GroupAvatarControl Include="..\OpenAvataring\PlayerProxy.cpp" />
     <GroupAvatarControl Include="..\OpenAvataring\StylizedIK.cpp" />
+    <GroupAvatarControl Include="..\OpenAvataring\CharacterActionTracker.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp" />
     <ClCompile Include="..\OpenAvataring\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -244,6 +245,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\amp\amphlsl\amp_hlsl_intrinsic.h" />
+    <ClInclude Include="..\amp\amphlsl\amp_hlsl_intrinsic_detail_macro.h" />
+    <ClInclude Include="..\amp\amphlsl\amp_hlsl_intrinsic_detail_macro_dx.h" />
+    <ClInclude Include="..\amp\amphlsl\amp_hlsl_intrinsic_sincos.h" />
+    <ClInclude Include="..\amp\amphlsl\amp_short_matrix.h" />
+  </ItemGroup>
+  <!--<ItemGroup>
+    <FxCompile Include="..\OpenAvataring\TrackerCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+  </ItemGroup>-->
+  <ItemGroup>
+    <ClInclude Include="..\OpenAvataring\Quaternion.hlsli" />
+    <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.hlsli" />
+    <ClInclude Include="..\OpenAvataring\TrackerCS.hlsl" />
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h" />
     <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />
@@ -359,18 +376,6 @@
     <ProjectReference Include="..\ViconReader\ViconReader.vcxproj">
       <Project>{4afcff85-5953-4b9d-b8f6-6a1711597081}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="..\OpenAvataring\TrackerCS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
-    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

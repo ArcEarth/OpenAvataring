@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\inc\amp_iterators.h" />
+    <ClInclude Include="..\inc\amp_stl_algorithms.h" />
+    <ClInclude Include="..\inc\xx_amp_stl_algorithms_impl.h" />
+    <ClInclude Include="..\inc\xx_amp_stl_algorithms_impl_inl.h" />
+    <ClInclude Include="..\test\stdafx.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{789e696e-1d12-4dc4-96ff-ea4a181864ff}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\test\stdafx.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\examples_stl_amp_algorithms.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_amp_stl_algorithms.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_amp_stl_iterators.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

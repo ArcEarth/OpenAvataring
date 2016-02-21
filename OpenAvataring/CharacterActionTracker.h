@@ -5,10 +5,18 @@ namespace Causality
 {
 	class PartilizedTransformer;
 
+	namespace Internal
+	{
+		struct CharacterActionTrackerGpuImpl;
+	}
+
 	class CharacterActionTracker : public ParticaleFilterBase
 	{
 	public:
 		CharacterActionTracker(const ArmatureFrameAnimation& animation, const PartilizedTransformer &transfomer);
+		~CharacterActionTracker();
+		// This is evil, but nessary to host in an vector
+		CharacterActionTracker(const CharacterActionTracker& rhs);
 		// Inherited via ParticaleFilterBase
 	public:
 		virtual void	Reset(const InputVectorType & input) override;
@@ -42,7 +50,7 @@ namespace Causality
 		const ArmatureFrameAnimation&	m_Animation;
 		const PartilizedTransformer&	m_Transformer;
 
-		struct GpuImpl;
+		using GpuImpl = Internal::CharacterActionTrackerGpuImpl;
 		uptr<GpuImpl>					m_gpu;
 		//mutable vector<ArmatureFrame>	m_Frames;
 		//mutable vector<ArmatureFrame>	m_LastFrames;

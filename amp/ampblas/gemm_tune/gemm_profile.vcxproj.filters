@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\gemm_tune.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\high_resolution_timer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\cgemm_nn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\cgemm_nt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\cgemm_tn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\cgemm_tt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\dgemm_nn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\dgemm_nt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\dgemm_tn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\dgemm_tt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\sgemm_nn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\sgemm_nt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\sgemm_tn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\sgemm_tt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\zgemm_nn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\zgemm_nt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\zgemm_tn.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates\zgemm_tt.cpp">
+      <Filter>src\templates</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\high_resolution_timer.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\tune.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\template.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\host_gemm.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="inc">
+      <UniqueIdentifier>{371c5d2b-d734-452b-b6cf-f8243c3cb664}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{2a69d4a4-817e-43ef-8a9a-e245a182e58f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{1aa4237d-41ba-4dea-b8b9-75e9875a797b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\templates">
+      <UniqueIdentifier>{2f5f04ac-a011-4707-a9da-f56cfea533b9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="data\dgemm_nn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\dgemm_nt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\dgemm_tn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\dgemm_tt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\sgemm_nn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\sgemm_nt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\sgemm_tn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\sgemm_tt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\cgemm_nn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\cgemm_nt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\cgemm_tn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\cgemm_tt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\zgemm_nn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\zgemm_nt.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\zgemm_tn.data">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\zgemm_tt.data">
+      <Filter>data</Filter>
+    </None>
+  </ItemGroup>
+</Project>

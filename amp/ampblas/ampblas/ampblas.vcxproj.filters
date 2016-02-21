@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="inc\ampblas.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_complex.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_config.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_defs.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\amax.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\asum.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\axpy.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\copy.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\dot.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\gemm.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\gemv.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\ger.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\nrm2.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\rot.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\scal.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\swap.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\symm.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\symv.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\syr.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\syr2k.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\syrk.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\trmm.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\trmv.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\trsm.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\trsv.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_static.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_dev.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampblas_utility.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\adapter.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\algorithm.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\complex.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\math.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\parameter_check.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\reduction.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\utility\storage.h">
+      <Filter>inc\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\gemm.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\tune.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\cgemm.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\dgemm.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\sgemm.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\tuning\zgemm.h">
+      <Filter>inc\detail\tuning</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{7428da99-c793-4596-ba7b-ccf611178771}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc">
+      <UniqueIdentifier>{72d62303-0434-4f53-9599-5afe2154bc6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\detail">
+      <UniqueIdentifier>{41be1d34-35fc-43eb-a210-6895b4be329d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\utility">
+      <UniqueIdentifier>{71c5b02b-deee-4dd9-be82-63915e4f28c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\detail\tuning">
+      <UniqueIdentifier>{50986e9f-8a70-4a86-a604-8d90b4687683}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\static.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

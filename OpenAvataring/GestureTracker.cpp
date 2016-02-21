@@ -2,10 +2,6 @@
 #include "GestureTracker.h"
 #include <numeric>
 #include <random>
-#define _AMP_GPU_PARA_ 1
-#ifdef _AMP_GPU_PARA_
-#include <amp.h>
-#endif
 #ifndef _DEBUG
 #define openMP
 #endif
@@ -71,7 +67,6 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 	{
 		
 	});
-
 #else
 #if defined(openMP)
 #pragma omp parallel for

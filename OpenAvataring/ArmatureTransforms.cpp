@@ -63,10 +63,6 @@ int  g_TrackerTopK = 30;
 double g_DynamicTraderKeyEnergy = 0.2;
 extern double g_CurvePower;
 
-extern random_device g_rand;
-extern mt19937 g_rand_mt;
-static std::normal_distribution<IGestureTracker::ScalarType> g_normal_dist(0,1);
-
 extern RowVector3d	g_NoiseInterpolation;
 namespace Causality
 {
@@ -999,7 +995,7 @@ int GetFrameVectorSize(const IArmaturePartFeature* feature, const ShrinkedArmatu
 
 }
 
-void PartilizedTransformer::DrivePartsTrackers(Eigen::Matrix<double, 1, -1> &_x, float frame_time, ArmatureFrameView target_frame)
+void PartilizedTransformer::DrivePartsTrackers(TrackerVectorType &_x, float frame_time, ArmatureFrameView target_frame)
 {
 	if (m_pTrackerFeature == nullptr)
 	{
@@ -1079,7 +1075,7 @@ void PartilizedTransformer::DrivePartsTrackers(Eigen::Matrix<double, 1, -1> &_x,
 }
 
 
-double PartilizedTransformer::DrivePartsTracker(int whichTracker, Eigen::Matrix<double, 1, -1> & _x, float frame_time, ArmatureFrameView target_frame)
+double PartilizedTransformer::DrivePartsTracker(int whichTracker, TrackerVectorType & _x, float frame_time, ArmatureFrameView target_frame)
 {
 	auto& cparts = *m_cParts;
 	auto feature = m_pTrackerFeature.get();

@@ -148,6 +148,9 @@ namespace Causality
 	class PartilizedTransformer : public BlockizedArmatureTransform
 	{
 	public:
+		using TrackerScalarType = IGestureTracker::ScalarType;
+		using TrackerVectorType = Eigen::Matrix<TrackerScalarType, 1, -1>;
+
 		std::vector<P2PTransform> ActiveParts;	// Direct controlled by input armature, with stylized IK
 
 		PartilizedTransformer(const ShrinkedArmature& sParts,const CharacterController & controller);
@@ -160,8 +163,8 @@ namespace Causality
 
 		void SetTrackerVisualization();
 
-		void DrivePartsTrackers(Eigen::Matrix<double, 1, -1> &_x, float frame_time, frame_view target_frame);
-		double DrivePartsTracker(int whichTracker, Eigen::Matrix<double, 1, -1> & _x, float frame_time, Causality::ArmatureFrameView target_frame);
+		void DrivePartsTrackers(TrackerVectorType &_x, float frame_time, frame_view target_frame);
+		double DrivePartsTracker(int whichTracker, TrackerVectorType & _x, float frame_time, Causality::ArmatureFrameView target_frame);
 
 		void DriveAccesseryPart(Causality::ArmaturePart & cpart, Eigen::RowVectorXd &Xd, frame_view target_frame);
 

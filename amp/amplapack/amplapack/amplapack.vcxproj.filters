@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{9e5fb035-3104-4d79-a8bb-fe3ac364e92e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc">
+      <UniqueIdentifier>{7eeea9a3-584a-42cd-b2d3-93e61d598cdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\detail">
+      <UniqueIdentifier>{ceb4f1fd-18c7-497f-a788-16c7c314e37c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\amplapack_runtime.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\geqrf.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\getrf.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\potrf.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\detail\geqrf.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\getrf.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\detail\potrf.h">
+      <Filter>inc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampclapack.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\amplapack.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\amplapack_config.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\amplapack_runtime.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampxlapack.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\lapack_host.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

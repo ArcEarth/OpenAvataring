@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="amplapack_test.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="high_resolution_timer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="geqrf_test.cpp">
+      <Filter>src\lapack</Filter>
+    </ClCompile>
+    <ClCompile Include="getrf_test.cpp">
+      <Filter>src\lapack</Filter>
+    </ClCompile>
+    <ClCompile Include="potrf_test.cpp">
+      <Filter>src\lapack</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{fb719c99-6e9c-46a0-bf22-93296a0c9351}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc">
+      <UniqueIdentifier>{6009efdb-5b9b-4e88-bed9-e3ba47005cd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\lapack">
+      <UniqueIdentifier>{b19ad15c-6ab5-4bd0-aa3e-287164384d8f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="amplapack_test.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

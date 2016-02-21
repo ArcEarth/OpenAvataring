@@ -3,81 +3,61 @@
 #include <Causality\Settings.h>
 #include "ArmatureTransforms.h"
 #include <type_traits>
+#include <random>
 
 #include <amp.h>
 #include <amp_graphics.h>
 #include <amp_math.h>
 
-using namespace Causality;
-using namespace Eigen;
+#include <amp_hlsl_intrinsic.h>
 
-namespace hlsl
+using TrackerScalarType = Causality::IGestureTracker::ScalarType;
+extern std::random_device g_rand;
+extern std::mt19937 g_rand_mt;
+static std::normal_distribution<TrackerScalarType> g_normal_dist(0, 1);
+
+namespace Causality
 {
-	using namespace concurrency::graphics;
-	using namespace concurrency::fast_math;
-	using namespace concurrency::direct3d;
+	namespace Internal {
+		using namespace concurrency::hlsl;
+#include "Quaternion.hlsli"
 
-	using float4 = float_4;
-	using float3 = float_3;
-	using float2 = float_2;
+		struct CharacterActionTrackerGpuImpl
+		{
+		public:
+			const static int MaxEndEffectorCount = 32;
+			using ScalarType = TrackerScalarType;
 
-	using namespace concurrency::fast_math;
+			~CharacterActionTrackerGpuImpl() __CPU_ONLY
+			{}
 
-	#include "Quaternion.hlsli"
 
+			using particle_vector_type = float4;
+			//std::conditional_t<std::is_same<ScalarType, float>::value,float4,double4>;
+
+			concurrency::array_view<particle_vector_type, 1>		 samples;// samples
+			concurrency::array_view<const particle_vector_type, 1>	 animation;	// animation matrix array
+			concurrency::array_view<ScalarType, 1>					 likilihoods; // out, likihoods
+			//concurrency::array_view<const int, 1>					 parentsView;	// parents
+			//concurrency::array_view<const particle_vector_type, 1>	 bindView;
+
+			// this struct is mapped to an constant buffer in DirectX shader
+#define __CBUFFER(name) struct name##_t
+#include "TrackerCS_cbuffer.hlsli"
+			constants_t constants;
+
+#include "TrackerCS.hlsl"
+
+			void likilihood(concurrency::index<1> idx) __GPU_ONLY
+			{
+				write_likilihood(idx[0]);
+			}
+		};
+	}
 }
 
-struct CharacterActionTracker::GpuImpl
-{
-public:
-	const static int MaxEndEffectorCount = 32;
-
-
-	using particle_vector_type =
-		std::conditional_t<std::is_same<ScalarType, float>::value, concurrency::graphics::float_4, concurrency::graphics::double_4>;
-
-	concurrency::array_view<particle_vector_type, 1>		 sampleView;// samples
-	concurrency::array_view<const particle_vector_type, 2>	 animationView;	// animation matrix array
-	concurrency::array_view<const int, 1>					 parentsView;	// parents
-	concurrency::array_view<ScalarType, 1>					 likilihoodView; // out, likihoods
-	concurrency::array_view<const particle_vector_type, 1>	 bindView;
-
-	// this struct is mapped to an constant buffer in DirectX shader
-	struct constants_t
-	{
-		int numBones;
-		int numEndEffectors;
-		int endEffectors[MaxEndEffectorCount];
-		ScalarType timeSlice;
-		ScalarType deltaTime;
-	} constants;
-
-	struct rigid_matrix
-	{
-		particle_vector_type c[3];
-	};
-
-	void likilihood(concurrency::index<1> idx) restrict(amp)
-	{
-		using namespace concurrency::graphics;
-		using namespace concurrency::fast_math;
-
-		auto particle = sampleView[idx];
-
-		auto time = particle.x;
-		auto scale = particle.y;
-		auto vt = particle.z;
-
-		auto lastTime = time - constants.deltaTime * vt;
-
-		for (int i = 0; i < constants.numEndEffectors; i++)
-		{
-			int tid = time / constants.timeSlice;
-			auto tip = fmod(time, constants.timeSlice); // time interop factor
-
-		}
-	}
-};
+using namespace Causality;
+using namespace Eigen;
 
 CharacterActionTracker::CharacterActionTracker(const ArmatureFrameAnimation & animation, const PartilizedTransformer &transfomer)
 	: m_Animation(animation),
@@ -92,6 +72,27 @@ CharacterActionTracker::CharacterActionTracker(const ArmatureFrameAnimation & an
 	m_vtSubdiv(1),
 	m_currentValiad(false)
 {}
+
+CharacterActionTracker::~CharacterActionTracker()
+{
+
+}
+
+CharacterActionTracker::CharacterActionTracker(const CharacterActionTracker & rhs)
+	: m_Animation(rhs.m_Animation),
+	m_Transformer(rhs.m_Transformer),
+	m_confidentThre(rhs.m_confidentThre),
+	m_uS(rhs.m_uS),
+	m_thrVt(rhs.m_thrVt),
+	m_thrS(rhs.m_thrS),
+	m_stepSubdiv(rhs.m_stepSubdiv),
+	m_tSubdiv(rhs.m_tSubdiv),
+	m_scaleSubdiv(rhs.m_scaleSubdiv),
+	m_vtSubdiv(rhs.m_vtSubdiv),
+	m_currentValiad(rhs.m_currentValiad),
+	m_gpu(nullptr)
+{
+}
 
 void CharacterActionTracker::Reset(const InputVectorType & input)
 {
@@ -110,7 +111,7 @@ void CharacterActionTracker::Reset()
 	m_dt = m_Animation.Duration.count() / tchuck;
 	auto dt = m_dt;
 
-	RowVector3d v;
+	Eigen::Matrix<TrackerScalarType,1,3> v;
 	m_sample.resize(tchuck * schunck * vchunck, 3 + 1);
 	auto stdevS = sqrt(m_varS);
 	auto stdevV = sqrt(m_varVt);
@@ -170,7 +171,7 @@ CharacterActionTracker::ScalarType CharacterActionTracker::Step(const InputVecto
 
 	if (confi < m_confidentThre)
 	{
-		cout << "[Tracker] *Rest*************************" << endl;
+		std::cout << "[Tracker] *Rest*************************" << std::endl;
 		Reset(input);
 		confi = m_sample.col(0).sum();
 	}
@@ -187,8 +188,15 @@ void CharacterActionTracker::SetInputState(const InputVectorType & input, Scalar
 		m_fvectors.resize(NoChange, input.cols());
 }
 
+inline float sqr(float x) __CPU_ONLY
+{
+	return x * x;
+}
+
 CharacterActionTracker::ScalarType CharacterActionTracker::Likilihood(int idx, const TrackingVectorBlockType & x)
 {
+	using namespace std;
+
 	InputVectorType vx;
 	vx = GetCorrespondVector(x, ArmatureFrameView(s_frameCache0), ArmatureFrameView(s_frameCache1));
 	//m_fvectors.row(m_lidxCount++) = vx;
@@ -199,9 +207,9 @@ CharacterActionTracker::ScalarType CharacterActionTracker::Likilihood(int idx, c
 	likilihood = exp(-likilihood);
 
 	// Scale factor distribution
-	likilihood *= exp(-sqr(max(abs(x[1] - m_uS) - m_thrS, .0)) / m_varS);
+	likilihood *= exp(-sqr(max((float)(abs(x[1] - m_uS) - m_thrS), .0f)) / m_varS);
 	// Speed scale distribution
-	likilihood *= exp(-sqr(max(abs(x[2] - m_thrVt), .0)) / m_varVt);
+	likilihood *= exp(-sqr(max((float)abs(x[2] - m_thrVt), .0f)) / m_varVt);
 
 	//return 1.0;
 	return likilihood;

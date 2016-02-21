@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\inc\amp_algorithms.h" />
+    <ClInclude Include="..\inc\amp_indexable_view.h" />
+    <ClInclude Include="..\inc\xx_amp_algorithms_impl.h" />
+    <ClInclude Include="..\inc\xx_amp_algorithms_impl_inl.h" />
+    <ClInclude Include="..\test\stdafx.h" />
+    <ClInclude Include="..\test\testtools.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="..\inc\amp_algorithms_direct3d.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{f6ab5e2c-a870-4319-a325-a363beb3bbe3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\test\test_amp_algorithms_scan.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_testtools.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\stdafx.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_amp_algorithms.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_amp_algorithms_direct3d_scan.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test\test_amp_algorithms_sort.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

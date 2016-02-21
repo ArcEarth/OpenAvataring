@@ -1,0 +1,58 @@
+// Copyright (c) by Yupeng Zhang. All Rights Reserved.
+// Pollution namespace ::std with new overload of ::std::min and ::std::max
+// Optimized min / max function for fundamantal types 
+// float / double are directed with fmax / fmin code path
+// integer types are directed return type T instead of const T &
+
+#pragma once
+#ifndef _STD_MINMAX
+#define _STD_MINMAX
+
+#include <cmath>
+#include <type_traits>
+
+namespace std
+{
+#define _XX_MIN_MAX_TEMPLATE_XX(T) \
+	inline T min(T a, T b) \
+	{ return (((a) < (b)) ? (a) : (b)); } \
+	inline T max(T a, T b) \
+	{ return (((a) > (b)) ? (a) : (b)); } 
+
+	_XX_MIN_MAX_TEMPLATE_XX(signed char)
+	_XX_MIN_MAX_TEMPLATE_XX(unsigned char)
+	_XX_MIN_MAX_TEMPLATE_XX(short)
+	_XX_MIN_MAX_TEMPLATE_XX(unsigned short)
+	_XX_MIN_MAX_TEMPLATE_XX(int)
+	_XX_MIN_MAX_TEMPLATE_XX(unsigned int)
+	_XX_MIN_MAX_TEMPLATE_XX(long long)
+	_XX_MIN_MAX_TEMPLATE_XX(unsigned long long)
+
+	inline float min(float a, float b)
+	{
+		return fminf(a, b);
+	}
+	inline float max(float a, float b)
+	{
+		return fmaxf(a, b);
+	}
+	inline double min(double a, double b)
+	{
+		return fmin(a, b);
+	}
+	inline double max(double a, double b)
+	{
+		return fmax(a, b);
+	}
+	inline long double min(long double  a, long double  b)
+	{
+		return fminl(a, b);
+	}
+	inline long double maxl(long double  a, long double  b)
+	{
+		return fmaxl(a, b);
+	}
+}
+#undef _XX_MIN_MAX_TEMPLATE_XX
+
+#endif

@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="inc">
+      <UniqueIdentifier>{4dfb253a-898d-47e2-bd27-13294ce3f071}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{38a454bd-6cc6-4d86-a4e6-ad3d3b9c91c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\package">
+      <UniqueIdentifier>{d0fa1db1-bd3c-49fe-814e-2e03b00aba6d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\amax.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\asum.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\axpy.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\copy.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dot.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gemm.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gemv.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ger.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\nrm2.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rot.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scal.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\swap.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\symv.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\syr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\syr2k.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\syrk.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\trmm.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\trmv.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\trsm.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\trsv.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include=".\src\ccomplex.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include=".\src\ampcblas_runtime.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ampblas\inc\detail\symm.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\ampcblas_config.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include=".\inc\ampcblas_runtime.h">
+      <Filter>inc\package</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampcblas.h">
+      <Filter>inc\package</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampcblas_complex.h">
+      <Filter>inc\package</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ampcblas_defs.h">
+      <Filter>inc\package</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
