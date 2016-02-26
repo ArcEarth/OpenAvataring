@@ -6,6 +6,7 @@
 #include <dwrite_2.h>
 #include <d2d1_2.h>
 #include "DirectXMathExtend.h"
+#include "DirectXMathSimpleVectors.h"
 #include "Textures.h"
 
 namespace DirectX

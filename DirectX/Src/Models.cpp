@@ -147,7 +147,7 @@ DefaultStaticModel * DefaultStaticModel::CreateFromObjFile(const std::wstring & 
 		{
 			const auto& idcs = shape.mesh.indices;
 			//FacetPrimitives::Triangle<uint16_t> tri{ idcs[i * 3 + 0],idcs[i * 3 + 1],idcs[i * 3 + 2] };
-			FacetPrimitives::Triangle<uint16_t> tri{ idcs[i * 3 + 2],idcs[i * 3 + 1],idcs[i * 3 + 0] };
+			FacetPrimitives::Triangle<IndexType> tri{ (IndexType)idcs[i * 3 + 2],(IndexType)idcs[i * 3 + 1],(IndexType)idcs[i * 3 + 0] };
 			Facets.push_back(tri);
 		}
 

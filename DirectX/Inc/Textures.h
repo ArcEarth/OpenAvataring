@@ -659,6 +659,7 @@ namespace DirectX {
 		};
 
 		EnvironmentTexture();
+		~EnvironmentTexture();
 
 		EnvironmentTexture(ID3D11Device* pDevice, _In_ unsigned int FaceSize, bool Renderable = true, _In_opt_ DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM);
 		

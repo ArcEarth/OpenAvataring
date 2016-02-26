@@ -16,23 +16,10 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include <DirectXColors.h>
-
-//#ifdef __SSE3__
-#include "DirectXMathSSE3.h"
-//#endif
-#ifdef __SSE4__
-#include "DirectXMathSSE4.h"
+#include <DirectXMathIntrinsics.h>
+#ifndef _DXMEXT
+#define _DXMEXT
 #endif
-#ifdef __AVX__
-#include "DirectXMathAVX.h"
-#endif
-#ifdef __AVX2__
-#include "DirectXMathAVX2.h"
-#endif
-
-// Disable Viewport class to prevent <SimpleMath.h> to drag d3d11 headers in
-#define _SIMPLE_MATH_NO_VIEWPORT 1
-#include <SimpleMath.h>
 
 #ifndef XM_ALIGNATTR
 #define XM_ALIGNATTR _MM_ALIGN16
@@ -65,6 +52,10 @@ namespace DirectX
 		M.r[3] = XMVectorZero();
 		return M;
 	}
+
+	XMVECTOR    XM_CALLCONV     XMVectorAddInt(FXMVECTOR V1, FXMVECTOR V2);
+	XMVECTOR    XM_CALLCONV     XMVectorSubtractInt(FXMVECTOR V1, FXMVECTOR V2);
+	XMVECTOR    XM_CALLCONV     XMVectorMultiplyInt(FXMVECTOR V1, FXMVECTOR V2);
 
 	inline XMVECTOR XM_CALLCONV XMLoadFloat4(const float* pF4)
 	{
@@ -170,7 +161,7 @@ namespace DirectX
 		}
 	};
 
-	template <typename _T, size_t _Align_Boundary = std::alignment_of<_T>::value>
+	template <typename _T, size_t _Align_Boundary = alignof(_T)>
 	class AlignedAllocator
 	{
 	public:
@@ -531,34 +522,7 @@ namespace DirectX
 			r[1] /= S;
 			return *this;
 		}
-
-
-
-		//friend XMDUALVECTOR operator* (float S, CXMMATRIX M);
 	};
-
-#if defined(_XM_SSE_INTRINSICS_) 
-	template <>
-	inline XMVECTOR XM_CALLCONV XMVectorSwizzle<1, 1, 3, 3>(FXMVECTOR v)
-	{
-		return SSE3::XMVectorSwizzle_1133(v);
-	}
-	template <>
-	inline XMVECTOR XM_CALLCONV XMVectorSwizzle<0, 0, 2, 2>(FXMVECTOR v)
-	{
-		return SSE3::XMVectorSwizzle_0022(v);
-	}
-	template <>
-	inline XMVECTOR XM_CALLCONV XMVectorSwizzle<0, 0, 1, 1>(FXMVECTOR v)
-	{
-		return XMVectorMergeXY(v, v);
-	}
-	template <>
-	inline XMVECTOR XM_CALLCONV XMVectorSwizzle<2, 2, 3, 3>(FXMVECTOR v)
-	{
-		return XMVectorMergeZW(v, v);
-	}
-#endif
 
 	// Caculate the rotation quaternion base on v1 and v2 (shortest rotation geo-distance in sphere surface)
 	inline XMVECTOR XM_CALLCONV XMQuaternionRotationVectorToVector(FXMVECTOR v1, FXMVECTOR v2) {
@@ -584,7 +548,7 @@ namespace DirectX
 				axias = XMVector3Cross(n1, n2);
 			}
 		}
-		float angle = std::acosf(XMVectorGetX(XMVector3Dot(n1, n2)));
+		float angle = XMScalarACos(XMVectorGetX(XMVector3Dot(n1, n2)));
 		auto rot = XMQuaternionRotationAxis(axias, angle);
 		return rot;
 	}
@@ -612,28 +576,28 @@ namespace DirectX
 		//euler.m128_f32[3] = 0;
 		//return euler;
 
-		XMVECTOR q02 = XMVectorSwizzle<3, 3, 1, 1>(q); // q0022
-		XMVECTOR q13 = XMVectorSwizzle<0, 0, 2, 2>(q); // q1133
+		XMVECTOR q02 = _DXMEXT XMVectorSwizzle<3, 3, 1, 1>(q); // q0022
+		XMVECTOR q13 = _DXMEXT XMVectorSwizzle<0, 0, 2, 2>(q); // q1133
 
 													   // eular X - Roll
-		XMVECTOR Y = XMVector4Dot(q02, q13);	// 2 * (q2*q1+q0*q3)
-		XMVECTOR X = XMVectorSwizzle<0, 0, 1, 1>(q); // q2121
-		X = XMVector4Dot(X, X);					// 2 * (q2*q2+q1*q1)
+		XMVECTOR Y = _DXMEXT XMVector4Dot(q02, q13);	// 2 * (q2*q1+q0*q3)
+		XMVECTOR X = _DXMEXT XMVectorSwizzle<0, 0, 1, 1>(q); // q2121
+		X = _DXMEXT XMVector4Dot(X, X);					// 2 * (q2*q2+q1*q1)
 		X = XMVectorSubtract(g_XMOne.v, X);		// 1 - 2 * (q2*q2+q1*q1)
 		XMVECTOR vResult = XMVectorATan2(Y, X);
 
 		// eular Y - Y
-		q13 = XMVectorSwizzle<2, 2, 0, 0>(q); // now q3311
-		Y = XMVector4Dot(q02, q13);			  // now 3311 dot 0022 = q3*q0 + q1*q2
-		X = XMVectorSwizzle<1, 1, 2, 2>(q);		  // now q3232
-		X = XMVector4Dot(X, X);				  // now 2 * (q3*q3+q2*q2)
+		q13 = _DXMEXT XMVectorSwizzle<2, 2, 0, 0>(q); // now q3311
+		Y = _DXMEXT XMVector4Dot(q02, q13);			  // now 3311 dot 0022 = q3*q0 + q1*q2
+		X = _DXMEXT XMVectorSwizzle<1, 1, 2, 2>(q);		  // now q3232
+		X = _DXMEXT XMVector4Dot(X, X);				  // now 2 * (q3*q3+q2*q2)
 		X = XMVectorSubtract(g_XMOne.v, X);	  // now 1 - 2 * (q3*q3+q2*q2)
 		X = XMVectorATan2(Y, X);
 
 		// eular X - Patch
-		Y = XMVectorSwizzle<2, 3, 0, 1>(q); // now q3 q0 q1 q2 
+		Y = _DXMEXT XMVectorSwizzle<2, 3, 0, 1>(q); // now q3 q0 q1 q2 
 		Y = XMVectorMultiply(Y, g_XMNegtiveXZ.v); // now -q3 q0 -q1 q2
-		Y = XMVector4Dot(Y, q); // now -q1*q3 + q2*q0 - q3*q1 + q0*q2
+		Y = _DXMEXT XMVector4Dot(Y, q); // now -q1*q3 + q2*q0 - q3*q1 + q0*q2
 		Y = XMVectorASin(Y);
 
 		// merge result
@@ -701,7 +665,7 @@ namespace DirectX
 
 	inline XMDUALVECTOR XM_CALLCONV XMDualQuaternionNormalize(FXMDUALVECTOR Dq)
 	{
-		XMVECTOR Length = XMQuaternionLength(Dq.r[0]);
+		XMVECTOR Length = _DXMEXT XMVector4Length(Dq.r[0]);
 		XMDUALVECTOR dqRes;
 		dqRes.r[0] = XMVectorDivide(Dq.r[0], Length);
 		dqRes.r[1] = XMVectorDivide(Dq.r[1], Length);
@@ -709,19 +673,19 @@ namespace DirectX
 	}
 	inline XMVECTOR XM_CALLCONV XMDualQuaternionNormalizeEst(FXMDUALVECTOR Dq)
 	{
-		return XMVector4NormalizeEst(Dq.r[0]);
+		return _DXMEXT XMVector4NormalizeEst(Dq.r[0]);
 	}
 	inline XMVECTOR XM_CALLCONV XMDualQuaternionLength(FXMDUALVECTOR Dq)
 	{
-		return XMVector4Length(Dq.r[0]);
+		return _DXMEXT XMVector4Length(Dq.r[0]);
 	}
 	inline XMVECTOR XM_CALLCONV XMDualQuaternionLengthSq(FXMDUALVECTOR Dq)
 	{
-		return XMVector4LengthSq(Dq.r[0]);
+		return _DXMEXT XMVector4LengthSq(Dq.r[0]);
 	}
 	inline XMVECTOR XM_CALLCONV XMDualQuaternionLengthEst(FXMDUALVECTOR Dq)
 	{
-		return XMVector4LengthEst(Dq.r[0]);
+		return _DXMEXT XMVector4LengthEst(Dq.r[0]);
 	}
 	inline XMDUALVECTOR XM_CALLCONV XMDualVectorConjugate(FXMDUALVECTOR Dq)
 	{
@@ -764,22 +728,22 @@ namespace DirectX
 		XMVECTOR vT;
 		XMVECTOR Qr = Dq.r[0];
 		XMVECTOR Qe = Dq.r[1];
-		Qr = XMQuaternionNormalize(Qr);
+		Qr = _DXMEXT XMVector4Normalize(Qr);
 
-		XMVECTOR Q = XMVectorSwizzle<3, 2, 1, 0>(Qr);
+		XMVECTOR Q = _DXMEXT XMVectorSwizzle<3, 2, 1, 0>(Qr);
 		Q = XMVectorMultiply(Qe, Q);
-		Q = XMVector4Dot(Q, ControlX.v);
+		Q = _DXMEXT XMVector4Dot(Q, ControlX.v);
 		vT = XMVectorAndInt(Q, g_XMMaskX.v);
 
-		Q = XMVectorSwizzle<2, 3, 0, 1>(Qr);
+		Q = _DXMEXT XMVectorSwizzle<2, 3, 0, 1>(Qr);
 		Q = XMVectorMultiply(Qe, Q);
-		Q = XMVector4Dot(Q, ControlY.v);
+		Q = _DXMEXT XMVector4Dot(Q, ControlY.v);
 		Q = XMVectorAndInt(Q, g_XMMaskY.v);
 		vT = XMVectorOrInt(vT, Q);
 
-		Q = XMVectorSwizzle<1, 0, 3, 2>(Qr);
+		Q = _DXMEXT XMVectorSwizzle<1, 0, 3, 2>(Qr);
 		Q = XMVectorMultiply(Qe, Q);
-		Q = XMVector4Dot(Q, ControlZ.v);
+		Q = _DXMEXT XMVector4Dot(Q, ControlZ.v);
 		Q = XMVectorAndInt(Q, g_XMMaskZ.v);
 		vT = XMVectorOrInt(vT, Q);
 
@@ -961,225 +925,6 @@ namespace DirectX
 #pragma endregion
 #endif
 
-	// SimpleMath::DualQuaternion
-	namespace SimpleMath
-	{
-		class DualQuaternion
-		{
-		public:
-			Quaternion Qr, Qe;
-			DualQuaternion()
-				: Qr(), Qe(0.0f, 0.0f, 0.0f, 0.0f)
-			{}
-			DualQuaternion(const Quaternion& Rotation, const Vector3& Translation)
-				: Qr(Rotation)
-			{
-				Qr.Normalize();
-				const float* Q0 = reinterpret_cast<float*>(&Qr);
-				const float* T = reinterpret_cast<const float*>(&Translation);
-				Qe.w = -0.5f*(T[0] * Q0[0] + T[1] * Q0[1] + T[2] * Q0[2]);
-				Qe.x = 0.5f*(T[0] * Q0[3] + T[1] * Q0[2] - T[2] * Q0[1]);
-				Qe.y = 0.5f*(-T[0] * Q0[2] + T[1] * Q0[3] + T[2] * Q0[0]);
-				Qe.z = 0.5f*(T[0] * Q0[1] - T[1] * Q0[0] + T[2] * Q0[3]);
-			}
-			DualQuaternion(FXMVECTOR Qr, FXMVECTOR Qe)
-				: Qr(Qr), Qe(Qe)
-			{}
-			DualQuaternion(CXMDUALVECTOR DQ)
-				: Qr(DQ.r[0]), Qe(DQ.r[1])
-			{}
-
-			explicit DualQuaternion(_In_reads_(8) const float* pArray)
-				: Qr(pArray), Qe(pArray + 4)
-			{}
-			explicit DualQuaternion(_In_reads_(2) const Quaternion* pQArray)
-				: Qr(*pQArray), Qe(*(pQArray + 1))
-			{}
-
-			inline operator XMDUALVECTOR() const
-			{
-				XMDUALVECTOR dqRes;
-				dqRes.r[0] = Qr;
-				dqRes.r[1] = Qe;
-				return dqRes;
-			}
-
-
-			void Normarlize(DualQuaternion& result) const
-			{
-				XMDUALVECTOR dq = *this;
-				dq = XMDualQuaternionNormalize(dq);
-				result.Qr = dq.r[0];
-				result.Qe = dq.r[1];
-			}
-
-			void Normarlize()
-			{
-				Normarlize(*this);
-			}
-
-			void Inverse(DualQuaternion& result) const
-			{
-				XMDUALVECTOR dq = *this;
-				dq = XMDualQuaternionInverse(dq);
-				result.Qr = dq.r[0];
-				result.Qe = dq.r[1];
-			}
-			void Inverse()
-			{
-				Inverse(*this);
-			}
-
-			void Conjugate()
-			{
-				Qr.Conjugate();
-				Qe.Conjugate();
-			}
-
-			void Conjugate(DualQuaternion& result) const
-			{
-				result.Qr = XMQuaternionConjugate(Qr);
-				result.Qe = XMQuaternionConjugate(Qe);
-			}
-
-			Vector2 Norm() const
-			{
-				Vector2 value;
-				XMVECTOR q0 = Qr;
-				XMVECTOR q1 = Qe;
-				XMVECTOR len = XMQuaternionLength(q0);
-				q1 = XMVector4Dot(q0, q1);
-				q0 = XMVectorDivide(q1, len);
-				q1 = XMVectorSelect(len, q0, g_XMSelect0101);
-				value = q1;
-				return value;
-			}
-
-			bool IsUnit() const
-			{
-				XMVECTOR q0 = Qr;
-				XMVECTOR q1 = Qe;
-				q1 = XMVector4Dot(q0, q1);
-				return XMVector4NearEqual(q0, g_XMZero.v, g_XMEpsilon.v);
-			}
-
-			bool Decompose(Quaternion& Rotation, Vector3& Translation) const
-			{
-				const auto& Q = Rotation = XMQuaternionNormalize(Qr);
-				// translation vector:
-				Translation.x = 2.0f*(-Qe.w*Q.x + Qe.x*Q.w - Qe.y*Q.z + Qe.z*Q.y);
-				Translation.y = 2.0f*(-Qe.w*Q.y + Qe.x*Q.z + Qe.y*Q.w - Qe.z*Q.x);
-				Translation.z = 2.0f*(-Qe.w*Q.z - Qe.x*Q.y + Qe.y*Q.x + Qe.z*Q.w);
-			}
-
-			DualQuaternion& operator+= (const DualQuaternion& rhs)
-			{
-				Qr += rhs.Qr;
-				Qe += rhs.Qe;
-				return *this;
-			}
-
-			DualQuaternion& operator-= (const DualQuaternion& rhs)
-			{
-				Qr -= rhs.Qr;
-				Qe -= rhs.Qe;
-				return *this;
-			}
-
-			DualQuaternion& operator*= (const DualQuaternion& rhs)
-			{
-				XMVECTOR A = this->Qr;
-				XMVECTOR B = this->Qe;
-				XMVECTOR C = rhs.Qr;
-				XMVECTOR D = rhs.Qe;
-				D = XMQuaternionMultiply(A, D);
-				B = XMQuaternionMultiply(B, C);
-				Qe = XMVectorAdd(D, B);
-				Qr = XMQuaternionMultiply(A, C);
-			}
-
-			DualQuaternion& operator*= (float scale)
-			{
-				Qr *= scale;
-				Qr *= scale;
-				return *this;
-			}
-
-			DualQuaternion& operator/= (float scale)
-			{
-				float s = 1.0f / scale;
-				return (*this) *= s;
-			}
-		};
-
-		inline DualQuaternion operator+ (const DualQuaternion& lhs, const DualQuaternion& rhs)
-		{
-			DualQuaternion result = lhs;
-			result += rhs;
-			return result;
-		}
-		inline DualQuaternion operator- (const DualQuaternion& lhs, const DualQuaternion& rhs)
-		{
-			DualQuaternion result = lhs;
-			result -= rhs;
-			return result;
-		}
-		inline DualQuaternion operator* (const DualQuaternion& lhs, const DualQuaternion& rhs)
-		{
-			DualQuaternion result = lhs;
-			result *= rhs;
-			return result;
-		}
-		inline DualQuaternion operator* (const DualQuaternion& lhs, float rhs)
-		{
-			DualQuaternion result = lhs;
-			result *= rhs;
-			return result;
-		}
-		inline DualQuaternion operator/ (const DualQuaternion& lhs, float rhs)
-		{
-			DualQuaternion result = lhs;
-			result /= rhs;
-			return result;
-		}
-	}
-
-	using SimpleMath::Vector2;
-	using SimpleMath::Vector3;
-	using SimpleMath::Vector4;
-
-	using SimpleMath::Quaternion;
-	using SimpleMath::DualQuaternion;
-
-	using SimpleMath::Color;
-	using SimpleMath::Plane;
-	using SimpleMath::Ray;
-
-	typedef SimpleMath::Matrix Matrix4x4;
-
-	using SimpleMath::operator*;
-	using SimpleMath::operator+;
-	using SimpleMath::operator-;
-	using SimpleMath::operator/;
-
-	namespace HLSLVectors
-	{
-		using float4 = Vector4;
-		using float3 = Vector3;
-		using float2 = Vector2;
-		using uint = uint32_t;
-		using uint4 = XMUINT4;
-		using uint3 = XMUINT3;
-		using uint2 = XMUINT2;
-		using int2 = XMINT2;
-		using int3 = XMINT3;
-		using int4 = XMINT4;
-		using float4x4 = Matrix4x4;
-		using float4x3 = XMFLOAT3X4;
-		using float3x3 = XMFLOAT3X3;
-		using matrix = float4x4;
-	}
-
 #ifdef _MSC_VER
 #pragma region Quaternion Eular Angle Convertions
 #endif
@@ -1285,31 +1030,41 @@ namespace DirectX
 #pragma endregion
 #endif
 
+	namespace Internal
+	{
+		template <typename T>
+		inline void Swap(T& x, T&y)
+		{
+			T t = x;
+			x = y;
+			y = t;
+		}
+	}
 	// This function garuntee the extends of the bounding box is sorted from bigger to smaller
 	inline void CreateBoundingOrientedBoxFromPoints(_Out_ BoundingOrientedBox& Out, _In_ size_t Count,
 		_In_reads_bytes_(sizeof(XMFLOAT3) + Stride*(Count - 1)) const XMFLOAT3* pPoints, _In_ size_t Stride) {
-		using namespace std;
 		BoundingOrientedBox::CreateFromPoints(Out, Count, pPoints, Stride);
 		XMMATRIX rot = XMMatrixIdentity();
 		auto& ext = Out.Extents;
+		using Internal::Swap;
 
 		// Sort the demension
 		if (ext.x < ext.y)
 		{
-			swap(ext.x, ext.y);
-			swap(rot.r[0], rot.r[1]);
+			Swap(ext.x, ext.y);
+			Swap(rot.r[0], rot.r[1]);
 			rot.r[2] = -rot.r[2]; // Flip the other axias to maintain the chirality
 		}
 		if (ext.y < ext.z)
 		{
-			swap(ext.y, ext.z);
-			swap(rot.r[1], rot.r[2]);
+			Swap(ext.y, ext.z);
+			Swap(rot.r[1], rot.r[2]);
 			rot.r[0] = -rot.r[0];
 		}
 		if (ext.x < ext.y)
 		{
-			swap(ext.x, ext.y);
-			swap(rot.r[0], rot.r[1]);
+			Swap(ext.x, ext.y);
+			Swap(rot.r[0], rot.r[1]);
 			rot.r[2] = -rot.r[2];
 		}
 
@@ -1386,22 +1141,7 @@ namespace DirectX
 	{
 		XMStoreFloat4A(reinterpret_cast<XMFLOAT4A*>(&dest), v);
 	}
-	inline XMVECTOR XMLoad(const SimpleMath::Quaternion& src)
-	{
-		return XMLoadFloat4(&src);
-	}
-	inline XMVECTOR XMLoadA(const SimpleMath::Quaternion& src)
-	{
-		return XMLoadFloat4A(reinterpret_cast<const XMFLOAT4A*>(&src));
-	}
-	inline void XM_CALLCONV XMStore(SimpleMath::Quaternion& dest, FXMVECTOR v)
-	{
-		XMStoreFloat4(&dest, v);
-	}
-	inline void XM_CALLCONV XMStoreA(SimpleMath::Quaternion& dest, FXMVECTOR v)
-	{
-		XMStoreFloat4A(reinterpret_cast<XMFLOAT4A*>(&dest), v);
-	}
+
 	inline XMMATRIX XMLoad(const XMFLOAT4X4& src)
 	{
 		return XMLoadFloat4x4(&src);
@@ -1419,545 +1159,6 @@ namespace DirectX
 		XMStoreFloat4x4A(reinterpret_cast<XMFLOAT4X4A*>(&dest), m);
 	}
 #pragma endregion
-
-	template <class Derived>
-	struct TransformBase : public DirectX::AlignedNew<XMVECTOR>
-	{
-		typedef Derived DerivedType;
-
-		inline Derived& Inverse()
-		{
-			return Derived::Inverse();
-		}
-
-		inline Derived Inversed() const
-		{
-			Derived t = static_cast<const Derived&>(*this);
-			t.Inverse();
-			return t;
-		}
-
-		inline XMMATRIX TransformMatrix() const
-		{
-			return Derived::TransformMatrix();
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX M)
-		{
-			Derived::SetFromTransformMatrix(M);
-		}
-
-		// transform concate
-		template <typename Derived>
-		inline Derived& operator *=(const TransformBase<Derived>& transform)
-		{
-			XMMATRIX mat = TransformMatrix();
-			XMMATRIX mat2 = transform.TransformMatrix();
-			mat *= mat2;
-			SetFromTransformMatrix(mat);
-			return *this;
-		}
-	};
-
-	template <class Derived>
-	inline Vector3 operator*(const Vector3& v, const TransformBase<Derived>& transform)
-	{
-		XMVECTOR V = XMLoad(v);
-		V = XMVector3TransformCoord(V, transform.TransformMatrix());
-		return Vector3(V);
-	}
-
-	XM_ALIGNATTR
-	struct RotationTransform : public TransformBase<RotationTransform>
-	{
-		XM_ALIGNATTR
-			Quaternion  Rotation;
-		// Extract the Matrix Representation of this rigid transform
-		inline XMMATRIX TransformMatrix() const
-		{
-			XMMATRIX M = XMMatrixRotationQuaternion(XMLoadFloat4A(reinterpret_cast<const XMFLOAT4A*>(&Rotation)));
-			return M;
-		}
-
-		inline RotationTransform() = default;
-
-		inline RotationTransform(const Quaternion& q)
-			: Rotation(q)
-		{
-		}
-
-		inline operator XMVECTOR() const
-		{
-			return XMLoadFloat4A(reinterpret_cast<const XMFLOAT4A*>(&Rotation));
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			XMVECTOR scl, rot, tra;
-			XMMatrixDecompose(&scl, &rot, &tra, transform);
-			//XMLoadFloat4A(reinterpret_cast<const XMFLOAT4A*>(&Rotation))
-			XMStoreFloat4A(reinterpret_cast<XMFLOAT4A*>(&Rotation), rot);
-			//Rotation.StoreA(rot);
-		}
-	};
-
-	inline Vector3 operator*(const Vector3& v, const RotationTransform& transform)
-	{
-		XMVECTOR V = XMLoad(v);
-		XMVECTOR Q = XMLoad(transform.Rotation);
-		V = XMVector3Rotate(V, Q);
-		return Vector3(V);
-	}
-
-	XM_ALIGNATTR
-	struct TranslationTransform : public TransformBase<TranslationTransform>
-	{
-		XM_ALIGNATTR
-			Vector3  Translation;
-		float Tw;
-		// Extract the Matrix Representation of this rigid transform
-		inline XMMATRIX TransformMatrix() const
-		{
-			XMMATRIX M = XMMatrixTranslationFromVector(XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(&Translation)));
-			return M;
-		}
-
-		inline operator XMVECTOR() const
-		{
-			return XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(&Translation));
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			XMVECTOR scl, rot, tra;
-			XMMatrixDecompose(&scl, &rot, &tra, transform);
-			XMStoreFloat3A(reinterpret_cast<XMFLOAT3A*>(&Translation), tra);
-			//Translation.StoreA(tra);
-		}
-	};
-
-	inline Vector3 operator*(const Vector3& v, const TranslationTransform& transform)
-	{
-		return v + transform.Translation;
-	}
-
-	XM_ALIGNATTR
-	struct ScaleTransform : public TransformBase<ScaleTransform>
-	{
-		XM_ALIGNATTR
-			Vector3 Scale;
-		float Sw; // Padding		
-				  // Extract the Matrix Representation of this rigid transform
-		inline XMMATRIX TransformMatrix() const
-		{
-			XMMATRIX M = XMMatrixScalingFromVector(XMLoadA(Scale));
-			return M;
-		}
-
-		operator XMVECTOR() const
-		{
-			return XMLoadA(Scale);
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			XMVECTOR scl, rot, tra;
-			XMMatrixDecompose(&scl, &rot, &tra, transform);
-			XMStoreA(Scale, scl);
-		}
-	};
-
-	inline Vector3 operator*(const Vector3& v, const ScaleTransform& transform)
-	{
-		return XMLoad(v) * XMLoadA(transform.Scale);
-	}
-
-	XM_ALIGNATTR
-		// Composition of Translation and Rotation
-	struct RigidTransform : public TransformBase<RigidTransform>
-	{
-	public:
-		XM_ALIGNATTR
-			Quaternion  Rotation;
-		XM_ALIGNATTR
-			Vector3		Translation;
-		float		Tw; // padding
-
-		RigidTransform()
-			: Tw(1.0f)
-		{
-		}
-
-		// Extract the Matrix Representation of this rigid transform
-		inline XMMATRIX TransformMatrix() const
-		{
-			XMMATRIX M = XMMatrixRotationQuaternion(Rotation);
-			XMVECTOR VTranslation = XMVectorSelect(g_XMSelect1110.v, Translation, g_XMSelect1110.v);
-			M.r[3] = XMVectorAdd(M.r[3], VTranslation);
-			return M;
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			XMVECTOR scl, rot, tra;
-			XMMatrixDecompose(&scl, &rot, &tra, transform);
-			Rotation = rot;
-			Translation = tra;
-		}
-
-		// x = 
-		inline void Inverse()
-		{
-			// R' = R^-1
-			XMVECTOR q = XMLoadA(Rotation);
-			q = XMQuaternionInverse(q);
-			XMStoreA(Rotation, q);
-
-			// T' = -T*R^-1
-			XMVECTOR v = XMLoadA(Translation);
-			v = -v;
-			v = XMVector3Rotate(v, q);
-			XMStoreA(Translation, v);
-		}
-
-		template <typename _TTransform>
-		inline RigidTransform& operator *=(const _TTransform& transform)
-		{
-			XMMATRIX mat = TransformMatrix();
-			XMMATRIX mat2 = transform.TransformMatrix();
-			mat *= mat2;
-			SetFromTransformMatrix(mat);
-			return *this;
-		}
-
-		// Rigid * Rigid
-		template <>
-		inline RigidTransform& operator *=(const RigidTransform& global)
-		{
-			auto& local = *this;
-			XMVECTOR ParQ = XMLoadA(global.Rotation);
-			XMVECTOR Q = XMLoadA(local.Rotation);
-			Q = XMQuaternionMultiply(Q, ParQ);
-			XMStoreA(this->Rotation, Q);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V = XMVector3Rotate(V, ParQ);
-			XMVECTOR gV = XMLoadA(global.Translation);
-			V = XMVectorAdd(V, gV);
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		template <>
-		inline RigidTransform& operator *=(const Quaternion& rot)
-		{
-			auto& local = *this;
-			XMVECTOR ParQ = XMLoad(rot);
-			XMVECTOR Q = XMQuaternionMultiply(XMLoadA(local.Rotation), ParQ);
-			XMStoreA(this->Rotation, Q);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V = XMVector3Rotate(V, ParQ);
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		template <>
-		inline RigidTransform& operator *=(const Vector3& trans)
-		{
-			this->Translation += trans;
-			return *this;
-		}
-
-		// Extract the Dual-Quaternion Representation of this rigid transform
-		inline XMDUALVECTOR TransformDualQuaternion() const
-		{
-			return XMDualQuaternionRotationTranslation(Rotation, Translation);
-		}
-
-		bool NearEqual(const RigidTransform& rhs, float tEpsilon = 0.002f, float rEpsilon = 0.5f) const
-		{
-			Vector3 PosDiff = Translation - rhs.Translation;
-			XMVECTOR RotDiff = Rotation;
-			RotDiff = XMQuaternionInverse(RotDiff);
-			RotDiff = XMQuaternionMultiply(RotDiff, rhs.Rotation);
-			float AngDiff = 2 * acosf(XMVectorGetW(RotDiff));
-			return (PosDiff.LengthSquared() <= tEpsilon*tEpsilon && AngDiff <= rEpsilon);
-		}
-	};
-
-	inline Vector3 operator*(const Vector3& v, const RigidTransform& transform)
-	{
-		XMVECTOR V = XMLoad(v);
-		XMVECTOR Q = XMLoadA(transform.Rotation);
-		V = XMVector3Rotate(V, Q);
-		Q = XMLoadA(transform.Translation);
-		V += Q;
-		return Vector3(V);
-	}
-
-	XM_ALIGNATTR
-		// (Scale*)-Rotation-Translation
-		//! SRT(RST) transform is not a 'Group' in term of MATRIX production
-		//! Thus, We define SRT * SRT -> (S0*S1)*R0*T0*R1*T1
-		//! A simple extension to rigid transform, but will apply well for uniform scaling
-	struct IsometricTransform : public TransformBase<IsometricTransform>
-	{
-	public:
-		XM_ALIGNATTR
-			Quaternion  Rotation;
-		XM_ALIGNATTR
-			Vector3		Translation;
-		float			Tw; // padding
-		XM_ALIGNATTR
-			Vector3		Scale;
-		float			Sw; // Padding
-
-		static IsometricTransform Identity()
-		{
-			return IsometricTransform();
-		}
-
-
-		IsometricTransform()
-			: Scale(1.0f)
-		{}
-
-		inline explicit IsometricTransform(CXMMATRIX transform)
-		{
-			SetFromTransformMatrix(transform);
-		}
-
-		operator RigidTransform& ()
-		{
-			return reinterpret_cast<RigidTransform&>(*this);
-		}
-
-		operator const RigidTransform& () const
-		{
-			return reinterpret_cast<const RigidTransform&>(*this);
-		}
-
-		inline explicit IsometricTransform(const RigidTransform &rigid)
-			: Rotation(rigid.Rotation), Translation(rigid.Translation), Scale(1.0f)
-		{
-		}
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			XMVECTOR scl, rot, tra;
-			XMMatrixDecompose(&scl, &rot, &tra, transform);
-			Scale = scl;
-			Rotation = rot;
-			Translation = tra;
-		}
-
-		// x = 
-		inline void Inverse()
-		{
-			// S' = 1 / S;
-			XMVECTOR s = XMVectorReciprocal(XMLoadA(Scale));
-			XMStoreA(Scale, s);
-
-			// R' = R^-1
-			XMVECTOR q = XMLoadA(Rotation);
-			q = XMQuaternionConjugate(q);
-			XMStoreA(Rotation, q);
-
-			// T' = -T*R^-1 * S^-1
-			q = XMVector3Rotate(XMLoadA(Translation), q);
-			q = -q;
-			q = q * s;
-			XMStoreA(Translation, q);
-		}
-
-
-		// transform concate
-		template <typename Derived>
-		inline IsometricTransform& operator *=(const TransformBase<Derived>& transform)
-		{
-			XMMATRIX mat = TransformMatrix();
-			XMMATRIX mat2 = transform.TransformMatrix();
-			mat *= mat2;
-			SetFromTransformMatrix(mat);
-			return *this;
-		}
-		// SRT * SRT -> (S0*S1)*R0*T0*R1*T1
-		// caculate the transform of Local transform 'this' conacting with Global transform 'rhs'
-		template <>
-		inline IsometricTransform& operator *=(const TransformBase<IsometricTransform>& glb)
-		{
-			auto& local = *this;
-			auto& global = static_cast<const IsometricTransform&>(glb);
-			XMVECTOR ParQ = XMLoadA(global.Rotation);
-			XMVECTOR Q = XMQuaternionMultiply(XMLoadA(local.Rotation), ParQ);
-			XMVECTOR ParS = XMLoadA(global.Scale);
-			XMVECTOR S = ParS*XMLoadA(local.Scale);
-			XMStoreA(this->Rotation, Q);
-			XMStoreA(this->Scale, S);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V *= ParS;
-			V = XMVector3Rotate(V, ParQ);
-			V = XMVectorAdd(V, XMLoadA(global.Translation));
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		template <>
-		IsometricTransform& operator *=(const TransformBase<ScaleTransform>& glb)
-		{
-			auto& local = *this;
-			auto& global = static_cast<const ScaleTransform&>(glb);
-			XMVECTOR ParS = XMLoadA(global.Scale);
-			XMVECTOR S = ParS * XMLoadA(local.Scale);
-			XMStoreA(this->Scale, S);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V *= ParS;
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-
-		// ScaledRigid * Rigid
-		template <>
-		IsometricTransform& operator *=(const TransformBase<RigidTransform>& glb)
-		{
-			auto& local = *this;
-			auto& global = static_cast<const RigidTransform&>(glb);
-			XMVECTOR ParQ = XMLoadA(global.Rotation);
-			XMVECTOR Q = XMQuaternionMultiply(XMLoadA(local.Rotation), ParQ);
-			XMStoreA(this->Rotation, Q);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V = XMVector3Rotate(V, ParQ);
-			V = XMVectorAdd(V, XMLoadA(global.Translation));
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		IsometricTransform& operator *=(const Quaternion& globalRot)
-		{
-			auto& local = *this;
-			XMVECTOR ParQ = XMLoad(globalRot);
-			XMVECTOR Q = XMQuaternionMultiply(XMLoadA(local.Rotation), ParQ);
-			XMStoreA(this->Rotation, Q);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V = XMVector3Rotate(V, ParQ);
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		template <>
-		IsometricTransform& operator *=(const TransformBase<RotationTransform>& glb)
-		{
-			auto& local = *this;
-			auto& global = static_cast<const RotationTransform&>(glb);
-			XMVECTOR ParQ = XMLoadA(global.Rotation);
-			XMVECTOR Q = XMQuaternionMultiply(XMLoadA(local.Rotation), ParQ);
-			XMStoreA(this->Rotation, Q);
-
-			XMVECTOR V = XMLoadA(local.Translation);
-			V = XMVector3Rotate(V, ParQ);
-
-			XMStoreA(this->Translation, V);
-			return *this;
-		}
-
-		template <>
-		IsometricTransform& operator *=(const TransformBase<TranslationTransform>& glb)
-		{
-			auto& global = static_cast<const TranslationTransform&>(glb);
-			this->Translation += global.Translation;
-			return *this;
-		}
-
-		inline XMMATRIX TransformMatrix() const
-		{
-			XMMATRIX M = XMMatrixScalingFromVector(Scale);
-			M *= XMMatrixRotationQuaternion(Rotation);
-			XMVECTOR VTranslation = XMVectorSelect(g_XMSelect1110.v, Translation, g_XMSelect1110.v);
-			M.r[3] = XMVectorAdd(M.r[3], VTranslation);
-			return M;
-		}
-
-		explicit operator XMMATRIX() const
-		{
-			return TransformMatrix();
-		}
-
-		static void Lerp(_Out_ IsometricTransform& out, _In_ const IsometricTransform& t0, _In_ const IsometricTransform& t1, float t)
-		{
-			XMVECTOR tv = XMVectorReplicate(t);
-			out.Scale = XMVectorLerpV(XMLoadA(t0.Scale), XMLoadA(t1.Scale), tv);
-			out.Translation = XMVectorLerpV(XMLoadA(t0.Translation), XMLoadA(t1.Translation), tv);
-			out.Rotation = XMQuaternionSlerpV(XMLoadA(t0.Rotation), XMLoadA(t1.Rotation), tv);
-		}
-
-		static void LerpV(_Out_ IsometricTransform& out, _In_ const IsometricTransform& t0, _In_ const IsometricTransform& t1, FXMVECTOR tv)
-		{
-			out.Scale = XMVectorLerpV(XMLoadA(t0.Scale), XMLoadA(t1.Scale), tv);
-			out.Translation = XMVectorLerpV(XMLoadA(t0.Translation), XMLoadA(t1.Translation), tv);
-			out.Rotation = XMQuaternionSlerpV(XMLoadA(t0.Rotation), XMLoadA(t1.Rotation), tv);
-		}
-	};
-
-
-	inline Vector3 operator*(const Vector3& v, const IsometricTransform& transform)
-	{
-		XMVECTOR V = XMLoad(v);
-		XMVECTOR Q = XMLoadA(transform.Scale);
-		V = XMVectorMultiply(V, Q);
-		Q = XMLoadA(transform.Rotation);
-		V = XMVector3Rotate(V, Q);
-		Q = XMLoadA(transform.Translation);
-		V = XMVectorAdd(V,Q);
-		return Vector3(V);
-	}
-
-	XM_ALIGNATTR
-	struct LinearTransform : public TransformBase<LinearTransform>, public Matrix4x4
-	{
-		using Matrix4x4::operator();
-		using Matrix4x4::operator+=;
-		using Matrix4x4::operator-=;
-		using Matrix4x4::operator*=;
-		using Matrix4x4::operator/=;
-		using Matrix4x4::operator-;
-		using Matrix4x4::operator DirectX::XMMATRIX;
-
-		inline void XM_CALLCONV SetFromTransformMatrix(FXMMATRIX transform)
-		{
-			*this = transform;
-		}
-
-		LinearTransform& operator=(const Matrix4x4& rhs)
-		{
-			Matrix4x4::operator=(rhs);
-		}
-
-		template <typename _TTransform>
-		LinearTransform& operator *=(const _TTransform& transform)
-		{
-			XMMATRIX mat = TransformMatrix();
-			XMMATRIX mat2 = transform.TransformMatrix();
-			mat *= mat2;
-			SetFromTransformMatrix(mat);
-			return *this;
-		}
-
-		inline XMMATRIX TransformMatrix() const
-		{
-			return XMLoadFloat4x4A(reinterpret_cast<const XMFLOAT4X4A*>(this));
-		}
-	};
 
 	enum BoundingGeometryType
 	{
@@ -2148,20 +1349,10 @@ namespace DirectX
 			<< ',' << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << rhs.w << ')';
 		return lhs;
 	};
-
-	inline std::ostream& operator << (std::ostream& lhs, const DirectX::Quaternion& rhs)
-	{
-		lhs << (const Vector4&)(rhs);
-
-		float theta = std::acosf(rhs.w) * 2 / DirectX::XM_PI;
-		DirectX::Vector3 axis(rhs);
-		axis.Normalize();
-		lhs << "[axis=(" << axis
-			<< "),ang=" << std::setw(6) << setiosflags(std::ios::fixed) << std::setprecision(3) << theta << "*Pi]";
-		return lhs;
-	};
 }
 
 #endif
 
+#include "DirectXMathSimpleVectors.h"
+#include "DirectXMathTransforms.h"
 #endif

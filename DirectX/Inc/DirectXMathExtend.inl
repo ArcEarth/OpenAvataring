@@ -5,6 +5,271 @@
 
 namespace DirectX
 {
+	inline XMVECTOR XM_CALLCONV XMVectorAddInt(FXMVECTOR V1, FXMVECTOR V2)
+	{
+#if defined(_XM_NO_INTRINSICS_)
+
+		XMVECTOR Result;
+		Result.vector4_u32[0] = V1.vector4_u32[0] + V2.vector4_u32[0];
+		Result.vector4_u32[1] = V1.vector4_u32[1] + V2.vector4_u32[1];
+		Result.vector4_u32[2] = V1.vector4_u32[2] + V2.vector4_u32[2];
+		Result.vector4_u32[3] = V1.vector4_u32[3] + V2.vector4_u32[3];
+		return Result;
+
+#elif defined(_XM_ARM_NEON_INTRINSICS_)
+		return vaddq_u32(V1, V2);
+#elif defined(_XM_SSE_INTRINSICS_)
+		return _mm_castsi128_ps(_mm_add_epi32(_mm_castps_si128(V1), _mm_castps_si128(V2)));
+#endif	
+	}
+
+	inline XMVECTOR XM_CALLCONV XMVectorSubtractInt(FXMVECTOR V1, FXMVECTOR V2)
+	{
+#if defined(_XM_NO_INTRINSICS_)
+		XMVECTOR Result;
+		Result.vector4_u32[0] = V1.vector4_u32[0] - V2.vector4_u32[0];
+		Result.vector4_u32[1] = V1.vector4_u32[1] - V2.vector4_u32[1];
+		Result.vector4_u32[2] = V1.vector4_u32[2] - V2.vector4_u32[2];
+		Result.vector4_u32[3] = V1.vector4_u32[3] - V2.vector4_u32[3];
+		return Result;
+#elif defined(_XM_ARM_NEON_INTRINSICS_)
+		return vsubq_u32(V1, V2);
+#elif defined(_XM_SSE_INTRINSICS_)
+		return _mm_castsi128_ps(_mm_sub_epi32(_mm_castps_si128(V1), _mm_castps_si128(V2)));
+#endif	
+	}
+
+	inline XMVECTOR XM_CALLCONV XMVectorMultiplyInt(FXMVECTOR V1, FXMVECTOR V2)
+	{
+#if defined(_XM_NO_INTRINSICS_)
+		XMVECTOR Result;
+		Result.vector4_u32[0] = V1.vector4_u32[0] * V2.vector4_u32[0];
+		Result.vector4_u32[1] = V1.vector4_u32[1] * V2.vector4_u32[1];
+		Result.vector4_u32[2] = V1.vector4_u32[2] * V2.vector4_u32[2];
+		Result.vector4_u32[3] = V1.vector4_u32[3] * V2.vector4_u32[3];
+		return Result;
+#elif defined(_XM_ARM_NEON_INTRINSICS_)
+		return vmul_u32(V1, V2);
+#elif defined(_XM_SSE_INTRINSICS_) // Credit: Eigen 3.3.1
+#ifdef __SSE4__
+		return _mm_castsi128_ps(_mm_mullo_epi32(_mm_castps_si128(V1), _mm_castps_si128(V2)));
+#else
+#define vec4i_swizzle1(v,p,q,r,s) \
+  (_mm_shuffle_epi32( v, ((s)<<6|(r)<<4|(q)<<2|(p))))
+#define vec4i_swizzle2(a,b,p,q,r,s) \
+  (_mm_castps_si128( (_mm_shuffle_ps( _mm_castsi128_ps(a), _mm_castsi128_ps(b), ((s)<<6|(r)<<4|(q)<<2|(p))))))
+
+		__m128i a = _mm_castps_si128(V1);
+		__m128i b = _mm_castps_si128(V2);
+		__m128i r = vec4i_swizzle1(
+						vec4i_swizzle2(
+							_mm_mul_epu32(a, b),
+							_mm_mul_epu32(vec4i_swizzle1(a, 1, 0, 3, 2),
+								vec4i_swizzle1(b, 1, 0, 3, 2)),
+							0, 2, 0, 2),
+						0, 2, 1, 3);
+		return _mm_castsi128_ps(r);
+#undef vec4i_swizzle1
+#undef vec4i_swizzle2
+#endif
+#endif
+	}
+
+	namespace LineSegmentTest
+	{
+		inline float XM_CALLCONV Distance(FXMVECTOR p, FXMVECTOR s0, FXMVECTOR s1)
+		{
+			XMVECTOR s = s1 - s0;
+			XMVECTOR v = p - s0;
+			auto Ps = XMVector3Dot(v, s);
+			//p-s0 is the shortest distance
+			if (XMVector4LessOrEqual(Ps, XMVectorZero()))
+				return XMVectorGetX(XMVector3Length(v));
+
+			auto Ds = XMVector3LengthSq(s);
+			//p-s1 is the shortest distance
+			if (XMVector4Greater(Ps, Ds))
+				return XMVectorGetX(XMVector3Length(p - s1));
+			//find the projection point on line segment U
+			return XMVectorGetX(XMVector3Length(v - s * (Ps / Ds)));
+		}
+
+		inline float XM_CALLCONV Distance(FXMVECTOR p, const XMFLOAT3 *path, size_t nPoint, size_t strideInByte)
+		{
+			const auto N = nPoint;
+			auto ptr = reinterpret_cast<const char*>(path);
+			XMVECTOR vBegin = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(path));
+			XMVECTOR vEnd;
+			XMVECTOR vMinDis = g_XMInfinity;
+
+			for (size_t i = 2; i < N - 1; i++)
+			{
+				ptr += strideInByte;
+				vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
+
+				XMVECTOR s = vEnd - vBegin;
+				XMVECTOR v = p - vBegin;
+				XMVECTOR Ps = XMVector3Dot(v, s);
+				XMVECTOR vDis;
+
+				//p-s0 is the shortest distance
+				if (XMVector4LessOrEqual(Ps, XMVectorZero()))
+					vDis = XMVector3Length(v);
+				else {
+					XMVECTOR Ds = XMVector3LengthSq(s);
+					//p-s1 is the shortest distance
+					if (XMVector4Greater(Ps, Ds))
+						vDis = XMVector3Length(p - vEnd);
+					else
+						//find the projection point on line segment U
+						vDis = XMVector3Length(v - s * (Ps / Ds));
+				}
+
+				vMinDis = XMVectorMin(vDis, vMinDis);
+
+				vBegin = vEnd;
+			}
+
+			return XMVectorGetX(vMinDis);
+		}
+
+		// Takes a space point and space line segment , return the projection point on the line segment
+		//  A0  |		A1		  |
+		//      |s0-------------s1|
+		//      |				  |		A2
+		// where p in area of A0 returns s0 , area A2 returns s1 , point in A1 returns the really projection point 
+		inline XMVECTOR XM_CALLCONV Projection(FXMVECTOR p, FXMVECTOR s0, FXMVECTOR s1)
+		{
+			XMVECTOR s = s1 - s0;
+			XMVECTOR v = p - s0;
+			XMVECTOR Ps = XMVector3Dot(v, s);
+
+			//p-s0 is the shortest distance
+			//if (Ps<=0.0f) 
+			//	return s0;
+			if (XMVector4LessOrEqual(Ps, g_XMZero.v))
+				return s0;
+			XMVECTOR Ds = XMVector3LengthSq(s);
+			//p-s1 is the shortest distance
+			//if (Ps>Ds) 	
+			//	return s1;
+			if (XMVector4Less(Ds, Ps))
+				return s1;
+			//find the projection point on line segment U
+			return (s * (Ps / Ds)) + s0;
+		}
+
+		template <typename T>
+		inline XMVECTOR XM_CALLCONV Projection(FXMVECTOR p, const T *path, size_t nPoint, size_t strideInByte)
+		{
+			if (!(strideInByte % 16) && !(reinterpret_cast<intptr_t>(path) & 0x16))
+			{
+				const auto N = nPoint;
+				auto ptr = reinterpret_cast<const char*>(path) + strideInByte;
+				XMVECTOR vBegin = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(path));
+				XMVECTOR vEnd = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(ptr));
+				XMVECTOR vMinProj = Projection(p, vBegin, vEnd);
+				XMVECTOR vMinDis = XMVector3LengthSq(p - vMinProj);
+				vBegin = vEnd;
+
+				for (size_t i = 2; i < N - 1; i++)
+				{
+					ptr += strideInByte;
+					vEnd = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(ptr));
+					XMVECTOR vProj = Projection(p, vBegin, vEnd);
+					XMVECTOR vDis = XMVector3LengthSq(p - vProj);
+					if (XMVector4LessOrEqual(vDis, vMinDis))
+					{
+						vMinDis = vDis;
+						vMinProj = vProj;
+					}
+					vBegin = vEnd;
+				}
+
+				return vMinProj;
+			}
+			else
+			{
+				const auto N = nPoint;
+				auto ptr = reinterpret_cast<const char*>(path) + strideInByte;
+				XMVECTOR vBegin = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(path));
+				XMVECTOR vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
+				XMVECTOR vMinProj = Projection(p, vBegin, vEnd);
+				XMVECTOR vMinDis = XMVector3LengthSq(p - vMinProj);
+				vBegin = vEnd;
+
+				for (size_t i = 2; i < N - 1; i++)
+				{
+					ptr += strideInByte;
+					vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
+					XMVECTOR vProj = Projection(p, vBegin, vEnd);
+					XMVECTOR vDis = XMVector3LengthSq(p - vProj);
+					if (XMVector4LessOrEqual(vDis, vMinDis))
+					{
+						vMinDis = vDis;
+						vMinProj = vProj;
+					}
+					vBegin = vEnd;
+				}
+
+				return vMinProj;
+			}
+		}
+
+	}
+
+	namespace BoundingFrustumExtension
+	{
+		inline void CreateFromMatrixRH(BoundingFrustum& Out, CXMMATRIX Projection)
+		{
+			// Corners of the projection frustum in homogenous space.
+			static XMVECTORF32 HomogenousPoints[6] =
+			{
+				{ 1.0f,  0.0f, -1.0f, 1.0f },   // right (at far plane)
+				{ -1.0f,  0.0f, -1.0f, 1.0f },   // left
+				{ 0.0f,  1.0f, -1.0f, 1.0f },   // top
+				{ 0.0f, -1.0f, -1.0f, 1.0f },   // bottom
+
+				{ 0.0f, 0.0f, 1.0f, 1.0f },    // far
+				{ 0.0f, 0.0f, 0.0f, 1.0f }     // near
+			};
+
+			XMVECTOR Determinant;
+			XMMATRIX matInverse = XMMatrixInverse(&Determinant, Projection);
+
+			// Compute the frustum corners in world space.
+			XMVECTOR Points[6];
+
+			for (size_t i = 0; i < 6; ++i)
+			{
+				// Transform point.
+				Points[i] = XMVector4Transform(HomogenousPoints[i], matInverse);
+			}
+
+			Out.Origin = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			Out.Orientation = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+
+			// Compute the slopes.
+			Points[0] = Points[0] * XMVectorReciprocal(XMVectorSplatZ(Points[0]));
+			Points[1] = Points[1] * XMVectorReciprocal(XMVectorSplatZ(Points[1]));
+			Points[2] = Points[2] * XMVectorReciprocal(XMVectorSplatZ(Points[2]));
+			Points[3] = Points[3] * XMVectorReciprocal(XMVectorSplatZ(Points[3]));
+
+			Out.RightSlope = XMVectorGetX(Points[0]);
+			Out.LeftSlope = XMVectorGetX(Points[1]);
+			Out.TopSlope = XMVectorGetY(Points[2]);
+			Out.BottomSlope = XMVectorGetY(Points[3]);
+
+			// Compute near and far.
+			Points[4] = Points[4] * XMVectorReciprocal(XMVectorSplatW(Points[4]));
+			Points[5] = Points[5] * XMVectorReciprocal(XMVectorSplatW(Points[5]));
+
+			Out.Near = XMVectorGetZ(Points[4]);
+			Out.Far = XMVectorGetZ(Points[5]);
+		}
+	}
+
+
 	template <typename GeometryType>
 	inline ContainmentType BoundingGeometry::ContainsGeometry(const GeometryType & geometry) const
 	{
@@ -305,199 +570,4 @@ namespace DirectX
 			break;
 		}
 	}
-
-	namespace LineSegmentTest
-	{
-		inline float XM_CALLCONV Distance(FXMVECTOR p, FXMVECTOR s0, FXMVECTOR s1)
-		{
-			XMVECTOR s = s1 - s0;
-			XMVECTOR v = p - s0;
-			auto Ps = XMVector3Dot(v, s);
-			//p-s0 is the shortest distance
-			if (XMVector4LessOrEqual(Ps, XMVectorZero()))
-				return XMVectorGetX(XMVector3Length(v));
-
-			auto Ds = XMVector3LengthSq(s);
-			//p-s1 is the shortest distance
-			if (XMVector4Greater(Ps, Ds))
-				return XMVectorGetX(XMVector3Length(p - s1));
-			//find the projection point on line segment U
-			return XMVectorGetX(XMVector3Length(v - s * (Ps / Ds)));
-		}
-
-		inline float XM_CALLCONV Distance(FXMVECTOR p, const XMFLOAT3 *path, size_t nPoint, size_t strideInByte)
-		{
-			const auto N = nPoint;
-			auto ptr = reinterpret_cast<const char*>(path);
-			XMVECTOR vBegin = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(path));
-			XMVECTOR vEnd;
-			XMVECTOR vMinDis = g_XMInfinity;
-
-			for (size_t i = 2; i < N - 1; i++)
-			{
-				ptr += strideInByte;
-				vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
-
-				XMVECTOR s = vEnd - vBegin;
-				XMVECTOR v = p - vBegin;
-				XMVECTOR Ps = XMVector3Dot(v, s);
-				XMVECTOR vDis;
-
-				//p-s0 is the shortest distance
-				if (XMVector4LessOrEqual(Ps, XMVectorZero()))
-					vDis = XMVector3Length(v);
-				else {
-					XMVECTOR Ds = XMVector3LengthSq(s);
-					//p-s1 is the shortest distance
-					if (XMVector4Greater(Ps, Ds))
-						vDis = XMVector3Length(p - vEnd);
-					else
-						//find the projection point on line segment U
-						vDis = XMVector3Length(v - s * (Ps / Ds));
-				}
-
-				vMinDis = XMVectorMin(vDis, vMinDis);
-
-				vBegin = vEnd;
-			}
-
-			return XMVectorGetX(vMinDis);
-		}
-
-		// Takes a space point and space line segment , return the projection point on the line segment
-		//  A0  |		A1		  |
-		//      |s0-------------s1|
-		//      |				  |		A2
-		// where p in area of A0 returns s0 , area A2 returns s1 , point in A1 returns the really projection point 
-		inline XMVECTOR XM_CALLCONV Projection(FXMVECTOR p, FXMVECTOR s0, FXMVECTOR s1)
-		{
-			XMVECTOR s = s1 - s0;
-			XMVECTOR v = p - s0;
-			XMVECTOR Ps = XMVector3Dot(v, s);
-
-			//p-s0 is the shortest distance
-			//if (Ps<=0.0f) 
-			//	return s0;
-			if (XMVector4LessOrEqual(Ps, g_XMZero.v))
-				return s0;
-			XMVECTOR Ds = XMVector3LengthSq(s);
-			//p-s1 is the shortest distance
-			//if (Ps>Ds) 	
-			//	return s1;
-			if (XMVector4Less(Ds, Ps))
-				return s1;
-			//find the projection point on line segment U
-			return (s * (Ps / Ds)) + s0;
-		}
-
-		template <typename T>
-		inline XMVECTOR XM_CALLCONV Projection(FXMVECTOR p, const T *path, size_t nPoint, size_t strideInByte)
-		{
-			if (!(strideInByte % 16) && !(reinterpret_cast<intptr_t>(path) & 0x16))
-			{
-				const auto N = nPoint;
-				auto ptr = reinterpret_cast<const char*>(path) + strideInByte;
-				XMVECTOR vBegin = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(path));
-				XMVECTOR vEnd = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(ptr));
-				XMVECTOR vMinProj = Projection(p, vBegin, vEnd);
-				XMVECTOR vMinDis = XMVector3LengthSq(p - vMinProj);
-				vBegin = vEnd;
-
-				for (size_t i = 2; i < N - 1; i++)
-				{
-					ptr += strideInByte;
-					vEnd = XMLoadFloat3A(reinterpret_cast<const XMFLOAT3A*>(ptr));
-					XMVECTOR vProj = Projection(p, vBegin, vEnd);
-					XMVECTOR vDis = XMVector3LengthSq(p - vProj);
-					if (XMVector4LessOrEqual(vDis, vMinDis))
-					{
-						vMinDis = vDis;
-						vMinProj = vProj;
-					}
-					vBegin = vEnd;
-				}
-
-				return vMinProj;
-			}
-			else
-			{
-				const auto N = nPoint;
-				auto ptr = reinterpret_cast<const char*>(path) + strideInByte;
-				XMVECTOR vBegin = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(path));
-				XMVECTOR vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
-				XMVECTOR vMinProj = Projection(p, vBegin, vEnd);
-				XMVECTOR vMinDis = XMVector3LengthSq(p - vMinProj);
-				vBegin = vEnd;
-
-				for (size_t i = 2; i < N - 1; i++)
-				{
-					ptr += strideInByte;
-					vEnd = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(ptr));
-					XMVECTOR vProj = Projection(p, vBegin, vEnd);
-					XMVECTOR vDis = XMVector3LengthSq(p - vProj);
-					if (XMVector4LessOrEqual(vDis, vMinDis))
-					{
-						vMinDis = vDis;
-						vMinProj = vProj;
-					}
-					vBegin = vEnd;
-				}
-
-				return vMinProj;
-			}
-		}
-
-	}
-
-	namespace BoundingFrustumExtension
-	{
-		inline void CreateFromMatrixRH(BoundingFrustum& Out, CXMMATRIX Projection)
-		{
-			// Corners of the projection frustum in homogenous space.
-			static XMVECTORF32 HomogenousPoints[6] =
-			{
-				{ 1.0f,  0.0f, -1.0f, 1.0f },   // right (at far plane)
-				{ -1.0f,  0.0f, -1.0f, 1.0f },   // left
-				{ 0.0f,  1.0f, -1.0f, 1.0f },   // top
-				{ 0.0f, -1.0f, -1.0f, 1.0f },   // bottom
-
-				{ 0.0f, 0.0f, 1.0f, 1.0f },    // far
-				{ 0.0f, 0.0f, 0.0f, 1.0f }     // near
-			};
-
-			XMVECTOR Determinant;
-			XMMATRIX matInverse = XMMatrixInverse(&Determinant, Projection);
-
-			// Compute the frustum corners in world space.
-			XMVECTOR Points[6];
-
-			for (size_t i = 0; i < 6; ++i)
-			{
-				// Transform point.
-				Points[i] = XMVector4Transform(HomogenousPoints[i], matInverse);
-			}
-
-			Out.Origin = XMFLOAT3(0.0f, 0.0f, 0.0f);
-			Out.Orientation = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-
-			// Compute the slopes.
-			Points[0] = Points[0] * XMVectorReciprocal(XMVectorSplatZ(Points[0]));
-			Points[1] = Points[1] * XMVectorReciprocal(XMVectorSplatZ(Points[1]));
-			Points[2] = Points[2] * XMVectorReciprocal(XMVectorSplatZ(Points[2]));
-			Points[3] = Points[3] * XMVectorReciprocal(XMVectorSplatZ(Points[3]));
-
-			Out.RightSlope = XMVectorGetX(Points[0]);
-			Out.LeftSlope = XMVectorGetX(Points[1]);
-			Out.TopSlope = XMVectorGetY(Points[2]);
-			Out.BottomSlope = XMVectorGetY(Points[3]);
-
-			// Compute near and far.
-			Points[4] = Points[4] * XMVectorReciprocal(XMVectorSplatW(Points[4]));
-			Points[5] = Points[5] * XMVectorReciprocal(XMVectorSplatW(Points[5]));
-
-			Out.Near = XMVectorGetZ(Points[4]);
-			Out.Far = XMVectorGetZ(Points[5]);
-		}
-	}
-
 }

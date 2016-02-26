@@ -132,6 +132,15 @@
     <ClInclude Include="Inc\ShaderEffectBase.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\DirectXMathIntrinsics.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DirectXMathSimpleVectors.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DirectXMathTransforms.h">
+      <Filter>Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">

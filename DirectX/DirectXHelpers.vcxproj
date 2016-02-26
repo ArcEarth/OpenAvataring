@@ -148,10 +148,9 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;__AVX2__;__AVX__;__SSE4__;__SSE3__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
-      <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
@@ -170,10 +169,9 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;__AVX2__;__AVX__;__SSE4__;__SSE3__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch_directX.h</PrecompiledHeaderFile>
-      <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
@@ -218,6 +216,9 @@
     <ClInclude Include="Inc\DeviceResources.h" />
     <ClInclude Include="Inc\DirectXHelper.h" />
     <ClInclude Include="Inc\DirectXMathExtend.h" />
+    <ClInclude Include="Inc\DirectXMathIntrinsics.h" />
+    <ClInclude Include="Inc\DirectXMathSimpleVectors.h" />
+    <ClInclude Include="Inc\DirectXMathTransforms.h" />
     <ClInclude Include="Inc\DXGIFormatHelper.h" />
     <ClInclude Include="Inc\HierarchicalTransform.h" />
     <ClInclude Include="Inc\HUD.h" />

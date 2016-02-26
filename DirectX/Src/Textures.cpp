@@ -928,6 +928,11 @@ ID3D11ShaderResourceView * const * CubeTexture::ResourcesView()
 	return m_pTextureView;
 }
 
+EnvironmentTexture::~EnvironmentTexture()
+{
+
+}
+
 EnvironmentTexture::EnvironmentTexture(ID3D11Device * pDevice, unsigned int FaceSize, bool Renderable, DXGI_FORMAT Format)
 	: Texture2D(pDevice, FaceSize, FaceSize, 1, Format, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE | (Renderable ? D3D11_BIND_RENDER_TARGET : 0), 0, D3D11_RESOURCE_MISC_TEXTURECUBE | (Renderable ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0))
 {

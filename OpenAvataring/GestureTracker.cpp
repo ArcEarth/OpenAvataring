@@ -112,7 +112,7 @@ double Causality::ParticaleFilterBase::ExtractMLE()
 
 // resample the weighted sample in O(n*log(n)) time
 // generate n ordered point in range [0,1] is n log(n), thus we cannot get any better
-void ParticaleFilterBase::Resample(MatrixType & resampled, const MatrixType & sample)
+void ParticaleFilterBase::Resample(_Out_ LikihoodsType& resampledLik, _Out_ MatrixType& resampled, _In_ const LikihoodsType& sampleLik, _In_ const MatrixType& sample)
 {
 	assert((resampled.data() != sample.data()) && "resampled and sample cannot be the same");
 

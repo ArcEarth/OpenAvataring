@@ -1,5 +1,7 @@
 #pragma once
 #include <DirectXMathExtend.h>
+#include <DirectXMathSimpleVectors.h>
+#include <DirectXMathTransforms.h>
 #include <HierarchicalTransform.h>
 
 namespace Causality

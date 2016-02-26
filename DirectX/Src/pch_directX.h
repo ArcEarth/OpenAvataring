@@ -35,11 +35,17 @@
 #include <d2d1effects_1.h>
 #include <dwrite_2.h>
 #include <wincodec.h>
+
+// DirectX Math and extension
 #include <DirectXMath.h>
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 #include <SimpleMath.h>
+
 #include "DirectXMathExtend.h"
+#include "DirectXMathIntrinsics.h"
+#include "DirectXMathSimpleVectors.h"
+#include "DirectXMathTransforms.h"
 
 //DirectX Toolkit
 #include <Effects.h>

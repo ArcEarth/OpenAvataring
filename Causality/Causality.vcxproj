@@ -154,10 +154,11 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4_1__;__SSE4_2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4__;__SSE4_1__;__SSE4_2__;__AVX__;__AVX2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4267</DisableSpecificWarnings>
-      <UndefinePreprocessorDefinitions>__AVX__</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -170,11 +171,12 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4_1__;__SSE4_2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;FBXSDK_SHARED;__SSE3__;__SSE4__;__SSE4_1__;__SSE4_2__;__AVX__;__AVX2__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4267;4244</DisableSpecificWarnings>
-      <UndefinePreprocessorDefinitions>__AVX__</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

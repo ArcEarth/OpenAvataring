@@ -10,6 +10,8 @@ namespace Causality
 	public:
 	public:
 		typedef double ScalarType;
+		typedef double LikilihoodScalarType;
+		typedef Eigen::Matrix<LikilihoodScalarType, -1, 1> LikihoodsType;
 		typedef Eigen::Matrix<ScalarType, -1, -1> MatrixType;
 		typedef Eigen::Matrix<ScalarType, 1, -1, Eigen::AutoAlign | Eigen::RowMajor> TrackingVectorType;
 		typedef Eigen::Block<MatrixType, 1, -1> TrackingVectorBlockType;
@@ -69,10 +71,12 @@ namespace Causality
 
 		double ExtractMLE();
 
-		void Resample(_Out_ MatrixType& resampled, _In_ const MatrixType& sample);
+		void Resample(_Out_ LikihoodsType& resampledLik, _Out_ MatrixType& resampled, _In_ const LikihoodsType& sampleLik, _In_ const MatrixType& sample);
 
 		int			m_maxK;
 		mutable vector<int> m_srtIdxes;
+		LikihoodsType m_sampleLiks;
+		LikihoodsType m_newSampleLiks;
 		MatrixType  m_sample;
 		MatrixType  m_newSample;
 		// Mean state 
