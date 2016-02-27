@@ -262,7 +262,7 @@
   <ItemGroup>
     <ClInclude Include="..\OpenAvataring\Quaternion.hlsli" />
     <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.hlsli" />
-    <ClInclude Include="..\OpenAvataring\TrackerCS.hlsl" />
+    <ClInclude Include="..\OpenAvataring\TrackerCS.hpp" />
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h" />
     <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />

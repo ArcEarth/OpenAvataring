@@ -10,10 +10,14 @@
 #ifndef EIGEN_MATH_FUNCTIONS_AVX_H
 #define EIGEN_MATH_FUNCTIONS_AVX_H
 
+#ifndef _mm256_setr_m128
+
 // For some reason, this function didn't make it into the avxintirn.h
 // used by the compiler, so we'll just wrap it.
 #define _mm256_setr_m128(lo, hi) \
   _mm256_insertf128_si256(_mm256_castsi128_si256(lo), (hi), 1)
+
+#endif // !_mm256_setr_m128
 
 /* The sin, cos, exp, and log functions of this file are loosely derived from
  * Julien Pommier's sse math library: http://gruntthepeon.free.fr/ssemath/

@@ -268,7 +268,7 @@ namespace DirectX
 	//	return lhs;
 	//};
 
-	inline std::ostream& operator << (std::ostream& lhs, const DirectX::Quaternion& rhs)
+	inline std::ostream& operator << (std::ostream& lhs, const SimpleMath::Quaternion& rhs)
 	{
 		lhs << (const Vector4&)(rhs);
 

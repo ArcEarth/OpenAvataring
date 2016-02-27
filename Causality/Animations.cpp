@@ -67,7 +67,7 @@ bool ArmatureFrameAnimation::InterpolateFrames(double frameRate)
 	return true;
 }
 
-bool ArmatureFrameAnimation::GetFrameAt(frame_view outFrame, TimeScalarType time) const
+bool ArmatureFrameAnimation::GetFrameAt(frame_view outFrame, TimeScalarType time, bool rebuild) const
 {
 
 	double t = fmod(time.count(), Duration.count());
@@ -79,7 +79,7 @@ bool ArmatureFrameAnimation::GetFrameAt(frame_view outFrame, TimeScalarType time
 	t -= frameIdx * FrameInterval.count();
 	t /= FrameInterval.count();
 
-	FrameLerp(outFrame, sframe, tframe,t, Armature());
+	FrameLerpEst(outFrame, sframe, tframe,t, Armature(), rebuild);
 	return true;
 }
 

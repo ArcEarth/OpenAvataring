@@ -1,4 +1,4 @@
-#include "pch_bcl.h"
+﻿#include "pch_bcl.h"
 #include "Armature.h"
 #include "Animations.h"
 #include <regex>
@@ -19,8 +19,8 @@ void Bone::UpdateGlobalData(const Bone & reference)
 	XMVECTOR Q = XMQuaternionMultiply(XMLoadA(LclRotation), ParQ);
 	XMVECTOR ParS = XMLoadA(reference.GblScaling);
 	XMVECTOR S = ParS * XMLoadA(LclScaling);
-	XMStoreA(GblRotation,Q);
-	XMStoreA(GblScaling,S);
+	XMStoreA(GblRotation, Q);
+	XMStoreA(GblScaling, S);
 
 	//OriginPosition = reference.GblTranslation; // should be a constriant
 
@@ -35,7 +35,7 @@ void Bone::UpdateGlobalData(const Bone & reference)
 	V = XMVector3Rotate(V, ParQ);//ParQ
 	V = XMVectorAdd(V, XMLoadA(reference.GblTranslation));
 
-	XMStoreA(GblTranslation,V);
+	XMStoreA(GblTranslation, V);
 }
 
 // This will assuming LclTranslation is not changed
@@ -46,7 +46,7 @@ void Bone::UpdateLocalData(const Bone& reference)
 	InvParQ = XMQuaternionInverse(InvParQ); // PqInv
 	XMVECTOR Q = GblRotation;
 	Q = XMQuaternionMultiply(Q, InvParQ);
-	XMStoreA(LclRotation,Q);
+	XMStoreA(LclRotation, Q);
 
 	Q = (XMVECTOR)GblTranslation - (XMVECTOR)reference.GblTranslation;
 	//Q = XMVector3Length(Q);
@@ -216,7 +216,24 @@ namespace Causality
 		}
 	}
 
-	void FrameLerp(ArmatureFrameView out, ArmatureFrameConstView lhs, ArmatureFrameConstView rhs, float t, const IArmature& armature)
+	void FrameLerpEst(ArmatureFrameView out, ArmatureFrameConstView lhs, ArmatureFrameConstView rhs, float t, const IArmature& armature, bool rebuild)
+	{
+		//assert((Armature == lhs.pArmature) && (lhs.pArmature == rhs.pArmature));
+		XMVECTOR vt = XMVectorReplicate(t);
+		for (size_t i = 0; i < armature.size(); i++)
+		{
+			XMVECTOR Q = DirectX::XMVectorLerpV(XMLoadA(lhs[i].LclRotation), XMLoadA(rhs[i].LclRotation), vt);
+			Q = _DXMEXT XMVector4Normalize(Q);
+			XMStoreA(out[i].LclRotation, Q);
+			XMStoreA(out[i].LclScaling, DirectX::XMVectorLerpV(XMLoadA(lhs[i].LclScaling), XMLoadA(rhs[i].LclScaling), vt));
+			XMStoreA(out[i].LclTranslation, DirectX::XMVectorLerpV(XMLoadA(lhs[i].LclTranslation), XMLoadA(rhs[i].LclTranslation), vt));
+		}
+		if (rebuild)
+			FrameRebuildGlobal(armature, out);
+	}
+
+
+	void FrameLerp(ArmatureFrameView out, ArmatureFrameConstView lhs, ArmatureFrameConstView rhs, float t, const IArmature& armature, bool rebuild)
 	{
 		//assert((Armature == lhs.pArmature) && (lhs.pArmature == rhs.pArmature));
 		XMVECTOR vt = XMVectorReplicate(t);
@@ -226,7 +243,8 @@ namespace Causality
 			XMStoreA(out[i].LclScaling, DirectX::XMVectorLerpV(XMLoadA(lhs[i].LclScaling), XMLoadA(rhs[i].LclScaling), vt));
 			XMStoreA(out[i].LclTranslation, DirectX::XMVectorLerpV(XMLoadA(lhs[i].LclTranslation), XMLoadA(rhs[i].LclTranslation), vt));
 		}
-		FrameRebuildGlobal(armature, out);
+		if (rebuild)
+			FrameRebuildGlobal(armature, out);
 	}
 
 	void FrameDifference(ArmatureFrameView out, ArmatureFrameConstView from, ArmatureFrameConstView to)
@@ -255,6 +273,191 @@ namespace Causality
 			auto& lt = out[i];
 			lt.LocalTransform() = from[i].LocalTransform();
 			lt.LocalTransform() *= deformation[i].LocalTransform();
+		}
+	}
+
+
+	inline XMVECTOR XM_CALLCONV XMSlepCoefficient1(FXMVECTOR t, XMVECTOR xm1)\
+	{
+		using namespace DirectX;
+		const float opmu = 1.90110745351730037f;
+		const XMVECTORF32 neg_u0123 = { -1.f / (1 * 3), -1.f / (2 * 5), -1.f / (3 * 7), -1.f / (4 * 9) };
+		const XMVECTORF32 neg_u4567 = { -1.f / (5 * 11), -1.f / (6 * 13), -1.f / (7 * 15), -opmu / (8 * 17) };
+		const XMVECTORF32 neg_v0123 = { -1.f / 3, -2.f / 5, -3.f / 7, -4.f / 9 };
+		const XMVECTORF32 neg_v4567 = { -5.f / 11, -6.f / 13, -7.f / 15, -opmu * 8 / 17 };
+		const XMVECTOR one = XMVectorReplicate(1.f);
+
+		XMVECTOR sqrT = XMVectorMultiply (t, t);
+		XMVECTOR b0123, b4567, b, c;
+		// (b4, b5, b6, b7) = 
+		// (x − 1) * (u4 * t^2 − v4, u5 * t^2 − v5, u6 * t^2 − v6, u7 * t^2 − v7) 
+		b4567 = _DXMEXT XMVectorNegativeMultiplySubtract(neg_u4567, sqrT, neg_v4567);
+		//b4567 = _mm_mul_ps(u4567, sqrT);
+		//b4567 = _mm_sub_ps(b4567, v4567);
+		b4567 = XMVectorMultiply(b4567, xm1);
+		// (b7, b7, b7, b7) 
+		b = _DXMEXT XMVectorSwizzle<3, 3, 3, 3>(b4567);
+		c = XMVectorAdd(b, one);
+		// (b6, b6, b6, b6) 
+		b = _DXMEXT XMVectorSwizzle<2, 2, 2, 2>(b4567);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+		// (b5, b5, b5, b5) 
+		b = _DXMEXT XMVectorSwizzle<1, 1, 1, 1>(b4567);
+		c = _DXMEXT XMVectorMultiplyAdd(b,c,one);
+		// (b4, b4, b4, b4) 
+		b = _DXMEXT XMVectorSwizzle<0, 0, 0, 0>(b4567);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+		// (b0, b1, b2, b3) = 
+		//(x−1)*(u0*t^2−v0,u1*t^2−v1,u2*t^2−v2,u3*t^2−v3)
+		b0123 = _DXMEXT XMVectorNegativeMultiplySubtract(neg_u0123, sqrT, neg_v0123);
+		//b0123 = _mm_mul_ps(u0123, sqrT);
+		//b0123 = _mm_sub_ps(b0123, v0123);
+		b0123 = XMVectorMultiply(b0123, xm1);
+		// (b3, b3, b3, b3)
+		b = _DXMEXT XMVectorSwizzle<3, 3, 3, 3>(b0123);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+		// (b2, b2, b2, b2)
+		b = _DXMEXT XMVectorSwizzle<2, 2, 2, 2>(b0123);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+		// (b1, b1, b1, b1)
+		b = _DXMEXT XMVectorSwizzle<1, 1, 1, 1>(b0123);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+		// (b0, b0, b0, b0)
+		b = _DXMEXT XMVectorSwizzle<0, 0, 0, 0>(b0123);
+		c = _DXMEXT XMVectorMultiplyAdd(b, c, one);
+
+		c = XMVectorMultiply(t, c);
+		return c;
+	}
+	// reference
+	// Eberly : A Fast and Accurate Algorithm for Computing SLERP
+	inline XMVECTOR XM_CALLCONV XMQuaternionSlerpFastV(FXMVECTOR q0, FXMVECTOR q1, FXMVECTOR splatT)
+	{
+		using namespace DirectX;
+		const XMVECTOR signMask = XMVectorReplicate(-0.f);
+		const XMVECTOR one = XMVectorReplicate(1.f); // Dot product of 4−tuples. 
+		XMVECTOR x = _DXMEXT XMVector4Dot(q0, q1); // cos (theta) in all components
+		XMVECTOR sign = _mm_and_ps(signMask, x);
+		x = _mm_xor_ps(sign, x);
+		XMVECTOR localQ1 = _mm_xor_ps(sign, q1);
+		XMVECTOR xm1 = XMVectorSubtract(x, one);
+		XMVECTOR splatD = XMVectorSubtract(one, splatT);
+		XMVECTOR cT = XMSlepCoefficient1(splatT, xm1);
+		XMVECTOR cD = XMSlepCoefficient1(splatD, xm1);
+		cT = XMVectorMultiply(cT, localQ1);
+		cD = _DXMEXT XMVectorMultiplyAdd(cD, q0, cT);
+		return cD;
+	}
+
+	inline XMVECTOR XM_CALLCONV XMQuaternionSlerpEstV(
+		FXMVECTOR Q0,
+		FXMVECTOR Q1,
+		FXMVECTOR T
+		)
+	{
+		using namespace DirectX;
+		assert((XMVectorGetY(T) == XMVectorGetX(T)) && (XMVectorGetZ(T) == XMVectorGetX(T)) && (XMVectorGetW(T) == XMVectorGetX(T)));
+
+		// Result = Q0 * sin((1.0 - t) * Omega) / sin(Omega) + Q1 * sin(t * Omega) / sin(Omega)
+
+#if defined(_XM_NO_INTRINSICS_) || defined(_XM_ARM_NEON_INTRINSICS_)
+
+		const XMVECTORF32 OneMinusEpsilon = { 1.0f - 0.00001f, 1.0f - 0.00001f, 1.0f - 0.00001f, 1.0f - 0.00001f };
+
+		XMVECTOR CosOmega = _DXMEXT XMVector4Dot(Q0, Q1);
+
+		const XMVECTOR Zero = XMVectorZero();
+		XMVECTOR Control = XMVectorLess(CosOmega, Zero);
+		XMVECTOR Sign = XMVectorSelect(g_XMOne.v, g_XMNegativeOne.v, Control);
+
+		CosOmega = XMVectorMultiply(CosOmega, Sign);
+
+		Control = XMVectorLess(CosOmega, OneMinusEpsilon);
+
+		XMVECTOR SinOmega = XMVectorNegativeMultiplySubtract(CosOmega, CosOmega, g_XMOne.v);
+		SinOmega = XMVectorSqrt(SinOmega);
+
+		XMVECTOR Omega = XMVectorATan2Est(SinOmega, CosOmega);
+
+		XMVECTOR SignMask = XMVectorSplatSignMask();
+		XMVECTOR V01 = XMVectorShiftLeft(T, Zero, 2);
+		SignMask = XMVectorShiftLeft(SignMask, Zero, 3);
+		V01 = XMVectorXorInt(V01, SignMask);
+		V01 = XMVectorAdd(g_XMIdentityR0.v, V01);
+
+		XMVECTOR InvSinOmega = XMVectorReciprocal(SinOmega);
+
+		XMVECTOR S0 = XMVectorMultiply(V01, Omega);
+		S0 = XMVectorSinEst(S0);
+		S0 = XMVectorMultiply(S0, InvSinOmega);
+
+		S0 = XMVectorSelect(V01, S0, Control);
+
+		XMVECTOR S1 = _DXMEXT XMVectorSplatY(S0);
+		S0 = _DXMEXT XMVectorSplatX(S0);
+
+		S1 = XMVectorMultiply(S1, Sign);
+
+		XMVECTOR Result = XMVectorMultiply(Q0, S0);
+		Result = XMVectorMultiplyAdd(Q1, S1, Result);
+
+		return Result;
+
+#elif defined(_XM_SSE_INTRINSICS_)
+		static const XMVECTORF32 OneMinusEpsilon = { 1.0f - 0.00001f, 1.0f - 0.00001f, 1.0f - 0.00001f, 1.0f - 0.00001f };
+		static const XMVECTORU32 SignMask2 = { 0x80000000,0x00000000,0x00000000,0x00000000 };
+
+		XMVECTOR CosOmega = _DXMEXT XMVector4Dot(Q0, Q1);
+
+		const XMVECTOR Zero = XMVectorZero();
+		XMVECTOR Control = XMVectorLess(CosOmega, Zero);
+		XMVECTOR Sign = XMVectorSelect(g_XMOne, g_XMNegativeOne, Control);
+
+		CosOmega = _mm_mul_ps(CosOmega, Sign);
+
+		Control = XMVectorLess(CosOmega, OneMinusEpsilon);
+
+		XMVECTOR SinOmega = _mm_mul_ps(CosOmega, CosOmega);
+		SinOmega = _mm_sub_ps(g_XMOne, SinOmega);
+		SinOmega = _mm_sqrt_ps(SinOmega);
+
+		XMVECTOR Omega = XMVectorATan2Est(SinOmega, CosOmega);
+
+		XMVECTOR V01 = XM_PERMUTE_PS(T, _MM_SHUFFLE(2, 3, 0, 1));
+		V01 = _mm_and_ps(V01, g_XMMaskXY);
+		V01 = _mm_xor_ps(V01, SignMask2);
+		V01 = _mm_add_ps(g_XMIdentityR0, V01);
+
+		XMVECTOR S0 = _mm_mul_ps(V01, Omega);
+		S0 = XMVectorSinEst(S0);
+		S0 = _mm_div_ps(S0, SinOmega);
+
+		S0 = XMVectorSelect(V01, S0, Control);
+
+		XMVECTOR S1 = _DXMEXT XMVectorSplatY(S0);
+		S0 = _DXMEXT XMVectorSplatX(S0);
+
+		S1 = _mm_mul_ps(S1, Sign);
+		XMVECTOR Result = _mm_mul_ps(Q0, S0);
+		S1 = _mm_mul_ps(S1, Q1);
+		Result = _mm_add_ps(Result, S1);
+		return Result;
+#endif
+
+	}
+
+	void FrameScaleEst(_Inout_ ArmatureFrameView frame, _In_ ArmatureFrameConstView  ref, float scale)
+	{
+		auto n = std::min(frame.size(), ref.size());
+		XMVECTOR sv = XMVectorReplicate(scale);
+		for (size_t i = 0; i < n; i++)
+		{
+			auto& t1 = frame[i].LocalTransform();
+			auto& t0 = ref[i].LocalTransform();
+			auto& out = t1;
+			out.Scale = XMVectorLerpV(XMLoadA(t0.Scale), XMLoadA(t1.Scale), sv);
+			out.Translation = XMVectorLerpV(XMLoadA(t0.Translation), XMLoadA(t1.Translation), sv);
+			out.Rotation = XMQuaternionSlerpFastV(XMLoadA(t0.Rotation), XMLoadA(t1.Rotation), sv);
 		}
 	}
 
@@ -784,17 +987,17 @@ void DynamicArmature::clone_from(const joint_type & root)
 //		return mapper;
 //		return std::map<int, int>();
 //	}
-	std::map<int, int> DynamicArmature::reindex()
+std::map<int, int> DynamicArmature::reindex()
+{
+	std::map<int, int> mapper;
+	int idx = 0;
+	for (auto& joint : m_root->nodes())
 	{
-		std::map<int, int> mapper;
-		int idx = 0;
-		for (auto& joint : m_root->nodes())
-		{
-			mapper.try_emplace(joint.ID, idx);
-			joint.ID = idx++;
-			if (joint.parent())
-				joint.ParentID = joint.parent()->ID;
-		}
-		return mapper;
+		mapper.try_emplace(joint.ID, idx);
+		joint.ID = idx++;
+		if (joint.parent())
+			joint.ParentID = joint.parent()->ID;
 	}
+	return mapper;
+}
 //}

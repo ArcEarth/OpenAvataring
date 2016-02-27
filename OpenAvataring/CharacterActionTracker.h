@@ -41,7 +41,8 @@ namespace Causality
 	protected:
 		void			StepParticalsGPU();
 		void			SetInputState(const InputVectorType & input, ScalarType dt) override;
-		ScalarType		Likilihood(int idx, const TrackingVectorBlockType & x) override;
+		LikilihoodScalarType
+						Likilihood(int idx, const TrackingVectorBlockType & x) override;
 		void			Progate(TrackingVectorBlockType & x) override;
 
 		InputVectorType GetCorrespondVector(const TrackingVectorBlockType & x, ArmatureFrameView frameCache0, ArmatureFrameView frameChache1) const;

@@ -583,15 +583,26 @@ void PartilizedTransformer::SetTrackerVisualization()
 		m_matvis->SetEnabled();
 
 		auto& tracker = m_Trackers[m_currentTracker];
+
 		auto& sample = tracker.GetSampleMatrix();
-		g_Sample = sample.leftCols(4).cast<float>();
-		g_Sample.col(0) /= g_Sample.col(0).maxCoeff();
-		g_Sample.col(1) /= (float)tracker.Animation().Length().count();
-		g_Sample.col(2).array() = (g_Sample.col(2).array() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
-		g_Sample.col(3).array() = (g_Sample.col(3).array() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
-		g_Sample = g_Sample.cwiseMax(0).cwiseMin(1.0);
-		g_Sample.col(1).swap(g_Sample.col(3));
-		g_Sample.col(1).swap(g_Sample.col(2));
+		const auto& liks = tracker.GetSampleLikilihoods();
+		auto timeline = sample.array().col(0);
+		auto scls = sample.array().col(1);
+		auto vts = sample.array().col(2);
+
+		// Likilihoods
+		// Velocity
+		// Scale
+		// Timeline
+		if (g_Sample.rows() < sample.rows())
+			g_Sample.resize(sample.rows(), sample.cols() + 1);
+
+		auto wa = liks.maxCoeff();
+		g_Sample.col(0) = (liks / wa).cast<float>();
+		g_Sample.col(1) = (scls.cast<float>() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
+		g_Sample.col(2) = (vts.cast<float>() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
+		g_Sample.col(3) = timeline.cast<float>() / (float)tracker.Animation().Length().count();
+		g_Sample = g_Sample.cwiseMax(.0).cwiseMin(1.0);
 
 		auto n = g_Sample.rows();
 		g_Sample.transposeInPlace();

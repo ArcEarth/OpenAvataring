@@ -470,9 +470,6 @@
     <ClInclude Include="..\OpenAvataring\CharacterActionTracker.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\TrackerCS.hlsl">
-      <Filter>Avataring Control</Filter>
-    </ClInclude>
     <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.hlsli">
       <Filter>Avataring Control</Filter>
     </ClInclude>
@@ -493,6 +490,9 @@
     </ClInclude>
     <ClInclude Include="..\amp\amphlsl\amp_short_matrix.h">
       <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\TrackerCS.hpp">
+      <Filter>Avataring Control</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

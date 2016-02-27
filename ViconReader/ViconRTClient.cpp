@@ -4,6 +4,8 @@
 #include <iomanip>      // std::setprecision
 #include <winsock2.h>
 #include "TimingHelper.h"
+#pragma warning(push)
+#pragma warning(disable,4244)
 
 #pragma comment(lib,"ws2_32.lib")
 
@@ -1117,3 +1119,5 @@ void ViconRTClient::printData() const {
 	}
 	std::cout << "\n";
 }
+
+#pragma warning(pop)

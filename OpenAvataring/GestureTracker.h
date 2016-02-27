@@ -9,7 +9,7 @@ namespace Causality
 	{
 	public:
 	public:
-		typedef double ScalarType;
+		typedef float ScalarType;
 		typedef double LikilihoodScalarType;
 		typedef Eigen::Matrix<LikilihoodScalarType, -1, 1> LikihoodsType;
 		typedef Eigen::Matrix<ScalarType, -1, -1> MatrixType;
@@ -55,16 +55,14 @@ namespace Causality
 		//virtual void Reset(const InputVectorType& input) = 0;
 
 		const MatrixType& GetSampleMatrix() const;
-	
+		const LikihoodsType& GetSampleLikilihoods() const;
+
 	protected: // Interfaces
 		virtual void SetInputState(const InputVectorType& input, ScalarType dt) = 0;
 		// Get the likilihood of partical state x in current time with pre-seted input state
-		virtual ScalarType Likilihood(int idx, const TrackingVectorBlockType &x) = 0;
+		virtual LikilihoodScalarType Likilihood(int idx, const TrackingVectorBlockType &x) = 0;
 
 		virtual void Progate(TrackingVectorBlockType& x) = 0;
-
-	public:
-		MatrixType m_liks;
 
 	protected:
 		ScalarType StepParticals();
@@ -75,8 +73,8 @@ namespace Causality
 
 		int			m_maxK;
 		mutable vector<int> m_srtIdxes;
-		LikihoodsType m_sampleLiks;
-		LikihoodsType m_newSampleLiks;
+		LikihoodsType m_liks;
+		LikihoodsType m_newLiks;
 		MatrixType  m_sample;
 		MatrixType  m_newSample;
 		// Mean state 

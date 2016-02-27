@@ -35,9 +35,11 @@ namespace Causality
 			using particle_vector_type = float4;
 			//std::conditional_t<std::is_same<ScalarType, float>::value,float4,double4>;
 
-			concurrency::array_view<particle_vector_type, 1>		 samples;// samples
 			concurrency::array_view<const particle_vector_type, 1>	 animation;	// animation matrix array
-			concurrency::array_view<ScalarType, 1>					 likilihoods; // out, likihoods
+			// UAV
+			concurrency::array_view<particle_vector_type, 1>		 samples;// samples
+			// UAV
+			concurrency::array_view<double, 1>						 likilihoods; // out, likihoods
 			//concurrency::array_view<const int, 1>					 parentsView;	// parents
 			//concurrency::array_view<const particle_vector_type, 1>	 bindView;
 
@@ -46,7 +48,7 @@ namespace Causality
 #include "TrackerCS_cbuffer.hlsli"
 			constants_t constants;
 
-#include "TrackerCS.hlsl"
+#include "TrackerCS.hpp"
 
 			void likilihood(concurrency::index<1> idx) __GPU_ONLY
 			{
@@ -112,7 +114,12 @@ void CharacterActionTracker::Reset()
 	auto dt = m_dt;
 
 	Eigen::Matrix<TrackerScalarType,1,3> v;
-	m_sample.resize(tchuck * schunck * vchunck, 3 + 1);
+	auto numParticles = tchuck * schunck * vchunck;
+	m_sample.resize(numParticles, 3);
+	m_liks.resize(numParticles);
+	m_newSample.resize(numParticles, 3);
+	m_newLiks.resize(numParticles);
+
 	auto stdevS = sqrt(m_varS);
 	auto stdevV = sqrt(m_varVt);
 
@@ -133,19 +140,16 @@ void CharacterActionTracker::Reset()
 			for (int k = 0; k < vchunck; k++, vt += 2 * stdevV / (vchunck - 1))
 			{
 				v[2] = vt;
-				m_sample.block<1, 3>(i * schunck * vchunck + j * vchunck + k, 1) = v;
+				m_sample.row(i * schunck * vchunck + j * vchunck + k) = v;
 			}
 		}
 	}
 
-	m_sample.col(0).array() = 1.0f;
-
-	m_newSample.resizeLike(m_sample);
+	m_liks.array() = 1.0f / (double)numParticles;
 
 	m_fvectors.resize(m_sample.rows(), m_CurrentInput.cols());
 
 	m_currentValiad = false;
-
 }
 
 CharacterActionTracker::ScalarType CharacterActionTracker::Step(const InputVectorType & input, ScalarType dt)
@@ -173,7 +177,7 @@ CharacterActionTracker::ScalarType CharacterActionTracker::Step(const InputVecto
 	{
 		std::cout << "[Tracker] *Rest*************************" << std::endl;
 		Reset(input);
-		confi = m_sample.col(0).sum();
+		confi = m_liks.sum();
 	}
 	return confi;
 }
@@ -193,26 +197,9 @@ inline float sqr(float x) __CPU_ONLY
 	return x * x;
 }
 
-CharacterActionTracker::ScalarType CharacterActionTracker::Likilihood(int idx, const TrackingVectorBlockType & x)
+inline double sqr(double x) __CPU_ONLY
 {
-	using namespace std;
-
-	InputVectorType vx;
-	vx = GetCorrespondVector(x, ArmatureFrameView(s_frameCache0), ArmatureFrameView(s_frameCache1));
-	//m_fvectors.row(m_lidxCount++) = vx;
-
-	// Distance to observation
-	InputVectorType diff = (vx - m_CurrentInput).cwiseAbs2().eval();
-	ScalarType likilihood = (diff.array() / m_LikCov.array()).sum();
-	likilihood = exp(-likilihood);
-
-	// Scale factor distribution
-	likilihood *= exp(-sqr(max((float)(abs(x[1] - m_uS) - m_thrS), .0f)) / m_varS);
-	// Speed scale distribution
-	likilihood *= exp(-sqr(max((float)abs(x[2] - m_thrVt), .0f)) / m_varVt);
-
-	//return 1.0;
-	return likilihood;
+	return x * x;
 }
 
 void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
@@ -232,6 +219,31 @@ void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
 		t += m_Animation.Duration.count();
 
 	s += g_normal_dist(g_rand_mt) * m_stdevDs * m_dt;
+}
+
+
+CharacterActionTracker::LikilihoodScalarType CharacterActionTracker::Likilihood(int idx, const TrackingVectorBlockType & x)
+{
+	using namespace std;
+
+	InputVectorType vx;
+	vx = GetCorrespondVector(x, ArmatureFrameView(s_frameCache0), ArmatureFrameView(s_frameCache1));
+	//m_fvectors.row(m_lidxCount++) = vx;
+
+	// Distance to observation
+	using scalar = LikilihoodScalarType;
+
+	InputVectorType diff = (vx - m_CurrentInput).cwiseAbs2().eval();
+	LikilihoodScalarType likilihood = (diff.array() / m_LikCov.array()).sum();
+	likilihood = exp(-likilihood);
+
+	// Scale factor distribution
+	likilihood *= exp(-sqr(max((scalar)(abs(scalar(x[1]) - scalar(m_uS)) - scalar(m_thrS)), scalar(.0))) / scalar(m_varS));
+	// Speed scale distribution
+	likilihood *= exp(-sqr(max((scalar)abs(scalar(x[2]) - scalar(m_thrVt)), scalar(.0f))) / scalar(m_varVt));
+
+	//return 1.0;
+	return likilihood;
 }
 
 CharacterActionTracker::InputVectorType CharacterActionTracker::GetCorrespondVector(const TrackingVectorBlockType & x, ArmatureFrameView frameCache0, ArmatureFrameView frameChache1) const
@@ -265,8 +277,8 @@ CharacterActionTracker::InputVectorType CharacterActionTracker::GetCorrespondVec
 
 void CharacterActionTracker::GetScaledFrame(_Out_ ArmatureFrameView frame, ScalarType t, ScalarType s) const
 {
-	m_Animation.GetFrameAt(frame, time_seconds(t));
-	FrameScale(frame, m_Animation.DefaultFrame, s);
+	m_Animation.GetFrameAt(frame, time_seconds(t), false);
+	FrameScaleEst(frame, m_Animation.DefaultFrame, s);
 	FrameRebuildGlobal(m_Animation.Armature(), frame);
 }
 

@@ -78,6 +78,10 @@ namespace DirectX
 		using XM_PERMUTE XMVectorSplatZ;
 		using XM_PERMUTE XMVectorSplatW;
 
+		
+		using XM_FMA	 XMVectorMultiplyAdd; // fmadd
+		using XM_FMA	 XMVectorNegativeMultiplySubtract; // fnmadd
+
 		using XM_FMA	 XMVector2Transform;
 		using XM_FMA	 XMVector2TransformNormal;
 		using XM_FMA	 XMVector2TransformCoord;

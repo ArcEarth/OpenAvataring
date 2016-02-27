@@ -99,12 +99,12 @@ namespace Causality
 
 	public:
 		// Frame Retrival
-		virtual bool GetFrameAt(FrameViewType outFrame, TimeScalarType time) const;
+		virtual bool GetFrameAt(FrameViewType outFrame, TimeScalarType time, bool rebuild = true) const;
 
 	};
 
 	template<typename FrameType, typename FrameViewType>
-	inline bool KeyframeAnimation<FrameType, FrameViewType>::GetFrameAt(FrameViewType outFrame, TimeScalarType time) const
+	inline bool KeyframeAnimation<FrameType, FrameViewType>::GetFrameAt(FrameViewType outFrame, TimeScalarType time, bool rebuild = true) const
 	{
 		return false;
 	}
@@ -183,7 +183,7 @@ namespace Causality
 		std::vector<frame_type>& GetFrameBuffer() { return frames; }
 
 		bool InterpolateFrames(double frameRate);
-		bool GetFrameAt(frame_view outFrame, TimeScalarType time) const override;
+		bool GetFrameAt(frame_view outFrame, TimeScalarType time, bool rebuild = true) const override;
 
 		enum DataType
 		{
