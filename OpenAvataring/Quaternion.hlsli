@@ -4,6 +4,7 @@
 #define __GPU_ONLY
 #define __Inout_Param__(T,name) inout T name
 #define __Out_Param__(T,name) out T name
+#define __Unroll__ [unroll]
 #endif
 // returns the quaternion of q2*q1
 // which represent the rotation sequence of q1 followed by q2
@@ -90,4 +91,40 @@ float3 stable_normalize(float3 v) __GPU
 float sqr(float x) __GPU
 {
     return x * x;
+}
+
+// nvidia GPU should be scalar FPU, thats no vectorization are needed
+float4 slerp(float4 q0, float4 q1, float t) __GPU
+{
+    // Precomputed constants.
+    uniform const float opmu = 1.90110745351730037f;
+    uniform const float u[8] = // 1 /[i (2i + 1 )] for i >= 1
+    {
+    1.f/(1 * 3), 1.f/(2 * 5), 1.f/(3 * 7), 1.f/(4 * 9),
+    1.f/(5 * 11), 1.f/(6 * 13), 1.f/(7 * 15), opmu/(8 * 17)
+    } ;
+    uniform const float v[8] = // i /(2 i+ 1) for i >= 1
+    {
+    1.f/3, 2.f/5, 3.f/7, 4.f/9,
+    5.f/11, 6.f/13, 7.f/15, opmu * 8/17
+    } ;
+
+    float x = dot(q0,q1); // cos (theta)
+    float signx = (x >= 0 ? 1 : (x = -x, -1));
+    float xm1 = x - 1;
+    float d = 1 - t, sqrT = t * t, sqrD = d * d;
+    float bT[8], bD[8];
+    __Unroll__
+    for (int i = 7; i >= 0; --i)
+    {
+    bT[i] = (u[i] * sqrT - v[i]) * xm1;
+    bD[i] = (u[i] * sqrD - v[i]) * xm1;
+    }
+    float cT = signx * t *(
+    1 + bT[0] * (1 + bT[1] * (1 + bT[2] * (1 + bT[3] * (
+    1 + bT[4] * (1 + bT[5] * (1 + bT[6] * (1 + bT [7] ))))))));
+    float cD = d * (
+    1 + bD[0] * (1 + bD[1] * (1 + bD[2] * (1 + bD[3] * (
+    1 + bD[4] * (1 + bD[5] * (1 + bD[6] * (1 + bD[7] ))))))));
+    return q0 * cD + q1 * cT;
 }

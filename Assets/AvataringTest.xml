@@ -70,7 +70,7 @@
     <!--Animation Tracker-->
     <TrackerTopK>30</TrackerTopK>
     <TrackerSubStep>1</TrackerSubStep>
-    <TrackerTimeSubdivide>3.0</TrackerTimeSubdivide>
+    <TrackerTimeSubdivide>5.0</TrackerTimeSubdivide>
     <TrackerVtSubdivide>2</TrackerVtSubdivide>
     <TrackerSclSubdivide>3</TrackerSclSubdivide>
     <TrackerStDevVt>0.3</TrackerStDevVt>

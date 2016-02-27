@@ -1,6 +1,6 @@
 #ifndef __GPU // HLSL shader case
 #define __FXC
-Buffer<float4>  animation;
+Texture2D<float4>  animation;
 Buffer<float4>  samples;
 RWBuffer<float> likilihoods;
 
@@ -12,26 +12,36 @@ RWBuffer<float> likilihoods;
 #include "TrackerCS_cbuffer.hlsli"
 #endif
 
-float4 GetBoneRelativeRotationAtFrame(uint fid, uint bid) __GPU
+#ifdef __FXC
+float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU
 {
-    return animation[fid * constants.numBones + bid];
+    return animation.Load(uint2(fid,bid));
+    //return animation[fid * constants.numBones + bid];
 }
+#else
+float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU
+{
+    return animation(fid,bid);
+}
+#endif
 
-float4 GetBoneRelativeRotationAtTime(float time, uint bid) __GPU
+float4 GetBoneRotationAtTime(float time, uint bid) __GPU
 {
     uint fid = trunc(time / constants.timeSlice);
     float t = fmod(time, constants.timeSlice);
-    float4 f0 = GetBoneRelativeRotationAtFrame(fid, bid);
-    float4 f1 = GetBoneRelativeRotationAtFrame(fid + 1, bid);
+    float4 f0 = GetBoneRotationAtFrame(fid, bid);
+    float4 f1 = GetBoneRotationAtFrame(fid + 1, bid);
     // lerp the quaternion insetead of slerp
     // since the difference are relative small
-    return f0 * (1 - t) + f1 * t; 
+    float4 q = lerp(f0,f1,t); 
+    q = normalize(q); // maybe, this is not needed?
 }
 
-float4 GetScaledBoneRelativeRotationAtTime(float time, float scale, uint bid) __GPU
+float4 GetScaledBoneRotationAtTime(float time, float scale, uint bid) __GPU
 {
-    float4 q = GetBoneRelativeRotationAtTime(time, bid);
-    return quat_scale_rotation(q, scale);
+    float4 q = GetBoneRotationAtTime(time, bid);
+    float4 q0 = constants.bindPoses[bid][0];
+    return slerp(q0, q, scale);
 }
 
 float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
@@ -40,12 +50,8 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
     // caculate the vector from chain begin to chain end
     for (int cx = constants.jointsInChain[bid]; cx > 0; --cx)
     {
-        float4 q0 = constants.bindPoses[bid][0];
         float3 t = constants.bindPoses[bid][1].xyz;
-        // assert(t.w == 0);
-        float4 q = GetScaledBoneRelativeRotationAtTime(time, scale, bid);
-
-        q = quat_mul(q,q0);
+        float4 q = GetScaledBoneRotationAtTime(time, scale, bid);
         t = quat_rotate(t, q);
 
         gt += t;
@@ -56,11 +62,8 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
     // rotate the chain vector to global orientation
     for (int cx = constants.numAncestors[bid] - constants.jointsInChain[bid]; cx > 0; --cx)
     {
-        float4 q0 = constants.bindPoses[bid][0];
+        float4 q = GetScaledBoneRotationAtTime(time, scale, bid);
 
-        float4 q = GetScaledBoneRelativeRotationAtTime(time, scale, bid);
-
-        q = quat_mul(q, q0);
         gt = quat_rotate(gt, q);
 
         bid = constants.parents[bid];
@@ -69,9 +72,8 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
     return gt;
 }
 
-void write_likilihood(uint id) __GPU
+void write_likilihood(uint id, float4 particle) __GPU
 {
-    float4 particle = samples[id];
     float time = particle.x;
     float scale = particle.y;
     float vt = particle.z;

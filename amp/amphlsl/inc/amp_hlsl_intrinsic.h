@@ -204,6 +204,22 @@ namespace Concurrency
 	{
 		namespace direct3d
 		{
+			inline float lerp(float v0, float v1 ,float t) __GPU
+			{
+				return v0 * (1 - t) + v1 * t;
+			}
+			inline float_2 lerp(float_2 v0, float_2 v1, float t) __GPU
+			{
+				return v0 * (1 - t) + v1 * t;
+			}
+			inline float_3 lerp(float_3 v0, float_3 v1, float t) __GPU
+			{
+				return v0 * (1 - t) + v1 * t;
+			}
+			inline float_4 lerp(float_4 v0, float_4 v1, float t) __GPU
+			{
+				return v0 * (1 - t) + v1 * t;
+			}
 
 			inline float dot(float v0, float v1) __GPU
 			{

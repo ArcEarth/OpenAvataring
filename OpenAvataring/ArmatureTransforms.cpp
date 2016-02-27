@@ -1097,21 +1097,29 @@ double PartilizedTransformer::DrivePartsTracker(int whichTracker, TrackerVectorT
 
 	auto* idcies = tracker.GetTopKStates(g_TrackerTopK);
 	auto& sample = tracker.GetSampleMatrix();
+	auto& liks = tracker.GetSampleLikilihoods();
 	confi = 0;
 
+	auto timeline = sample.col(0);
+	auto scales = sample.col(1);
+
 	auto fvsize = GetFrameVectorSize(feature, cparts);
-	MatrixXf fmat(g_TrackerTopK, fvsize);
+	MatrixXf fmat(fvsize, g_TrackerTopK);
 	for (int i = 0; i < g_TrackerTopK; i++)
 	{
 		int id = idcies[i];
-		tracker.GetScaledFrame(target_frame, sample(id, 1), sample(id, 2));
-		GetFrameVector(feature, fmat.row(i), target_frame, cparts);
-
-		fmat.row(i) *= sample(id, 0);
-		confi += sample(id, 0);
+		tracker.GetScaledFrame(target_frame, timeline(id), scales(id));
+		GetFrameVector(feature, fmat.col(i), target_frame, cparts);
+		confi += liks(id);
 	}
 
-	auto fv = (fmat.colwise().sum() / confi).eval();
+	for (int i = 0; i < g_TrackerTopK; i++)
+	{
+		int id = idcies[i];
+		fmat.col(i) *= (liks(id) / confi); // inorder to prevent overflow, we do not multiply the weight until we get the normalization factor
+	}
+
+	auto fv = (fmat.rowwise().sum()).eval();
 
 	SetFrameVector(feature, fv, target_frame, cparts);
 

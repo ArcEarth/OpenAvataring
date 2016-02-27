@@ -58,9 +58,9 @@ const ParticaleFilterBase::LikihoodsType & ParticaleFilterBase::GetSampleLikilih
 
 ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 {
-	//Resample(m_newLiks, m_newSample, m_liks, m_sample);
-	//m_newSample.swap(m_sample);
-	//m_newLiks.swap(m_liks);
+	Resample(m_newLiks, m_newSample, m_liks, m_sample);
+	m_newSample.swap(m_sample);
+	m_newLiks.swap(m_liks);
 
 	auto& sample = m_sample;
 	int n = sample.rows();

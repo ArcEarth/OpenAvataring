@@ -86,5 +86,23 @@ namespace DirectXMathExtendTest
 
 			Assert::IsTrue(XMVector3NearEqual(v, expected, epsilon), L"Rotation test failed");
 		}
+
+		TEST_METHOD(FastSlerpTest)
+		{
+			XMVECTOR epsilon = XMVectorReplicate(0.001f);
+
+			XMVECTOR q0 = XMQuaternionRotationRollPitchYaw(2.4, 0.2, 0.7);
+			XMVECTOR q1 = XMQuaternionRotationRollPitchYaw(0.5, 1.03, 3.0);
+
+			for (float t = 0; t <= 1.0; t+=0.1f)
+			{
+				XMVECTOR sq = XMQuaternionSlerp(q0, q1, t);
+				XMVECTOR vt = XMVectorReplicate(t);
+				XMVECTOR fsq = XMQuaternionSlerpFastV(q0, q1, vt);
+
+				Assert::IsTrue(XMVector3NearEqual(sq, fsq, epsilon), L"Fast Slerp test failed");
+
+			}
+		}
 	};
 }

@@ -10,6 +10,7 @@
 #include <amp_math.h>
 
 #include <amp_hlsl_intrinsic.h>
+#include <amp_tinymt_rng.h>
 
 using TrackerScalarType = Causality::IGestureTracker::ScalarType;
 extern std::random_device g_rand;
@@ -20,6 +21,15 @@ namespace Causality
 {
 	namespace Internal {
 		using namespace concurrency::hlsl;
+		using concurrency::graphics::texture_view;
+		using concurrency::array_view;
+		using concurrency::extent;
+		using concurrency::index;
+		using concurrency::graphics::texture;
+
+#define uniform 
+#define __Unroll__ 
+
 #include "Quaternion.hlsli"
 
 		struct CharacterActionTrackerGpuImpl
@@ -27,19 +37,17 @@ namespace Causality
 		public:
 			const static int MaxEndEffectorCount = 32;
 			using ScalarType = TrackerScalarType;
+			using particle_vector_type = float4; 			//std::conditional_t<std::is_same<ScalarType, float>::value,float4,double4>;
+			using likilihood_type = double;
 
-			~CharacterActionTrackerGpuImpl() __CPU_ONLY
-			{}
+			using anim_texture_t = texture<const particle_vector_type, 2>;
 
-
-			using particle_vector_type = float4;
-			//std::conditional_t<std::is_same<ScalarType, float>::value,float4,double4>;
-
-			concurrency::array_view<const particle_vector_type, 1>	 animation;	// animation matrix array
-			// UAV
-			concurrency::array_view<particle_vector_type, 1>		 samples;// samples
-			// UAV
-			concurrency::array_view<double, 1>						 likilihoods; // out, likihoods
+			// Readonly texture that stores the animation data, (Frames X Bones) Dimension
+			texture_view<const particle_vector_type, 2>	 animation;	// animation matrix array
+			// UAV R/W
+			array_view<const particle_vector_type, 1>	 samples;// samples
+			// UAV for write
+			array_view<likilihood_type, 1>				 likilihoods; // out, likihoods
 			//concurrency::array_view<const int, 1>					 parentsView;	// parents
 			//concurrency::array_view<const particle_vector_type, 1>	 bindView;
 
@@ -49,10 +57,100 @@ namespace Causality
 			constants_t constants;
 
 #include "TrackerCS.hpp"
+#undef uniform
+#undef __Unroll__
 
 			void likilihood(concurrency::index<1> idx) __GPU_ONLY
 			{
-				write_likilihood(idx[0]);
+				auto id = idx[0];
+				float4 particle = samples[id];
+
+				// get random number in gpu is not that easy, lets do that in cpu
+				// particle = progate(particle);
+
+				write_likilihood(idx[0], particle);
+			}
+
+			// CPU only excution parts
+			// Sample matrix should be stores in row major for efficent access
+			using AnimationBuffer = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>;
+			using SampleBuffer = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>;
+			using LiksBuffer = Eigen::VectorXd;
+
+			//concurrency::accelerator_view acc_view;
+
+			// Setup the buffers
+			CharacterActionTrackerGpuImpl(const concurrency::accelerator_view& acc_view, const anim_texture_t &anim_texture, const AnimationBuffer& animBuffer, double animationDuration, const SampleBuffer& esamples, LiksBuffer& eliks) __CPU_ONLY
+				:
+				animation(anim_texture),
+				samples(concurrency::extent<1>(esamples.rows()), reinterpret_cast<const particle_vector_type*>(esamples.data())),
+				likilihoods(concurrency::extent<1>(eliks.size()), eliks.data())
+			{
+				auto numFrames = animBuffer.rows();
+				constants.timeSlice = (float)(animationDuration / (double)numFrames);
+			}
+
+			void setup_effectors(const Causality::ShrinkedArmature& parts, gsl::span<const Causality::ArmaturePart*> effectors) __CPU_ONLY
+			{
+				constants.numEffectors = effectors.size();
+				for (int i = 0; i < effectors.size(); i++)
+				{
+					auto& part = *effectors[i];
+					constants.effectors[i] = effectors[i]->Index;
+					for (int j = 0; j < part.Joints.size(); j++)
+					{
+						auto& joint = *part.Joints[j];
+						int jid = joint.ID;
+						constants.jointsInChain[jid] = j + 1;
+					}
+				}
+
+
+				auto& armature = parts.Armature();
+				auto& dframe = armature.bind_frame();
+				constants.numBones = armature.size();
+				for (int i = 0; i < armature.size(); i++)
+				{
+					auto& joint = *armature[i];
+					int jid = joint.ID;
+					constants.parents[jid] = joint.ParentID;
+					constants.bindPoses[jid][0] = reinterpret_cast<const float4&>(dframe[jid].LclRotation);
+					constants.bindPoses[jid][1] = reinterpret_cast<const float4&>(dframe[jid].LclTranslation);
+					if (joint.ParentID == -1)
+						constants.numAncestors[jid] = 0;
+					else
+						constants.numAncestors[jid] = constants.numAncestors[joint.ParentID] + 1;
+				}
+
+
+				constants.uS = 1.0f;
+				constants.thrS = 0.2f;
+				constants.varS = 0.2f;
+
+				constants.uVt = 1.0f;
+				constants.varVt = 0.3f;
+				constants.thrVt = 1.3f;
+
+				constants.poseSigma = 1.0f;
+				constants.velSigma = 1.0f;
+			}
+
+			~CharacterActionTrackerGpuImpl() __CPU_ONLY
+			{}
+
+			static anim_texture_t create_animation_texture(const AnimationBuffer& animBuffer, const concurrency::accelerator_view& acc_view)
+			{
+				anim_texture_t texture(concurrency::extent<2>(animBuffer.rows(), animBuffer.cols() / 4), //dimension
+					reinterpret_cast<const float_4*>(animBuffer.data()), // begin
+					reinterpret_cast<const float_4*>(animBuffer.data() + animBuffer.size()), // end
+					acc_view);
+				return texture;
+			}
+
+			// The result will be write back into the eigen matrix
+			void step_likilihoods(float time_delta) __CPU_ONLY
+			{
+				constants.timeDelta = time_delta;
 			}
 		};
 	}
