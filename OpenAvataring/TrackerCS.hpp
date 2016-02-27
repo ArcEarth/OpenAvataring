@@ -1,5 +1,7 @@
 #ifndef __GPU // HLSL shader case
 #define __FXC
+#define __GPU_ONLY
+#define __GPU
 Texture2D<float4>  animation;
 Buffer<float4>  samples;
 RWBuffer<float> likilihoods;
@@ -13,19 +15,19 @@ RWBuffer<float> likilihoods;
 #endif
 
 #ifdef __FXC
-float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU
+float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU_ONLY
 {
     return animation.Load(uint2(fid,bid));
     //return animation[fid * constants.numBones + bid];
 }
 #else
-float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU
+float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU_ONLY
 {
     return animation(fid,bid);
 }
 #endif
 
-float4 GetBoneRotationAtTime(float time, uint bid) __GPU
+float4 GetBoneRotationAtTime(float time, uint bid) __GPU_ONLY
 {
     uint fid = trunc(time / constants.timeSlice);
     float t = fmod(time, constants.timeSlice);
@@ -37,14 +39,14 @@ float4 GetBoneRotationAtTime(float time, uint bid) __GPU
     q = normalize(q); // maybe, this is not needed?
 }
 
-float4 GetScaledBoneRotationAtTime(float time, float scale, uint bid) __GPU
+float4 GetScaledBoneRotationAtTime(float time, float scale, uint bid) __GPU_ONLY
 {
     float4 q = GetBoneRotationAtTime(time, bid);
     float4 q0 = constants.bindPoses[bid][0];
     return slerp(q0, q, scale);
 }
 
-float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
+float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU_ONLY
 {
     float3 gt = 0;
     // caculate the vector from chain begin to chain end
@@ -72,7 +74,7 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU
     return gt;
 }
 
-void write_likilihood(uint id, float4 particle) __GPU
+void write_likilihood(uint id, float4 particle) __GPU_ONLY
 {
     float time = particle.x;
     float scale = particle.y;

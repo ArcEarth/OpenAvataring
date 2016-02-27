@@ -10,7 +10,6 @@
 #include <amp_math.h>
 
 #include <amp_hlsl_intrinsic.h>
-#include <amp_tinymt_rng.h>
 
 using TrackerScalarType = Causality::IGestureTracker::ScalarType;
 extern std::random_device g_rand;
@@ -40,10 +39,10 @@ namespace Causality
 			using particle_vector_type = float4; 			//std::conditional_t<std::is_same<ScalarType, float>::value,float4,double4>;
 			using likilihood_type = double;
 
-			using anim_texture_t = texture<const particle_vector_type, 2>;
+			using anim_texture_t = texture<float4, 2>;
 
 			// Readonly texture that stores the animation data, (Frames X Bones) Dimension
-			texture_view<const particle_vector_type, 2>	 animation;	// animation matrix array
+			texture_view<const float4, 2>				 animation;	// animation matrix array
 			// UAV R/W
 			array_view<const particle_vector_type, 1>	 samples;// samples
 			// UAV for write
@@ -80,7 +79,7 @@ namespace Causality
 			//concurrency::accelerator_view acc_view;
 
 			// Setup the buffers
-			CharacterActionTrackerGpuImpl(const concurrency::accelerator_view& acc_view, const anim_texture_t &anim_texture, const AnimationBuffer& animBuffer, double animationDuration, const SampleBuffer& esamples, LiksBuffer& eliks) __CPU_ONLY
+			CharacterActionTrackerGpuImpl(const concurrency::accelerator_view& acc_view, anim_texture_t &anim_texture, const AnimationBuffer& animBuffer, double animationDuration, const SampleBuffer& esamples, LiksBuffer& eliks) __CPU_ONLY
 				:
 				animation(anim_texture),
 				samples(concurrency::extent<1>(esamples.rows()), reinterpret_cast<const particle_vector_type*>(esamples.data())),
@@ -143,6 +142,7 @@ namespace Causality
 				anim_texture_t texture(concurrency::extent<2>(animBuffer.rows(), animBuffer.cols() / 4), //dimension
 					reinterpret_cast<const float_4*>(animBuffer.data()), // begin
 					reinterpret_cast<const float_4*>(animBuffer.data() + animBuffer.size()), // end
+
 					acc_view);
 				return texture;
 			}
