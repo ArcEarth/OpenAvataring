@@ -182,6 +182,23 @@
     <ClCompile Include="@(GroupAvatarControl)" />
     <ClCompile Include="@(GroupAvatarControl)" />
     <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
+    <ClCompile Include="@(GroupAvatarControl)" />
     <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp">
       <Filter>Avataring Control</Filter>
     </ClCompile>
@@ -197,9 +214,6 @@
     <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp">
       <Filter>Avataring Control</Filter>
     </ClCompile>
-    <ClCompile Include="..\OpenAvataring\GestureTracker.cpp">
-      <Filter>Avataring Control</Filter>
-    </ClCompile>
     <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp">
       <Filter>Avataring Control</Filter>
     </ClCompile>
@@ -213,45 +227,12 @@
     <ClCompile Include="@(GroupAvatarControl)" />
     <ClCompile Include="@(GroupAvatarControl)" />
     <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-    <ClCompile Include="@(GroupAvatarControl)" />
-  </ItemGroup>
-  <ItemGroup>
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureAssignment.cpp">
+    <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp">
       <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureParts.cpp">
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
       <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureTransforms.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\CharacterController.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\ClipMetric.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\GaussianProcess.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\GestureTracker.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\PlayerSelector.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\PlayerProxy.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
-    <GroupAvatarControl Include="..\OpenAvataring\StylizedIK.cpp">
-      <Filter>Avataring Control</Filter>
-    </GroupAvatarControl>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -389,9 +370,6 @@
     <ClInclude Include="..\OpenAvataring\CharacterController.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\GestureTracker.h">
-      <Filter>Avataring Control</Filter>
-    </ClInclude>
     <ClInclude Include="..\OpenAvataring\GaussianProcess.h">
       <Filter>Avataring Control\Algorithms</Filter>
     </ClInclude>
@@ -470,9 +448,6 @@
     <ClInclude Include="..\OpenAvataring\CharacterActionTracker.h">
       <Filter>Avataring Control</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.hlsli">
-      <Filter>Avataring Control</Filter>
-    </ClInclude>
     <ClInclude Include="..\OpenAvataring\Quaternion.hlsli">
       <Filter>Avataring Control</Filter>
     </ClInclude>
@@ -491,7 +466,10 @@
     <ClInclude Include="..\amp\amphlsl\amp_short_matrix.h">
       <Filter>Armature Animation</Filter>
     </ClInclude>
-    <ClInclude Include="..\OpenAvataring\TrackerCS.hpp">
+    <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.inl">
+      <Filter>Avataring Control</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\TrackerCS.inl">
       <Filter>Avataring Control</Filter>
     </ClInclude>
   </ItemGroup>

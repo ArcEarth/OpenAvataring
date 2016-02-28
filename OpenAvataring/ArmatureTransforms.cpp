@@ -12,6 +12,7 @@
 #include <Causality\CharacterObject.h>
 #include <Causality\Settings.h>
 #include <Causality\MatrixVisualizer.h>
+#include <Causality\Scene.h>
 
 using namespace std;
 using namespace Causality;
@@ -957,6 +958,7 @@ RowVectorXf PartilizedTransformer::GetCharacterInputVector(const P2PTransform& C
 void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, double vtStep, double scaleStep, double vtStDev, double scaleStDev, double tInitDistSubdiv, int vtInitDistSubdiv, int scaleInitDistSubdiv)
 {
 	bool trackerVel = g_TrackerUseVelocity;
+	auto pDeivce = m_pController->Character().Scene->GetRenderDevice();
 
 	m_lowConfidentFrameCount = 0;
 	m_lowConfidentTime = 0;
@@ -967,7 +969,7 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 	m_Trackers.reserve(clips.size());
 	for (auto& anim : clips)
 	{
-		m_Trackers.emplace_back(anim, *this);
+		m_Trackers.emplace_back(anim, *this, pDeivce);
 		auto& tracker = m_Trackers.back();
 
 		//! HACK!!!

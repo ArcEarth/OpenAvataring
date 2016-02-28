@@ -185,27 +185,54 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureAssignment.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureParts.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\ArmatureTransforms.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\CharacterController.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\ClipMetric.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\GaussianProcess.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\GestureTracker.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\PlayerSelector.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\PlayerProxy.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\StylizedIK.cpp" />
-    <GroupAvatarControl Include="..\OpenAvataring\CharacterActionTracker.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\OpenAvataring\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
-    <ClCompile Include="@(GroupAvatarControl)">
+    <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureParts.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ArmatureTransforms.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\CharacterController.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\ClipMetric.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\StylizedIK.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <EnableParallelCodeGeneration Condition="'$(Configuration)'=='Release'">true</EnableParallelCodeGeneration>
+      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -261,8 +288,8 @@
   </ItemGroup>-->
   <ItemGroup>
     <ClInclude Include="..\OpenAvataring\Quaternion.hlsli" />
-    <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.hlsli" />
-    <ClInclude Include="..\OpenAvataring\TrackerCS.hpp" />
+    <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.inl" />
+    <ClInclude Include="..\OpenAvataring\TrackerCS.inl" />
     <ClInclude Include="..\OpenAvataring\ArmatureAssignment.h" />
     <ClInclude Include="..\OpenAvataring\ArmaturePartFeatures.h" />
     <ClInclude Include="..\OpenAvataring\ArmatureParts.h" />
@@ -272,7 +299,6 @@
     <ClInclude Include="..\OpenAvataring\CharacterController.h" />
     <ClInclude Include="..\OpenAvataring\ClipMetric.h" />
     <ClInclude Include="..\OpenAvataring\GaussianProcess.h" />
-    <ClInclude Include="..\OpenAvataring\GestureTracker.h" />
     <ClInclude Include="..\OpenAvataring\PlayerSelector.h" />
     <ClInclude Include="..\OpenAvataring\PcaCcaMap.h" />
     <ClInclude Include="..\OpenAvataring\pch.h" />

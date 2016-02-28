@@ -60,6 +60,9 @@ namespace Causality
 		BlockizedArmatureTransform(const ShrinkedArmature * pSourceBlock, const ShrinkedArmature * pTargetBlock);
 
 		void SetFrom(const ShrinkedArmature * pSourceBlock, const ShrinkedArmature * pTargetBlock);
+
+		const ShrinkedArmature& SourceParts() const { return *m_sParts; }
+		const ShrinkedArmature& TargetParts() const { return *m_cParts; }
 	};
 
 	class BlockizedCcaArmatureTransform : public BlockizedArmatureTransform

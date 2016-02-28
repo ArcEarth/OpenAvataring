@@ -37,6 +37,7 @@ float4 GetBoneRotationAtTime(float time, uint bid) __GPU_ONLY
     // since the difference are relative small
     float4 q = lerp(f0,f1,t); 
     q = normalize(q); // maybe, this is not needed?
+	return q;
 }
 
 float4 GetScaledBoneRotationAtTime(float time, float scale, uint bid) __GPU_ONLY
@@ -74,7 +75,7 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU_ONLY
     return gt;
 }
 
-void write_likilihood(uint id, float4 particle) __GPU_ONLY
+void write_likilihood(uint id, float3 particle) __GPU_ONLY
 {
     float time = particle.x;
     float scale = particle.y;

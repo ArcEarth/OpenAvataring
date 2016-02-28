@@ -1,5 +1,4 @@
 #pragma once
-//#include <wrl\client.h>
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -102,46 +101,4 @@ namespace Causality
 	using I2DFactory     = ID2D1Factory;
 	using I2DContext     = ID2D1DeviceContext;
 	using ITextFactory   = IDWriteFactory;
-
-	//class RenderDevice : public Microsoft::WRL::ComPtr<ID3D11Device>
-	//{
-	//public:
-	//	typedef Microsoft::WRL::ComPtr <ID3D11Device> base_type;
-	//	using base_type::operator->;
-	//	using base_type::operator&;
-	//	using base_type::operator=;
-	//	using base_type::operator Microsoft::WRL::Details::BoolType;
-
-	//	RenderDevice() = default;
-	//	RenderDevice(ID3D11Device* pDevice)
-	//		: base_type(pDevice)
-	//	{
-	//	}
-
-	//	operator ID3D11Device*()
-	//	{
-	//		return Get();
-	//	}
-	//};
-
-	//class IRenderContext : public Microsoft::WRL::ComPtr<ID3D11DeviceContext>
-	//{
-	//public:
-	//	typedef Microsoft::WRL::ComPtr <ID3D11DeviceContext> base_type;
-	//	using base_type::operator->;
-	//	using base_type::operator&;
-	//	using base_type::operator=;
-	//	using base_type::operator Microsoft::WRL::Details::BoolType;
-
-	//	IRenderContext() = default;
-	//	IRenderContext(ID3D11DeviceContext* pContext)
-	//		: base_type(pContext)
-	//	{}
-
-	//	operator ID3D11DeviceContext*()
-	//	{
-	//		return Get();
-	//	}
-	//};
-
 }

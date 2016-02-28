@@ -279,7 +279,7 @@
         </creature>
 
 
-        <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
+        <!--<creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
           <creature.behavier>
             <behavier name="cat_beyhavier" armature="Characters\kitten.fbx">
               <behavier.actions>
@@ -287,7 +287,7 @@
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>
+        </creature>-->
         <!--<action name="run" src="kitten_Run.fbx"/>
        <action name="jump" src="kitten_Jump.fbx"/>-->
 

@@ -131,7 +131,7 @@ namespace Causality
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
 		wc.hInstance = m_hInstance;
-		wc.hIcon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON1));
+		wc.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_ICON1));
 		wc.hIconSm = wc.hIcon;
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 		wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);

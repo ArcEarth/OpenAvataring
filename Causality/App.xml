@@ -5,6 +5,7 @@
 
 	<assets path="..\Assets\"></assets>
 	<scenes path="AvataringTest.xml"></scenes>
+  <title>Immitation Game</title>
 
 	<window width="1920" height="1080" fullscreen="false"></window>
 	<console width="640" height="720"></console>
