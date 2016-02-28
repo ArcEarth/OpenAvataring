@@ -1465,6 +1465,8 @@ namespace DirectX
 
 #endif
 
+#ifndef _NO_SIMPLE_VECTORS
 #include "DirectXMathSimpleVectors.h"
 #include "DirectXMathTransforms.h"
+#endif
 #endif
