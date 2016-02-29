@@ -79,10 +79,21 @@ namespace Causality
 
 
 		// Addtional velocity
-		Vector3					Vaff;
+		Vector3						Vaff;
 
 		//mutable
+		size_t						m_trajectoryLength;
 		std::vector<std::pair<Vector3, Vector3>> m_PvHandles;
+		std::vector<std::deque<Vector3>> m_handelTrajectory;
+
+		void push_handle(int pid, const std::pair<Vector3, Vector3>& handle);
+
+		inline std::pair<Vector3, Vector3> GetPvHandle(int pid) const { return m_PvHandles[pid]; }
+
+		inline auto GetPvHandleTrajectory(int pid) const
+		{
+			return std::iterator_range<std::deque<Vector3>::const_reverse_iterator>(m_handelTrajectory[pid].rbegin(), m_handelTrajectory[pid].rend());
+		}
 
 		// Principle displacement driver
 		CharacterClipinfo& GetClipInfo(const std::string& name);

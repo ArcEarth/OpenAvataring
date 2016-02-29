@@ -213,7 +213,6 @@
     <ClCompile Include="..\OpenAvataring\GaussianProcess.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
-      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
     </ClCompile>
     <ClCompile Include="..\OpenAvataring\PlayerSelector.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -226,7 +225,6 @@
     <ClCompile Include="..\OpenAvataring\StylizedIK.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
-      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
     </ClCompile>
     <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>

@@ -5,6 +5,7 @@
 #define __Inout_Param__(T,name) inout T name
 #define __Out_Param__(T,name) out T name
 #define __Unroll__ [unroll]
+#else
 #endif
 // returns the quaternion of q2*q1
 // which represent the rotation sequence of q1 followed by q2

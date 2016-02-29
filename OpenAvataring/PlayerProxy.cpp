@@ -465,6 +465,10 @@ void PlayerProxy::SetActiveController(int idx)
 				chara.SetOrientation(c.CMapRefRot);
 				chara.EnabeAutoDisplacement(false);
 			}
+
+			auto matvis = chara.FirstChildOfType<MatrixVisualizer>();
+			if (matvis)
+				matvis->SetEnabled(false);
 		}
 	}
 

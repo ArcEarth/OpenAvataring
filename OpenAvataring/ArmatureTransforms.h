@@ -85,7 +85,7 @@ namespace Causality
 		class PerceptiveVector : public IArmaturePartFeature
 		{
 		private:
-			CharacterController			*m_pController;
+			CharacterController			*m_controller;
 		public:
 			float						Segma;
 			bool						Quadratic;
@@ -154,9 +154,11 @@ namespace Causality
 		using TrackerScalarType = IGestureTracker::ScalarType;
 		using TrackerVectorType = Eigen::Matrix<TrackerScalarType, 1, -1>;
 
+		~PartilizedTransformer();
+
 		std::vector<P2PTransform> ActiveParts;	// Direct controlled by input armature, with stylized IK
 
-		PartilizedTransformer(const ShrinkedArmature& sParts,const CharacterController & controller);
+		PartilizedTransformer(const ShrinkedArmature& sParts, CharacterController & controller);
 
 		void SetupTrackers(double expectedError, int stepSubdiv, double vtStep, double scaleStep, double vtStDev, double scaleStDev, double tInitDistSubdiv, int vtInitDistSubdiv, int scaleInitDistSubdiv);
 
@@ -197,7 +199,7 @@ namespace Causality
 	private:
 		typedef std::pair<Vector3, Vector3> LineSegment;
 
-		const CharacterController	*m_pController;
+		CharacterController			&m_controller;
 		array_view<LineSegment>		m_handles;
 		MatrixVisualizer			*m_matvis;
 

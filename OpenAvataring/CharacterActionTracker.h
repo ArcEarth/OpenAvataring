@@ -174,7 +174,7 @@ namespace Causality
 		InputVectorType					m_LikCov;
 		// time difference
 		ScalarType						m_dt;
-		ScalarType						m_confidentThre;
+		LikilihoodScalarType			m_confidentThre;
 
 		// Progation velocity variance
 		ScalarType						m_stdevDVt;
@@ -185,6 +185,8 @@ namespace Causality
 		ScalarType						m_uVt;
 		ScalarType						m_thrVt;
 		ScalarType						m_thrS;
+
+		size_t							m_framesCounter;
 
 		static constexpr size_t FrameCacheSize = 100;
 		static thread_local Bone s_frameCache0[FrameCacheSize], s_frameCache1[FrameCacheSize];

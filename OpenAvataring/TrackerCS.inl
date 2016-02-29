@@ -12,6 +12,10 @@ RWBuffer<float> likilihoods;
 
 #include "Quaternion.hlsli"
 #include "TrackerCS_cbuffer.hlsli"
+#else
+using float4 = concurrency::hlsl::float4;
+using float3 = concurrency::hlsl::float3;
+using uint = concurrency::hlsl::uint;
 #endif
 
 #ifdef __FXC
@@ -29,6 +33,7 @@ float4 GetBoneRotationAtFrame(uint fid, uint bid) __GPU_ONLY
 
 float4 GetBoneRotationAtTime(float time, uint bid) __GPU_ONLY
 {
+	using namespace concurrency::hlsl;
     uint fid = trunc(time / constants.timeSlice);
     float t = fmod(time, constants.timeSlice);
     float4 f0 = GetBoneRotationAtFrame(fid, bid);
@@ -42,14 +47,16 @@ float4 GetBoneRotationAtTime(float time, uint bid) __GPU_ONLY
 
 float4 GetScaledBoneRotationAtTime(float time, float scale, uint bid) __GPU_ONLY
 {
-    float4 q = GetBoneRotationAtTime(time, bid);
+	using namespace concurrency::hlsl;
+	float4 q = GetBoneRotationAtTime(time, bid);
     float4 q0 = constants.bindPoses[bid][0];
     return slerp(q0, q, scale);
 }
 
 float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU_ONLY
 {
-    float3 gt = 0;
+	using namespace concurrency::hlsl;
+	float3 gt = 0;
     // caculate the vector from chain begin to chain end
     for (int cx = constants.jointsInChain[bid]; cx > 0; --cx)
     {
@@ -77,7 +84,8 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU_ONLY
 
 void write_likilihood(uint id, float3 particle) __GPU_ONLY
 {
-    float time = particle.x;
+	using namespace concurrency::hlsl;
+	float time = particle.x;
     float scale = particle.y;
     float vt = particle.z;
     float dt = constants.timeDelta * vt;

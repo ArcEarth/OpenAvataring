@@ -116,6 +116,8 @@ inline void MatrixVisualizer::UpdateMatrixTemplate(const MatrixType & matrix)
 	std::lock_guard<std::mutex> guard(m_updateMutex);
 
 	XMVECTOR vc;
+	XMVECTOR vc1_hsv = XMVectorSet(.0,.8f,0.8f,1.0f);
+
 	switch (m_colorMode)
 	{
 	case CM_GrayScale:
@@ -136,11 +138,11 @@ inline void MatrixVisualizer::UpdateMatrixTemplate(const MatrixType & matrix)
 		{
 			for (int j = 0; j < m_cols; j++)
 			{
-				float t = (matrix(i, j) - min) * scale * 2.0f;
-				if (t < 1.0f)
-					vc = XMVectorLerp(Colors::Blue.v,Colors::Green.v, t);
-				else
-					vc = XMVectorLerp(Colors::Green.v, Colors::Red.v, t - 1.0f);
+				float t = (matrix(i, j) - min) * scale; // t in [0,1]
+
+				float hue = (1.0f - t) * 2.0 / 3.0;
+				XMVECTOR vchsv = XMVectorSetX(vc1_hsv, hue);
+				vc = XMColorHSVToRGB(vchsv);
 
 				XMStoreColor(&m_pixels[i*m_cols + j], vc);
 			}

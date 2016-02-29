@@ -1,4 +1,4 @@
-#define MAX_BONES 100
+#define MAX_BONES 64
 #define MAX_EFFECTORS 16
 
 __CBUFFER(constants)

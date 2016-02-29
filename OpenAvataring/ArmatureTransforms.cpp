@@ -288,7 +288,7 @@ void BlockizedCcaArmatureTransform::Transform(frame_view target_frame, const_fra
 }
 
 ArmaturePartFeatures::PerceptiveVector::PerceptiveVector(CharacterController & controller)
-	: m_pController(&controller)
+	: m_controller(&controller)
 {
 
 }
@@ -394,7 +394,7 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 			if (g_PvDimension == 6 && g_UseVelocity)
 			{
 				auto dX = feature.cast<double>().eval();
-				auto& sik = m_pController->GetStylizedIK(block.Index);
+				auto& sik = m_controller.GetStylizedIK(block.Index);
 				auto& gpr = sik.Gplvm();
 				//sik.setBaseRotation(frame[block.parent()->Joints.back()->ID].GblRotation);
 				dY = sik.apply(dX.segment<3>(0).transpose().eval(), dX.segment<3>(3).transpose().eval(), baseRot).cast<double>();
@@ -419,10 +419,14 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 	}
 }
 
-PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, const CharacterController & controller)
-	: m_pController(nullptr)
+PartilizedTransformer::~PartilizedTransformer()
 {
-	m_pController = &controller;
+
+}
+
+PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, CharacterController & controller)
+	: m_controller(controller)
+{
 
 	m_handles = controller.PvHandles();
 	m_matvis = const_cast<MatrixVisualizer*>(controller.Character().FirstChildOfType<MatrixVisualizer>());
@@ -544,7 +548,7 @@ void PartilizedTransformer::Transform(frame_view target_frame, const_frame_view 
 	{
 		auto& ctrl = AccesseryParts[0];
 		auto _x = GetInputVector(ctrl, source_frame, last_frame, computeVelocity ? frame_time : 0, computeVelocity);
-		_x = (_x - m_pController->uXabpv) * m_pController->XabpvT;
+		_x = (_x - m_controller.uXabpv) * m_controller.XabpvT;
 		RowVectorXd Xd = _x.cast<double>();
 
 		for (auto ctrl : AccesseryParts)
@@ -600,8 +604,8 @@ void PartilizedTransformer::SetTrackerVisualization()
 
 		auto wa = liks.maxCoeff();
 		g_Sample.col(0) = (liks / wa).cast<float>();
-		g_Sample.col(1) = (scls.cast<float>() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
-		g_Sample.col(2) = (vts.cast<float>() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
+		g_Sample.col(1) = (vts.cast<float>() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
+		g_Sample.col(2) = (scls.cast<float>() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
 		g_Sample.col(3) = timeline.cast<float>() / (float)tracker.Animation().Length().count();
 		g_Sample = g_Sample.cwiseMax(.0).cwiseMin(1.0);
 
@@ -639,7 +643,7 @@ void Causality::BlendFrame(IArmaturePartFeature& feature, const ShrinkedArmature
 
 void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowVectorXd &Xd, ArmatureFrameView target_frame)
 {
-	auto& sik = m_pController->GetStylizedIK(cpart.Index);
+	auto& sik = m_controller.GetStylizedIK(cpart.Index);
 	auto& gpr = sik.Gplvm();
 
 	RowVectorXd Y;
@@ -652,7 +656,7 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 {
 	RowVectorXd Xd, Y;
 
-	auto& sik = const_cast<StylizedChainIK&>(m_pController->GetStylizedIK(cpart.Index));
+	auto& sik = const_cast<StylizedChainIK&>(m_controller.GetStylizedIK(cpart.Index));
 	auto& gpr = sik.Gplvm();
 	auto& joints = cpart.Joints;
 
@@ -681,7 +685,9 @@ void PartilizedTransformer::SetHandleVisualization(ArmaturePart & cpart, Eigen::
 {
 	if (!m_handles.empty())
 	{
-		auto& handle = m_handles[cpart.Index];
+		//auto& handle = m_handles[cpart.Index];
+		std::pair<Vector3, Vector3> handle;
+
 		handle.first = Vector3(xf.data());
 		if (g_UseVelocity && g_PvDimension == 6)
 		{
@@ -691,6 +697,8 @@ void PartilizedTransformer::SetHandleVisualization(ArmaturePart & cpart, Eigen::
 		{
 			handle.second = Vector3::Zero;
 		}
+		
+		m_controller.push_handle(cpart.Index, handle);
 	}
 }
 
@@ -704,8 +712,8 @@ using namespace std;
 
 void PartilizedTransformer::GenerateDrivenAccesseryControl()
 {
-	auto& allclip = m_pController->GetUnitedClipinfo();
-	auto& controller = *m_pController;
+	auto& allclip = m_controller.GetUnitedClipinfo();
+	auto& controller = *m_controller;
 
 	int pvDim = allclip.PvFacade.GetAllPartDimension();
 
@@ -787,7 +795,7 @@ void PartilizedTransformer::EnableTracker(int whichTracker)
 
 void PartilizedTransformer::EnableTracker(const std::string & animName)
 {
-	auto& clips = m_pController->Character().Behavier().Clips();
+	auto& clips = m_controller.Character().Behavier().Clips();
 	int which = std::find_if(BEGIN_TO_END(clips), [&animName](const ArmatureFrameAnimation& anim) { return anim.Name == animName;}) - clips.begin();
 	EnableTracker(which);
 }
@@ -958,11 +966,11 @@ RowVectorXf PartilizedTransformer::GetCharacterInputVector(const P2PTransform& C
 void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, double vtStep, double scaleStep, double vtStDev, double scaleStDev, double tInitDistSubdiv, int vtInitDistSubdiv, int scaleInitDistSubdiv)
 {
 	bool trackerVel = g_TrackerUseVelocity;
-	auto pDeivce = m_pController->Character().Scene->GetRenderDevice();
+	auto pDeivce = m_controller.Character().Scene->GetRenderDevice();
 
 	m_lowConfidentFrameCount = 0;
 	m_lowConfidentTime = 0;
-	auto& clips = m_pController->Character().Behavier().Clips();
+	auto& clips = m_controller.Character().Behavier().Clips();
 	m_trackerConfidents.setZero(clips.size(),
 		m_trackerSwitchTimeThreshold * MAX_FRAME_RATE);
 
@@ -971,7 +979,7 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 	{
 		m_Trackers.emplace_back(anim, *this, pDeivce);
 		auto& tracker = m_Trackers.back();
-
+		tracker.SwitchAccelerater(g_TrackerGpuAcceleration ? CharacterActionTracker::GPU : CharacterActionTracker::SMP);
 		//! HACK!!!
 		int dim = ActiveParts.size() * m_pInputF->GetDimension();
 		if (trackerVel)
@@ -982,7 +990,7 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 		{
 			for (int i = 0, d = m_pInputF->GetDimension(); i < ActiveParts.size(); i++)
 			{
-				var.segment(i*d * 2 + d, d) *= g_FrameTimeScaleFactor;// *g_FrameTimeScaleFactor;
+				var.segment(i*d * 2 + d, d).setConstant(g_TrackerNormalizedVelocityVariance);// *g_FrameTimeScaleFactor;
 			}
 		}
 
@@ -1066,7 +1074,7 @@ void PartilizedTransformer::DrivePartsTrackers(TrackerVectorType &_x, float fram
 			if (bestTracker != m_currentTracker && confi > m_trackerSwitchThreshold)
 			{
 				m_currentTracker = bestTracker;
-				auto& clips = m_pController->Character().Behavier().Clips();
+				auto& clips = m_controller.Character().Behavier().Clips();
 				if (m_currentTracker != -1)
 					cout << "Switched to action [" << clips[m_currentTracker].Name << ']' << endl;
 			}

@@ -4,6 +4,7 @@
 #include "ArmatureTransforms.h"
 #include <type_traits>
 #include <random>
+#include <chrono>
 
 #include <amp.h>
 #include <amp_graphics.h>
@@ -103,6 +104,7 @@ namespace Causality
 				samples(concurrency::extent<1>(esamples.rows()), reinterpret_cast<const particle_vector_type*>(esamples.data())),
 				likilihoods(concurrency::extent<1>(eliks.size()), eliks.data())
 			{
+				ZeroMemory(&constants,sizeof(constants));
 				double numFrames = (double)anim_texture.extent[0];
 				constants.timeSlice = (float)(animationDuration / numFrames);
 			}
@@ -114,6 +116,11 @@ namespace Causality
 				{
 					auto& part = *effectors[i];
 					constants.effectors[i] = effectors[i]->Index;
+				}
+
+				for (int i = 0; i < parts.size(); i++)
+				{
+					auto& part = *parts[i];
 					for (int j = 0; j < part.Joints.size(); j++)
 					{
 						auto& joint = *part.Joints[j];
@@ -268,7 +275,7 @@ struct CharacterActionTracker::GpuAcceleratorView
 CharacterActionTracker::CharacterActionTracker(const ArmatureFrameAnimation & animation, const PartilizedTransformer &transfomer, IRenderDevice* pDevice)
 	: m_Animation(animation),
 	m_Transformer(transfomer),
-	m_confidentThre(0.00001),
+	m_confidentThre(g_TrackerRestConfident),
 	m_uS(1.0),
 	m_thrVt(1.3),
 	m_uVt(.0),
@@ -347,6 +354,7 @@ void CharacterActionTracker::Reset(const InputVectorType & input)
 
 void CharacterActionTracker::Reset()
 {
+	m_framesCounter = 0;
 	auto& frames = m_Animation.GetFrameBuffer();
 
 	int tchuck = m_tSubdiv, schunck = m_scaleSubdiv, vchunck = m_vtSubdiv;
@@ -455,10 +463,14 @@ CharacterActionTracker::ScalarType CharacterActionTracker::Step(const InputVecto
 
 	if (confi < m_confidentThre)
 	{
-		std::cout << "[Tracker] *Rest*************************" << std::endl;
+		using namespace  std::chrono;
+		auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::cout << std::put_time(std::localtime(&now), "[%H:%M:%S]") << " [Tracker:"<< m_framesCounter<<"] Rest at confident (" << confi << ')'<< std::endl;
 		Reset(input);
 		confi = m_liks.sum();
 	}
+
+	++m_framesCounter;
 	return confi;
 }
 
@@ -532,7 +544,8 @@ CharacterActionTracker::LikilihoodScalarType CharacterActionTracker::Likilihood(
 	using scalar = LikilihoodScalarType;
 
 	InputVectorType diff = (vx - m_CurrentInput).cwiseAbs2().eval();
-	LikilihoodScalarType likilihood = (diff.array() / m_LikCov.array()).sum();
+	diff.array() /= m_LikCov.array();
+	scalar likilihood = diff.sum();
 	likilihood = exp(-likilihood);
 
 	// Scale factor distribution
@@ -700,6 +713,15 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 	if (m_accelerator == AcceceleratorEnum::GPU)
 	{
 		Likilihoods_Gpu();
+
+//#if defined(_DEBUG)
+//		for (int i = 0; i < n; i++)
+//		{
+//			auto partical = m_sample.row(i);
+//			m_newLiks(i) = Likilihood(i, partical);
+//		}
+//#endif
+
 	}
 #if defined(openMP)
 	else if (m_accelerator == AcceceleratorEnum::SMP) {

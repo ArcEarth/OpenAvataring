@@ -557,6 +557,13 @@ std::vector<std::pair<DirectX::Vector3, DirectX::Vector3>>& CharacterController:
 	return m_PvHandles;
 }
 
+void CharacterController::push_handle(int pid, const std::pair<Vector3, Vector3>& handle) {
+	m_PvHandles[pid] = handle;
+	m_handelTrajectory[pid].push_back(handle.first);
+	if (m_handelTrajectory[pid].size() > m_trajectoryLength)
+		m_handelTrajectory[pid].pop_front();
+}
+
 CharacterClipinfo & CharacterController::GetClipInfo(const string & name) {
 	auto itr = std::find_if(BEGIN_TO_END(m_Clipinfos), [&name](const auto& clip) {
 		return clip.ClipName() == name;
