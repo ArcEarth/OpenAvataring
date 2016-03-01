@@ -381,6 +381,9 @@ AssetDictionary::mesh_type * AssetDictionary::LoadFbxMesh(const string & key, co
 
 AssetDictionary::texture_type * AssetDictionary::LoadTexture(const string & key, const string & fileName)
 {
+	auto itr = textures.find(key);
+	if (itr != textures.end()) return itr->second;
+	// else create the key
 	textures[key] = DirectX::Texture::CreateFromDDSFile(m_device.Get(), (texture_directory / fileName).c_str());
 	return textures[key];
 }

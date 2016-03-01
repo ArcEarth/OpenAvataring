@@ -83,6 +83,8 @@ namespace Causality
 		bool								m_EnableOverShoulderCam;
 		bool								m_IsInitialized;
 
+		DirectX::Texture2D*					m_trailVisual;
+
 		std::thread							m_updateThread;
 		std::atomic_bool					m_stopUpdate;
 		std::mutex							m_controlMutex;
@@ -146,3 +148,5 @@ namespace Causality
 
 	};
 }
+
+void DrawParticle(DirectX::XMVECTOR &particle, const DirectX::XMMATRIX &world, const DirectX::CXMMATRIX &proj, const D3D11_VIEWPORT & vp, DirectX::SpriteBatch & sprites, ID3D11ShaderResourceView * pTrajectoryVisual, const DirectX::XMVECTOR &color);

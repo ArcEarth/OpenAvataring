@@ -85,7 +85,7 @@ namespace Causality
 		class PerceptiveVector : public IArmaturePartFeature
 		{
 		private:
-			CharacterController			*m_controller;
+			CharacterController			&m_controller;
 		public:
 			float						Segma;
 			bool						Quadratic;

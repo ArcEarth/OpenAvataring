@@ -671,6 +671,8 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 	PotientialFrame = armature.bind_frame();
 	m_charaFrame = armature.bind_frame();
 	m_PvHandles.resize(armature.size());
+	m_trajectoryLength = 30;
+	m_handelTrajectory.resize(armature.size());
 
 	//parts.ComputeWeights();
 	if (!g_UseJointLengthWeight)

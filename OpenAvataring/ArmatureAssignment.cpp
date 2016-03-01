@@ -417,7 +417,7 @@ namespace Causality
 
 }
 
-CtrlTransformInfo Causality::CreateControlTransform(const CharacterController & controller, const ClipFacade& iclip)
+CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
 {
 	assert(controller.IsReady && iclip.IsReady());
 

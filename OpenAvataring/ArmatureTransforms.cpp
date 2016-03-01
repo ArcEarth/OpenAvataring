@@ -288,7 +288,7 @@ void BlockizedCcaArmatureTransform::Transform(frame_view target_frame, const_fra
 }
 
 ArmaturePartFeatures::PerceptiveVector::PerceptiveVector(CharacterController & controller)
-	: m_controller(&controller)
+	: m_controller(controller)
 {
 
 }
@@ -713,7 +713,7 @@ using namespace std;
 void PartilizedTransformer::GenerateDrivenAccesseryControl()
 {
 	auto& allclip = m_controller.GetUnitedClipinfo();
-	auto& controller = *m_controller;
+	auto& controller = m_controller;
 
 	int pvDim = allclip.PvFacade.GetAllPartDimension();
 

@@ -11,5 +11,5 @@ namespace Causality
 	};
 
 	CtrlTransformInfo
-		CreateControlTransform(const CharacterController & controller, const ClipFacade& iclip);
+		CreateControlTransform(CharacterController & controller, const ClipFacade& iclip);
 }

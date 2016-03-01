@@ -257,7 +257,7 @@
         </creature.behavier>
       </creature>-->
       
-      <player_controller name="player" position="0,0.0,0">
+      <player_controller name="player" position="0,0.0,0" trail_particle="trail_particle.dds">
         <player_controller.selector>
           <kinect_source mode="3"/>
           <!--<leap_source mode="16"/>-->

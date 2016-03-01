@@ -37,6 +37,10 @@ namespace DirectX
 
 		void SetView(DirectX::CXMMATRIX View);
 
+		XMMATRIX GetWorld() const { return WorldMatrix; }
+		XMMATRIX GetProjection() const { return ProjectionMatrix; }
+		XMMATRIX GetView() const { return ViewMatrix; }
+
 		void Begin();
 
 		void End();

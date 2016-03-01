@@ -28,6 +28,7 @@
 #include "Causality\KinectSensor.h"
 #include "Causality\LeapMotion.h"
 #include "Causality\MatrixVisualizer.h"
+#include "Causality\AssetDictionary.h"
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
 
 //float				g_NoiseInterpolation = 1.0f;
@@ -342,6 +343,18 @@ void PlayerProxy::Parse(const ParamArchive * store)
 	mode = (PlayerSelectorBase::SelectionMode)umode;
 	sptr<IPlayerSelector> pSelector;
 
+	string trail_particle;
+	GetParam(store, "trail_particle", trail_particle);
+	if (!trail_particle.empty())
+	{
+		auto& assets = Scene->Assets();
+		if (trail_particle[0] == '{')
+			m_trailVisual = dynamic_cast<Texture2D*>(assets.GetTexture(trail_particle.substr(1, trail_particle.size() - 2)));
+		else
+			m_trailVisual = dynamic_cast<Texture2D*>(assets.LoadTexture("character_trail_visual",trail_particle));
+	}
+
+
 	if (name == "kinect_source")
 	{
 		auto pKinect = Devices::KinectSensor::GetForCurrentView();
@@ -356,7 +369,6 @@ void PlayerProxy::Parse(const ParamArchive * store)
 	}
 	else if (name == "virutal_character_source")
 	{
-
 	}
 
 	if (pSelector)
@@ -1016,7 +1028,48 @@ void DrawGuidingVectors(const ShrinkedArmature & barmature, ArmatureFrameConstVi
 
 }
 
-void DrawControllerHandle(const CharacterController& controller)
+
+DirectX::XMVECTOR XM_CALLCONV XMParticleProjection(DirectX::FXMVECTOR V, DirectX::FXMMATRIX worldView, DirectX::CXMMATRIX proj, const D3D11_VIEWPORT& vp)
+{
+	using namespace DirectX;
+	const float HalfViewportWidth = vp.Width * 0.5f;
+	const float HalfViewportHeight = vp.Height * 0.5f;
+
+	XMVECTOR Scale = XMVectorSet(HalfViewportWidth, -HalfViewportHeight, vp.MaxDepth - vp.MinDepth, 0.0f);
+	XMVECTOR Offset = XMVectorSet(vp.TopLeftY + HalfViewportWidth, vp.TopLeftY + HalfViewportHeight, vp.MinDepth, 0.0f);
+
+	XMVECTOR R = _DXMEXT XMVectorSplatW(V); // particle radius
+	XMVECTOR P = _DXMEXT XMVectorSetW(V, 1.0f);
+	P = _DXMEXT XMVector3Transform(V, worldView);
+
+	R = _DXMEXT XMVectorPermute<0, 1, 6, 7>(R, P); // (r,r,depth,1.0)
+
+	P = _DXMEXT XMVector3TransformCoord(P, proj);
+	R = _DXMEXT XMVector3TransformCoord(P, proj);
+
+	P = _DXMEXT XMVectorMultiplyAdd(P, Scale, Offset);
+	R = _DXMEXT XMVectorMultiplyAdd(R, Scale, Offset);
+
+	P = _DXMEXT XMVectorPermute<0, 1, 2, 4>(P, R); // (X,Y,Z,size)
+	return P;
+}
+
+void XM_CALLCONV DrawParticle(DirectX::SpriteBatch & sprites, DirectX::XMVECTOR particle, const DirectX::XMVECTOR &color, DirectX::CXMMATRIX worldView, DirectX::CXMMATRIX proj, const D3D11_VIEWPORT & vp, ID3D11ShaderResourceView * pTrajectoryVisual)
+{
+	using namespace DirectX;
+	particle = XMParticleProjection(particle, worldView, proj, vp);
+	float depth = _DXMEXT XMVectorGetZ(particle);
+	particle = _DXMEXT XMVectorSwizzle<0, 1, 3, 3>(particle);
+	Vector4 fp = particle;
+	RECT rect;
+	rect.left = fp.x - fp.z;
+	rect.right = fp.x + fp.z;
+	rect.top = fp.y - fp.w;
+	rect.bottom = fp.y + fp.w;
+	sprites.Draw(pTrajectoryVisual, rect, nullptr, color, 0, DirectX::XMFLOAT2(0, 0), DirectX::SpriteEffects::SpriteEffects_None, depth);
+}
+
+void DrawControllerHandle(CharacterController& controller, FXMMATRIX view, CXMMATRIX proj, const D3D11_VIEWPORT& vp, ID3D11ShaderResourceView* pTrajectoryVisual = nullptr)
 {
 	using DirectX::Visualizers::g_PrimitiveDrawer;
 	using namespace Math;
@@ -1035,12 +1088,18 @@ void DrawControllerHandle(const CharacterController& controller)
 	{
 		if (block->ActiveActions.size() > 0)
 		{
-			auto& handle = controller.PvHandles()[block->Index];
+			auto handle = controller.GetPvHandle(block->Index);
+			auto trajectory = controller.GetPvHandleTrajectory(block->Index);
+
 			XMVECTOR ep = handle.first;
 
 			auto& pbone = frame[block->parent()->Joints.back()->ID];
 			XMVECTOR sp = pbone.GblTranslation;
 			ep = sp + ep;
+
+			// forward trajectory's ending to it's local coordinate
+			if (!trajectory.empty())
+				*trajectory.begin() = ep;
 
 			sp = XMVector3Transform(sp, world);
 			ep = XMVector3Transform(ep, world);
@@ -1055,11 +1114,47 @@ void DrawControllerHandle(const CharacterController& controller)
 			g_PrimitiveDrawer.DrawCone(ep, ep - sp, g_DebugArmatureThinkness * 5, g_DebugArmatureThinkness * 3, vel_color);
 		}
 	}
+
+
+	if (!pTrajectoryVisual) return;
+	auto& sprites = *g_PrimitiveDrawer.GetSpriteBatch();
+	sprites.Begin();
+	world = XMMatrixMultiply(world,view);
+	float particleRadius = g_DebugArmatureThinkness * 3;
+
+	float transparencyDecay = 1.0f / 30.0f;
+	color = Colors::White.v;
+	for (auto& block : barmature)
+	{
+		float transparency = 1.0f;
+		if (block->ActiveActions.size() > 0)
+		{
+			auto trajectory = controller.GetPvHandleTrajectory(block->Index);
+			for (auto& p : trajectory)
+			{
+
+				XMVECTOR particle = XMLoad(p);
+				particle = XMVectorSetW(particle, particleRadius);
+				color = XMVectorSetW(color, transparency);
+				DrawParticle(sprites, particle, color, world, proj, vp, pTrajectoryVisual);
+				transparency -= transparencyDecay;
+				transparency = fmax(transparency, .0f);
+			}
+		}
+	}
+
+	sprites.End();
 }
 
 void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 {
 	Bone charaFrame[100];
+
+	auto view = DirectX::Visualizers::g_PrimitiveDrawer.GetView();
+	auto proj = DirectX::Visualizers::g_PrimitiveDrawer.GetProjection();
+	D3D11_VIEWPORT viewport;
+	UINT numViewport = 1;
+	context->RSGetViewports(&numViewport, &viewport);
 
 	if (g_DebugLocalMotion && g_DebugView)
 	{
@@ -1072,7 +1167,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 			action.GetFrameAt(charaFrame, current_time);
 			auto world = chara.GlobalTransformMatrix();
 			DrawArmature(chara.Armature(), charaFrame, DirectX::Colors::LimeGreen.v, world, g_DebugArmatureThinkness / chara.GetGlobalTransform().Scale.x);
-			DrawControllerHandle(controller);
+			DrawControllerHandle(controller, view, proj, viewport, *m_trailVisual);
 		}
 	}
 
@@ -1101,7 +1196,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				continue;
 
 			auto& chara = controller.Character();
-			DrawControllerHandle(controller);
+			DrawControllerHandle(controller, view, proj, viewport, *m_trailVisual);
 		}
 
 	}

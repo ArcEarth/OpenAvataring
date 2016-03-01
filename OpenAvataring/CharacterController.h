@@ -90,9 +90,9 @@ namespace Causality
 
 		inline std::pair<Vector3, Vector3> GetPvHandle(int pid) const { return m_PvHandles[pid]; }
 
-		inline auto GetPvHandleTrajectory(int pid) const
+		inline auto GetPvHandleTrajectory(int pid)
 		{
-			return std::iterator_range<std::deque<Vector3>::const_reverse_iterator>(m_handelTrajectory[pid].rbegin(), m_handelTrajectory[pid].rend());
+			return std::make_range(m_handelTrajectory[pid].rbegin(), m_handelTrajectory[pid].rend());
 		}
 
 		// Principle displacement driver
