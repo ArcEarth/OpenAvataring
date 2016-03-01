@@ -997,8 +997,8 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 		tracker.SetLikihoodVarience(var.cast<IGestureTracker::ScalarType>());
 		// dt = 1/30s, ds = 0.01, s = 0.3? 
 		tracker.SetTrackingParameters(vtStep, sqr(vtStDev), scaleStep, sqr(scaleStDev));
-		tracker.SetVelocityTolerance(vtStDev + 1.0);
-		tracker.SetScaleTolerance(scaleStDev);
+		tracker.SetVelocityTolerance(g_TrackerVtThreshold);
+		tracker.SetScaleTolerance(g_TrackerScaleThreshold);
 		tracker.SetStepSubdivition(stepSubdiv);
 		tracker.SetParticalesSubdiv(anim.GetFrameBuffer().size() * tInitDistSubdiv, scaleInitDistSubdiv, vtInitDistSubdiv);
 		tracker.Reset();

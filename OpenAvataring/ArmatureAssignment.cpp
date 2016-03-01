@@ -301,7 +301,8 @@ namespace Causality
 			
 			RowVectorXf alpha = (_Y.cwiseAbs2().colwise().sum().array() / _X.cwiseAbs2().colwise().sum().array()).cwiseSqrt();
 
-			alpha = alpha.cwiseMax(0.8f * unis).cwiseMin(1.2f * unis);
+			std::cout << "Global scale = " << unis << "Anisometric scale = " << alpha << std::endl;
+			alpha = alpha.cwiseMax(g_HandleTransformAnisometricMin * unis).cwiseMin(g_HandleTransformAnisometricMax * unis);
 
 			err = (_Y - _X * alpha.asDiagonal()).cwiseAbs2().sum();
 

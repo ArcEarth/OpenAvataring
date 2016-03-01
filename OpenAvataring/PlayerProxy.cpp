@@ -228,6 +228,7 @@ PlayerProxy::PlayerProxy()
 	Register();
 	m_stopUpdate = true;
 	m_IsInitialized = true;
+	m_charaFrame.resize(256);
 }
 
 void PlayerProxy::InitializeShrinkedPlayerArmature()
@@ -1045,10 +1046,10 @@ DirectX::XMVECTOR XM_CALLCONV XMParticleProjection(DirectX::FXMVECTOR V, DirectX
 	R = _DXMEXT XMVectorPermute<0, 1, 6, 7>(R, P); // (r,r,depth,1.0)
 
 	P = _DXMEXT XMVector3TransformCoord(P, proj);
-	R = _DXMEXT XMVector3TransformCoord(P, proj);
+	R = _DXMEXT XMVector3TransformCoord(R, proj);
 
 	P = _DXMEXT XMVectorMultiplyAdd(P, Scale, Offset);
-	R = _DXMEXT XMVectorMultiplyAdd(R, Scale, Offset);
+	R = XMVectorMultiply(R, Scale);
 
 	P = _DXMEXT XMVectorPermute<0, 1, 2, 4>(P, R); // (X,Y,Z,size)
 	return P;
@@ -1069,7 +1070,7 @@ void XM_CALLCONV DrawParticle(DirectX::SpriteBatch & sprites, DirectX::XMVECTOR 
 	sprites.Draw(pTrajectoryVisual, rect, nullptr, color, 0, DirectX::XMFLOAT2(0, 0), DirectX::SpriteEffects::SpriteEffects_None, depth);
 }
 
-void DrawControllerHandle(CharacterController& controller, FXMMATRIX view, CXMMATRIX proj, const D3D11_VIEWPORT& vp, ID3D11ShaderResourceView* pTrajectoryVisual = nullptr)
+void DrawControllerHandle(CharacterController& controller, DirectX::Color* colors, FXMMATRIX view, CXMMATRIX proj, const D3D11_VIEWPORT& vp, ID3D11ShaderResourceView* pTrajectoryVisual = nullptr)
 {
 	using DirectX::Visualizers::g_PrimitiveDrawer;
 	using namespace Math;
@@ -1088,6 +1089,8 @@ void DrawControllerHandle(CharacterController& controller, FXMMATRIX view, CXMMA
 	{
 		if (block->ActiveActions.size() > 0)
 		{
+			if (colors)
+				color = XMLoad(colors[block->Index]);
 			auto handle = controller.GetPvHandle(block->Index);
 			auto trajectory = controller.GetPvHandleTrajectory(block->Index);
 
@@ -1118,23 +1121,25 @@ void DrawControllerHandle(CharacterController& controller, FXMMATRIX view, CXMMA
 
 	if (!pTrajectoryVisual) return;
 	auto& sprites = *g_PrimitiveDrawer.GetSpriteBatch();
-	sprites.Begin();
+	sprites.Begin(DirectX::SpriteSortMode_Deferred, g_PrimitiveDrawer.GetStates()->NonPremultiplied());
 	world = XMMatrixMultiply(world,view);
-	float particleRadius = g_DebugArmatureThinkness * 3;
+	float particleRadius = g_DebugArmatureThinkness * 5;
 
 	float transparencyDecay = 1.0f / 30.0f;
-	color = Colors::White.v;
 	for (auto& block : barmature)
 	{
 		float transparency = 1.0f;
 		if (block->ActiveActions.size() > 0)
 		{
+			if (colors)
+				color = XMLoad(colors[block->Index]);
+			color = XMVectorSaturate(color + XMVectorReplicate(0.3f));
 			auto trajectory = controller.GetPvHandleTrajectory(block->Index);
 			for (auto& p : trajectory)
 			{
 
 				XMVECTOR particle = XMLoad(p);
-				particle = XMVectorSetW(particle, particleRadius);
+				particle = XMVectorSetW(particle, particleRadius * (4.0f - 3.7 * transparency * transparency));
 				color = XMVectorSetW(color, transparency);
 				DrawParticle(sprites, particle, color, world, proj, vp, pTrajectoryVisual);
 				transparency -= transparencyDecay;
@@ -1148,12 +1153,12 @@ void DrawControllerHandle(CharacterController& controller, FXMMATRIX view, CXMMA
 
 void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 {
-	Bone charaFrame[100];
+	//Bone charaFrame[100];
 
 	auto view = DirectX::Visualizers::g_PrimitiveDrawer.GetView();
 	auto proj = DirectX::Visualizers::g_PrimitiveDrawer.GetProjection();
 	D3D11_VIEWPORT viewport;
-	UINT numViewport = 1;
+	uint32_t numViewport = 1;
 	context->RSGetViewports(&numViewport, &viewport);
 
 	if (g_DebugLocalMotion && g_DebugView)
@@ -1164,10 +1169,12 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				continue;
 			auto& chara = controller.Character();
 			auto& action = controller.Character().Behavier()[g_DebugLocalMotionAction[chara.Name]];
-			action.GetFrameAt(charaFrame, current_time);
+			if (chara.Armature().size() > m_charaFrame.size())
+				m_charaFrame.resize(chara.Armature().size());
+			action.GetFrameAt(m_charaFrame, current_time);
 			auto world = chara.GlobalTransformMatrix();
-			DrawArmature(chara.Armature(), charaFrame, DirectX::Colors::LimeGreen.v, world, g_DebugArmatureThinkness / chara.GetGlobalTransform().Scale.x);
-			DrawControllerHandle(controller, view, proj, viewport, *m_trailVisual);
+			DrawArmature(chara.Armature(), m_charaFrame, DirectX::Colors::LimeGreen.v, world, g_DebugArmatureThinkness / chara.GetGlobalTransform().Scale.x);
+			DrawControllerHandle(controller, nullptr, view, proj, viewport, *m_trailVisual);
 		}
 	}
 
@@ -1196,7 +1203,16 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				continue;
 
 			auto& chara = controller.Character();
-			DrawControllerHandle(controller, view, proj, viewport, *m_trailVisual);
+			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
+
+			std::vector<Color> colors(controller.ArmatureParts().size());
+
+			for (auto& part : controller.ArmatureParts())
+			{
+				colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
+			}
+
+			DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
 		}
 
 	}

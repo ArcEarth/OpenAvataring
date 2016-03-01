@@ -1,4 +1,6 @@
 SETTING_REGISTERATION(int, PartAssignmentTransform, PAT_RST)
+SETTING_REGISTERATION(int, HandleTransformAnisometricMin, 0.2)
+SETTING_REGISTERATION(int, HandleTransformAnisometricMax, 1.2)
 SETTING_REGISTERATION(bool, UsePersudoPhysicsWalk, false)
 SETTING_REGISTERATION(int, PhaseMatchingInterval, 1)
 
@@ -72,9 +74,12 @@ SETTING_REGISTERATION(double, CharacterJointFilterCutoffFrequency, 1.0)
 
 SETTING_REGISTERATION(float, DefaultTrackerCovierence, 1000000000)
 SETTING_REGISTERATION(double, TrackerNormalizedVelocityVariance, 0.517*0.517)
+
 SETTING_REGISTERATION(double, TrackerRestConfident, 1e-7)
+
 SETTING_REGISTERATION(bool, TrackerGpuAcceleration, true)
 SETTING_REGISTERATION(bool, TrackerUseVelocity, false)
+
 SETTING_REGISTERATION(int, TrackerTopK, 30)
 SETTING_REGISTERATION(int, TrackerSubStep, 5)
 SETTING_REGISTERATION(int, TrackerVtSubdivide, 1)
@@ -84,6 +89,7 @@ SETTING_REGISTERATION(double, TrackerStDevVt, 0.3)
 SETTING_REGISTERATION(double, TrackerStDevScale, 0.3)
 SETTING_REGISTERATION(double, TrackerVtProgationStep, 0.1)
 SETTING_REGISTERATION(double, TrackerVtThreshold, 1.5)
+SETTING_REGISTERATION(double, TrackerScaleThreshold, 0.15)
 SETTING_REGISTERATION(double, TrackerScaleProgationStep, 0.1)
 SETTING_REGISTERATION(double, TrackerSwitchCondifidentThreshold, 0.5)
 SETTING_REGISTERATION(double, TrackerSwitchTimeThreshold, 1.0)

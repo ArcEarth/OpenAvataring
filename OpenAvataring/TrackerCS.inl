@@ -82,6 +82,17 @@ float3 GetEffectorFeatureAtTime(float time, float scale, uint bid) __GPU_ONLY
     return gt;
 }
 
+double platform_gaussian(double x, double mean, double thr, double variance) __GPU_ONLY
+{
+	using namespace concurrency::precise_math;
+	x = abs(x - mean);
+	x = fmax(x - thr, .0);
+	x = -x*x / variance;
+	x = exp(x);
+	return x;
+}
+
+
 void write_likilihood(uint id, float3 particle) __GPU_ONLY
 {
 	using namespace concurrency::hlsl;
@@ -111,11 +122,11 @@ void write_likilihood(uint id, float3 particle) __GPU_ONLY
         err += dot(vel, vel);
     }
 
-    float lik = exp(-err);
+    double lik = exp(-err);
 
-    lik *= exp(-sqr(max(abs(scale - constants.uS) - constants.thrS, .0f)) / constants.varS);
+    lik *= platform_gaussian(scale, constants.uS,constants.thrS,constants.varS);
 
-    lik *= exp(-sqr(max(abs(vt - constants.thrVt), .0f)) / constants.varVt);
+    lik *= platform_gaussian(vt, constants.uVt, constants.thrVt, constants.varVt);
 
     likilihoods[id] = lik;
 }

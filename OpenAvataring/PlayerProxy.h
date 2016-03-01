@@ -108,6 +108,7 @@ namespace Causality
 											m_lastUpdateTime;
 		ArmatureFrame						m_currentFrame;
 		ArmatureFrame						m_lastFrame;
+		ArmatureFrame						m_charaFrame;
 
 		double								m_LowLikilyTime;
 		CyclicStreamClipinfo				m_CyclicInfo;

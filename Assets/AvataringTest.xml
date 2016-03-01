@@ -3,6 +3,7 @@
   <scene.settings>
     <ClipRasterizeFrame>75</ClipRasterizeFrame>
 
+    <DebugArmatureThinkness>0.01</DebugArmatureThinkness>
     <EnableDebugLogging>1</EnableDebugLogging>
     <EnableRecordLogging>0</EnableRecordLogging>
     <RecordLogRootDir>Log</RecordLogRootDir>
@@ -64,24 +65,34 @@
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
+    <HandleTransformAnisometricMin>0.2</HandleTransformAnisometricMin>
+    <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
     <StructrualSymtricBonus>0.7</StructrualSymtricBonus>
     <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
 
     <!--Animation Tracker-->
     <TrackerGpuAcceleration>0</TrackerGpuAcceleration>
-    <TrackerNormalizedVelocityVariance>0.517</TrackerNormalizedVelocityVariance>
+    <TrackerNormalizedVelocityVariance>2.517</TrackerNormalizedVelocityVariance>
     <TrackerTopK>30</TrackerTopK>
-    <TrackerRestConfident>1e-12</TrackerRestConfident>
+    <TrackerRestConfident>1e-7</TrackerRestConfident>
     <TrackerSubStep>1</TrackerSubStep>
-    <TrackerTimeSubdivide>5.0</TrackerTimeSubdivide>
+    <TrackerTimeSubdivide>10.0</TrackerTimeSubdivide>
     <TrackerVtSubdivide>2</TrackerVtSubdivide>
     <TrackerSclSubdivide>3</TrackerSclSubdivide>
+    
+    <TrackerVtThreshold>1.3</TrackerVtThreshold>
+    <TrackerScaleThreshold>0.15</TrackerScaleThreshold>
+
     <TrackerStDevVt>0.3</TrackerStDevVt>
-    <TrackerStDevScale>0.3</TrackerStDevScale>
-    <TrackerVtProgationStep>0.1</TrackerVtProgationStep>
-    <TrackerScaleProgationStep>0.02</TrackerScaleProgationStep>
+    <TrackerStDevScale>0.15</TrackerStDevScale>
+    
+    <!--This is expect progation PER SECOND-->
+    <TrackerVtProgationStep>0.5</TrackerVtProgationStep>
+    <TrackerScaleProgationStep>0.2</TrackerScaleProgationStep>
+
     <TrackerSwitchCondifidentThreshold>0.0</TrackerSwitchCondifidentThreshold>
     <TrackerSwitchTimeThreshold>1.0</TrackerSwitchTimeThreshold>
+
     <DefaultTrackerCovierence>1000</DefaultTrackerCovierence>
 
     <!--Blender-->
@@ -257,7 +268,7 @@
         </creature.behavier>
       </creature>-->
       
-      <player_controller name="player" position="0,0.0,0" trail_particle="trail_particle.dds">
+      <player_controller name="player" position="0,0.0,0" trail_particle="trail_particle_2.dds">
         <player_controller.selector>
           <kinect_source mode="3"/>
           <!--<leap_source mode="16"/>-->

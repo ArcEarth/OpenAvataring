@@ -513,7 +513,10 @@ void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
 	auto& vt = x[2];
 	//auto& ds = x[3];
 
-	vt += g_normal_dist(g_rand_mt) * m_stdevDVt * m_dt;
+	// the less velocity, the less acceleration
+	// hope this factor could reduce the jitter when almost still
+	double vfactor = (std::min(abs(vt) + 0.5, 1.0)); 
+	vt += g_normal_dist(g_rand_mt) * m_VtProgation * m_dt * vfactor;
 	auto dt = vt * m_dt;
 	// ds += ;
 
@@ -522,7 +525,7 @@ void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
 	if (t < 0)
 		t += m_Animation.Duration.count();
 
-	s += g_normal_dist(g_rand_mt) * m_stdevDs * m_dt;
+	s += g_normal_dist(g_rand_mt) * m_ScaleProgation * m_dt * vfactor;
 }
 
 void CharacterActionTracker::Likilihoods_Gpu()
@@ -532,12 +535,28 @@ void CharacterActionTracker::Likilihoods_Gpu()
 }
 
 
+double __fastcall platform_gaussian(double x, double mean, double thr, double variance)
+{
+	x = abs(x - mean);
+	x = fmax(x - thr, .0);
+	x = -sqr(x) / variance;
+	x = exp(x);
+	return x;
+}
+
 CharacterActionTracker::LikilihoodScalarType CharacterActionTracker::Likilihood(int idx, const TrackingVectorBlockType & x)
 {
 	using namespace std;
 
 	InputVectorType vx;
-	vx = GetCorrespondVector(x, ArmatureFrameView(s_frameCache0), ArmatureFrameView(s_frameCache1));
+	auto armsize = m_Animation.Armature().size();
+	if (s_frameCache0.size() < armsize || s_frameCache1.size() < armsize)
+	{
+		s_frameCache0.resize(armsize);
+		s_frameCache1.resize(armsize);
+	}
+
+	vx = GetCorrespondVector(x, s_frameCache0, s_frameCache1);
 	//m_fvectors.row(m_lidxCount++) = vx;
 
 	// Distance to observation
@@ -549,9 +568,12 @@ CharacterActionTracker::LikilihoodScalarType CharacterActionTracker::Likilihood(
 	likilihood = exp(-likilihood);
 
 	// Scale factor distribution
-	likilihood *= exp(-sqr(max((scalar)(abs(scalar(x[1]) - scalar(m_uS)) - scalar(m_thrS)), scalar(.0))) / scalar(m_varS));
+	
+	scalar ls = platform_gaussian(x[1], m_uS, m_thrS, m_varS);
 	// Speed scale distribution
-	likilihood *= exp(-sqr(max((scalar)abs(scalar(x[2]) - scalar(m_thrVt)), scalar(.0f))) / scalar(m_varVt));
+	scalar lv = platform_gaussian(x[2], m_uVt, m_thrVt, m_varVt);
+
+	likilihood *= ls * lv;
 
 	//return 1.0;
 	return likilihood;
@@ -600,9 +622,9 @@ void CharacterActionTracker::SetLikihoodVarience(const InputVectorType & v)
 
 void CharacterActionTracker::SetTrackingParameters(ScalarType stdevDVt, ScalarType varVt, ScalarType stdevDs, ScalarType varS)
 {
-	m_stdevDVt = stdevDVt;
+	m_VtProgation = stdevDVt;
 	m_varVt = varVt;
-	m_stdevDs = stdevDs;
+	m_ScaleProgation = stdevDs;
 	m_varS = varS;
 }
 
@@ -798,5 +820,5 @@ void ParticaleFilterBase::Resample(_Out_ LikihoodsType& cdf, _Out_ MatrixType& r
 	//cdf.array() = 1 / (ScalarType)n;
 }
 
-thread_local Causality::Bone Causality::CharacterActionTracker::s_frameCache0[FrameCacheSize];
-thread_local Causality::Bone Causality::CharacterActionTracker::s_frameCache1[FrameCacheSize];
+thread_local ArmatureFrame CharacterActionTracker::s_frameCache0;
+thread_local ArmatureFrame CharacterActionTracker::s_frameCache1;

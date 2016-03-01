@@ -125,7 +125,7 @@ namespace Causality
 
 		void			SetLikihoodVarience(const InputVectorType& v);
 
-		void			SetTrackingParameters(ScalarType stdevDVt, ScalarType varVt, ScalarType stdevDs, ScalarType varS);
+		void			SetTrackingParameters(ScalarType VtProgate, ScalarType varVt, ScalarType ScaleProgate, ScalarType varS);
 		void			SetVelocityTolerance(ScalarType thrVt);
 		void			SetScaleTolerance(ScalarType thrS);
 
@@ -177,9 +177,9 @@ namespace Causality
 		LikilihoodScalarType			m_confidentThre;
 
 		// Progation velocity variance
-		ScalarType						m_stdevDVt;
+		ScalarType						m_VtProgation;
 		ScalarType						m_varVt;
-		ScalarType						m_stdevDs;
+		ScalarType						m_ScaleProgation;
 		ScalarType						m_varS;
 		ScalarType						m_uS;
 		ScalarType						m_uVt;
@@ -189,6 +189,6 @@ namespace Causality
 		size_t							m_framesCounter;
 
 		static constexpr size_t FrameCacheSize = 100;
-		static thread_local Bone s_frameCache0[FrameCacheSize], s_frameCache1[FrameCacheSize];
+		static thread_local ArmatureFrame s_frameCache0, s_frameCache1;
 	};
 }
