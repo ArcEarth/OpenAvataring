@@ -14,6 +14,7 @@
 #include "Causality\Settings.h"
 
 #include <filesystem>
+#include <random>
 #include <tinyxml2.h>
 #include <ppl.h>
 
@@ -435,6 +436,7 @@ const std::vector<int>& CharacterController::SubactiveParts() const { return m_S
 float CharacterController::UpdateTargetCharacter(ArmatureFrameConstView frame, ArmatureFrameConstView lastframe, double deltaTime) const
 {
 	auto bidning = m_pBinding.get();
+	m_updateFrequency = 1.0 / deltaTime;
 
 	if (bidning == nullptr)
 		return 0;
@@ -647,17 +649,49 @@ vector<ArmatureFrame> CreateReinforcedFrames(const BehavierSpace& behavier)
 
 void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 
-	m_pCharacter = &chara;
+	using namespace std;
+	static std::random_device g_rand;
+	static std::mt19937 g_rand_mt(g_rand());
 
-	auto sprite = new SpriteObject();
-	m_pCharacter->AddChild(sprite);
-	//sprite->SetTexture();
+	m_pCharacter = &chara;
+	auto& behavier = chara.Behavier();
+	auto& armature = chara.Armature();
+
+	//auto sprite = new SpriteObject();
+	//m_pCharacter->AddChild(sprite);
 
 	if (m_pBinding)
 		m_pBinding->SetTargetArmature(chara.Armature());
 
-	auto& behavier = chara.Behavier();
-	auto& armature = chara.Armature();
+	m_characon_add = m_pCharacter->OnChildAdded += [this](SceneObject* _character, SceneObject* _child)
+	{
+		auto chara = _character->As<CharacterObject>();
+		auto& behavier = chara->Behavier();
+		auto subchara = _child->As<CharacterObject>();
+		if (subchara)
+		{
+			SubordinateCharacter subordinate;
+			subordinate.Character = subchara;
+			subchara->SetBehavier(behavier);
+			subordinate.PhasePreference = uniform_real<>(0, 1)(g_rand_mt);;
+			subordinate.ScalePreference = normal_distribution<>(1, 0.1)(g_rand_mt);
+			subordinate.SpeedPreference = normal_distribution<>(1, 0.15)(g_rand_mt);
+			subordinate.TimeFilter.Reset();
+			subordinate.TimeFilter.SetUpdateFrequency(&m_updateFrequency);
+			subordinate.ScaleFilter.SetUpdateFrequency(&m_updateFrequency);
+			subordinate.TimeFilter.SetCutoffFrequency(0.3);
+			subordinate.TimeFilter.SetCutoffFrequency(0.3);
+			this->m_subordinates.push_back(subordinate);
+		}
+	};
+
+	m_characon_remove = m_pCharacter->OnChildRemoved += [this](SceneObject* _character, SceneObject* _child)
+	{
+		this->m_subordinates.remove_if([_child](const SubordinateCharacter& sub)
+		{ return sub.Character == _child; });
+	};
+
+
 	auto& clips = behavier.Clips();
 	auto& parts = m_charaParts;
 	parts.SetArmature(armature);

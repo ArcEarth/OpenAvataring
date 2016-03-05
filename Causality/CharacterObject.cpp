@@ -259,7 +259,7 @@ void CharacterObject::Render(IRenderContext * pContext, DirectX::IEffect* pEffec
 		auto trans = this->GlobalTransformMatrix();
 
 		// Draw X-ray armature
-		if (g_DrawXRayArmature)
+		if (g_DrawXRayArmature && m_pArmature)
 		{
 			XMVECTOR color = Colors::Yellow.v;
 			color = DirectX::XMVectorSetW(color, Opticity());
@@ -418,6 +418,13 @@ void Causality::DrawArmature(const IArmature & armature, ArmatureFrameConstView 
 	//g_PrimitiveDrawer.End();
 }
 
+CharacterGlowParts::CharacterGlowParts()
+{
+	this->OnParentChanged.connect([this](SceneObject*, SceneObject*) {
+		this->Initialize();
+	});
+}
+
 void CharacterGlowParts::Render(IRenderContext * pContext, DirectX::IEffect * pEffect)
 {
 	auto pSGEffect = dynamic_cast<ShadowMapGenerationEffect*> (pEffect);
@@ -441,11 +448,6 @@ RenderFlags CharacterGlowParts::GetRenderFlags() const
 void CharacterGlowParts::ResetBoneColor(const DirectX::Color & color)
 {
 	std::fill(m_BoneColors.begin(), m_BoneColors.end(), color);
-}
-
-void CharacterGlowParts::OnParentChanged(SceneObject* oldParent)
-{
-	Initialize();
 }
 
 void CharacterGlowParts::Initialize()

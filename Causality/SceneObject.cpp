@@ -9,7 +9,7 @@ REGISTER_SCENE_OBJECT_IN_PARSER(scene_object, SceneObject);
 
 SceneObject::~SceneObject()
 {
-	int *p = nullptr;  
+	int *p = nullptr;
 }
 
 SceneObject::SceneObject() {
@@ -17,6 +17,42 @@ SceneObject::SceneObject() {
 	m_IsStatic = false;
 	m_TransformDirty = false;
 }
+
+
+Quaternion ParseRotation(const char* store)
+{
+	string rotstr;
+	Quaternion rotation;
+	if (rotstr[0] == '[')
+	{
+		Matrix4x4 mat = Matrix4x4::Identity;
+		sscanf_s(rotstr.c_str(), "[%f,%f,%f;%f,%f,%f;%f,%f,%f]",
+			&mat(0, 0), &mat(0, 1), &mat(0, 2),
+			&mat(1, 0), &mat(1, 1), &mat(1, 2),
+			&mat(2, 0), &mat(2, 1), &mat(2, 2)
+			);
+		auto m = XMLoad(mat);
+		auto q = XMQuaternionRotationMatrix(m);
+		rotation = q;
+	}
+	else if (rotstr[0] == '{') // Quaternion
+	{
+		Quaternion q;
+		sscanf_s(rotstr.c_str(), "{%f,%f,%f,%f}", &q.x, &q.y, &q.z, &q.w);
+		rotation = q;
+	}
+	else
+	{
+		Vector3 e;
+		if (rotstr[0] == '<')
+			sscanf_s(rotstr.c_str(), "<%f,%f,%f>", &e.x, &e.y, &e.z);
+		else
+			sscanf_s(rotstr.c_str(), "%f,%f,%f", &e.x, &e.y, &e.z);
+		rotation = Quaternion::CreateFromYawPitchRoll(e.y, e.x, e.z);
+	}
+	return rotation;
+}
+
 
 void SceneObject::Parse(const ParamArchive * store)
 {
@@ -26,15 +62,21 @@ void SceneObject::Parse(const ParamArchive * store)
 	Vector3 scale(1.0f);
 	Vector3 pos;
 	Vector3 eular;
+	const char* rotStr = nullptr;
 
-	GetParam(store, "position", pos);
-	GetParam(store, "scale", scale);
-	GetParam(store, "orientation", eular);
+	if (GetParam(store, "position", pos))
+		SetPosition(pos);
+	else
+		GetParam(store, "translation", m_Transform.LclTranslation);
 
-	SetPosition(pos);
-	SetScale(scale);
-	SetOrientation(Quaternion::CreateFromYawPitchRoll(eular.y, eular.x, eular.z));
+	if (GetParam(store, "scale", scale))
+		m_Transform.LclScaling = scale;
 
+	if (GetParam(store, "orientation", rotStr))
+		SetOrientation(ParseRotation(rotStr));
+	else if (GetParam(store, "rotation", rotStr))
+		m_Transform.LclRotation = ParseRotation(rotStr);
+	m_TransformDirty = true;
 }
 
 void SceneObject::AddChild(SceneObject * child)
@@ -44,13 +86,12 @@ void SceneObject::AddChild(SceneObject * child)
 		std::lock_guard<std::mutex> guard(Scene->ContentMutex());
 		auto oldParent = child->parent();
 		append_children_back(child);
-		child->OnParentChanged(oldParent);
+		child->OnParentChanged(child,oldParent);
+		this->OnChildAdded(this, child);
 	}
 }
 
-void SceneObject::OnParentChanged(SceneObject* oldParent)
-{
-}
+void SceneObject::Remove() { this->isolate(); }
 
 void SceneObject::Update(time_seconds const & time_delta) {
 	UpdateTransformsChildWard();

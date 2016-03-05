@@ -22,7 +22,15 @@
 #endif
 
 #ifndef XM_ALIGNATTR
-#define XM_ALIGNATTR _MM_ALIGN16
+#ifdef _XM_NO_INTRINSICS_
+#define XM_ALIGNATTR
+#else
+#ifdef _MSC_VER
+#define XM_ALIGNATTR __declspec(align(16))
+#else
+#define XM_ALIGNATTR alignas(16)
+#endif
+#endif
 #endif
 namespace DirectX
 {

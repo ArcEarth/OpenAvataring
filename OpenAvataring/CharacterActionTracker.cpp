@@ -515,7 +515,7 @@ void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
 
 	// the less velocity, the less acceleration
 	// hope this factor could reduce the jitter when almost still
-	double vfactor = (std::min(abs(vt) + 0.5, 1.0)); 
+	double vfactor = 1.0;// (std::min(abs(vt) + 0.5, 1.0));
 	vt += g_normal_dist(g_rand_mt) * m_VtProgation * m_dt * vfactor;
 	auto dt = vt * m_dt;
 	// ds += ;
@@ -526,18 +526,12 @@ void CharacterActionTracker::Progate(TrackingVectorBlockType & x)
 		t += m_Animation.Duration.count();
 
 	s += g_normal_dist(g_rand_mt) * m_ScaleProgation * m_dt * vfactor;
+	s = fmax(s, .0);
 }
-
-void CharacterActionTracker::Likilihoods_Gpu()
-{
-	if (m_gpu)
-		m_gpu->step_likilihoods(m_dt);
-}
-
 
 double __fastcall platform_gaussian(double x, double mean, double thr, double variance)
 {
-	x = abs(x - mean);
+	x = fmax(x - mean,.0);
 	x = fmax(x - thr, .0);
 	x = -sqr(x) / variance;
 	x = exp(x);
@@ -568,15 +562,25 @@ CharacterActionTracker::LikilihoodScalarType CharacterActionTracker::Likilihood(
 	likilihood = exp(-likilihood);
 
 	// Scale factor distribution
-	
-	scalar ls = platform_gaussian(x[1], m_uS, m_thrS, m_varS);
+	double scale = x[1];
+	double vt = x[2];
+	scalar ls = platform_gaussian(scale, m_uS, m_thrS, m_varS);
 	// Speed scale distribution
-	scalar lv = platform_gaussian(x[2], m_uVt, m_thrVt, m_varVt);
+	//! When scale factor are small, high speed does not mean any thing
+	//! The space (s,vt) is __NOT_Euclid__, but an Hilbert space
+	//! Where the actual distance metric are defined in the mapped Character-Pose space
+	scalar lv = platform_gaussian(vt, m_uVt, m_thrVt * scale, m_varVt * vt);
 
 	likilihood *= ls * lv;
 
 	//return 1.0;
 	return likilihood;
+}
+
+void CharacterActionTracker::Likilihoods_Gpu()
+{
+	if (m_gpu)
+		m_gpu->step_likilihoods(m_dt);
 }
 
 CharacterActionTracker::InputVectorType CharacterActionTracker::GetCorrespondVector(const TrackingVectorBlockType & x, ArmatureFrameView frameCache0, ArmatureFrameView frameChache1) const
@@ -706,16 +710,16 @@ const ParticaleFilterBase::LikihoodsType & ParticaleFilterBase::GetSampleLikilih
 
 void ParticaleFilterBase::Likilihoods_Gpu()
 {
-	throw new std::runtime_error("this tracker does not provide gpu accecerlation methods");
+	throw new std::runtime_error("this tracker does not provide gpu acceleration methods");
 }
 
 ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 {
 	Resample(m_newLiks, m_newSample, m_liks, m_sample);
 	if (m_accelerator == AcceceleratorEnum::GPU)
-		m_sample = m_newSample; // copy the data, as the GPU memery are mapped to this chunck of CPU memery
+		m_sample = m_newSample; // copy the data, as the GPU memory are mapped to this chuck of CPU memory
 	else
-		//? This could introduce potientail crash when hot-switch from CPU to GPU !!!
+		//? This could introduce potential crash when hot-switch from CPU to GPU !!!
 		m_newSample.swap(m_sample); // CPU pass, then we can double buffering
 
 	//m_newSample.swap(m_sample);
@@ -731,6 +735,8 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 
 		Progate(partical);
 	}
+
+	assert(!m_sample.hasNaN());
 
 	if (m_accelerator == AcceceleratorEnum::GPU)
 	{
@@ -763,6 +769,8 @@ ParticaleFilterBase::ScalarType ParticaleFilterBase::StepParticals()
 		}
 	}
 
+	assert(!m_liks.hasNaN());
+
 	return ExtractMLE();
 }
 
@@ -774,6 +782,9 @@ double ParticaleFilterBase::ExtractMLE()
 
 	//m_liks = sample.col(0);
 	auto w = m_liks.sum();
+	if (!std::isfinite(w))
+		w = .0;
+
 	if (w > 0.0001)
 	{
 		//! Averaging state variable may not be a good choice
@@ -783,7 +794,7 @@ double ParticaleFilterBase::ExtractMLE()
 		m_liks.maxCoeff(&idx);
 		m_mleState = sample.row(idx);
 	}
-	else // critial bug here, but we will use the mean particle as a dummy
+	else // critical bug here, but we will use the mean particle as a dummy
 	{
 		m_waState = sample.colwise().mean();
 		m_mleState = m_waState;

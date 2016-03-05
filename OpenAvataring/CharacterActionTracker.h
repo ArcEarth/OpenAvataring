@@ -39,15 +39,15 @@ namespace Causality
 	// Where N is number of Particals
 	// Dim is the state vector dimension
 	// S.col(0), the first column of S stores the weights
-	// S.row(i) is a particale
-	// S(i, 0) is the particale weight
+	// S.row(i) is a particle
+	// S(i, 0) is the particle weight
 	// S(i, 1...Dim) is the state vector
 	class ParticaleFilterBase : public IGestureTracker
 	{
 	public:
 		enum AcceceleratorEnum
 		{
-			None,	// Sequential excution
+			None,	// Sequential execution
 			SMP,	// CPU Parallelism
 			GPU,	// C++ AMP Impl
 		};
@@ -58,7 +58,7 @@ namespace Causality
 
 		ScalarType Step(const InputVectorType& input, ScalarType dt) override;
 
-		// Weighted Avaerage State
+		// Weighted Average State
 		const TrackingVectorType& CurrentState() const override;
 		const TrackingVectorType& MostLikilyState() const;
 
@@ -71,7 +71,7 @@ namespace Causality
 
 	protected: // Interfaces
 		virtual void SetInputState(const InputVectorType& input, ScalarType dt) = 0;
-		// Get the likilihood of partical state x in current time with pre-seted input state
+		// Get the likilihood of partial state x in current time with pre-seted input state
 		virtual LikilihoodScalarType Likilihood(int idx, const TrackingVectorBlockType &x) = 0;
 
 		virtual void Progate(TrackingVectorBlockType& x) = 0;

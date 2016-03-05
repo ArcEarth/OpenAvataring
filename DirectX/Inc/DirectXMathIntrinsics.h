@@ -1,5 +1,5 @@
 #pragma once
-#if defined(__SSE3__) || defined(__SSE4__) || defined(__AVX__) || defined(__AVX2__)
+#if !defined(_M_ARM) && (defined(__SSE3__) || defined(__SSE4__) || defined(__AVX__) || defined(__AVX2__))
 #ifdef __SSE3__
 #include "DirectXMathSSE3.h"
 #endif
@@ -66,6 +66,18 @@
 
 namespace DirectX
 {
+#if  !defined(_M_ARM) && defined(__SSE4__)
+	namespace SSE4
+	{
+		// one intrinsic selection
+		/// Each element in <param>Control</param> must be either 0 (false) or 0xFFFFFFFF (true).
+		inline XMVECTOR XM_CALLCONV XMVectorSelect(FXMVECTOR V1, FXMVECTOR V2, FXMVECTOR Control)
+		{
+			return _mm_blendv_ps(V2, V1, Control);
+		}
+	}
+#endif
+
 	namespace Extension
 	{
 		using XM_PERMUTE XMVectorPermute;
@@ -77,7 +89,6 @@ namespace DirectX
 		using XM_PERMUTE XMVectorSplatY;
 		using XM_PERMUTE XMVectorSplatZ;
 		using XM_PERMUTE XMVectorSplatW;
-
 		
 		using XM_FMA	 XMVectorMultiplyAdd; // fmadd
 		using XM_FMA	 XMVectorNegativeMultiplySubtract; // fnmadd
@@ -173,6 +184,55 @@ namespace DirectX
 
 		using XM_DOT	 XMPlaneNormalizeEst;
 		using XM_DOT	 XMPlaneNormalize;
+
+		/// Each element in <param>Control</param> must be either 0 (false) or 0xFFFFFFFF (true).
+		inline XMVECTOR XM_CALLCONV XMVectorSelect(FXMVECTOR V1, FXMVECTOR V2, FXMVECTOR Control)
+		{
+#if defined(__SSE4__)
+			return _mm_blendv_ps(V2, V1, Control);
+#else // Fall-back to original code pass
+			return XM_NAMES XMVectorSelect(V1, V2, Control);
+#endif
+		}
+
+		template <bool WhichX, bool WhichY, bool WhichZ, bool WhichW>
+		inline XMVECTOR XM_CALLCONV XMVectorSelect(FXMVECTOR V1, FXMVECTOR V2)
+		{
+#if defined(__SSE4__)			
+			return _mm_blend_ps(V1, V2, WhichX | (WhichY << 1) | (WhichZ << 2) | (WhichW << 3));
+#else
+			static const XMVECTORU32 selectMask =
+			{
+				WhichX ? 0xFFFFFFFF : 0,
+				WhichY ? 0xFFFFFFFF : 0,
+				WhichZ ? 0xFFFFFFFF : 0,
+				WhichW ? 0xFFFFFFFF : 0,
+			};
+			return _DXMEXT XMVectorSelect(V1, V2, selectMask.v);
+#endif
+		}
+
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 0, 0, 0>(FXMVECTOR V1, FXMVECTOR V2) { (V2); return V1; }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 1, 1, 1>(FXMVECTOR V1, FXMVECTOR V2) { (V1); return V2; }
+		// single intrinsic XMVector Select Retinue _mm_blend_ps
+/*
+#if defined(__SSE4__)
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 0, 0, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x1); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 1, 0, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x2); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 1, 0, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x3); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 0, 1, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x4); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 0, 1, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x5); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 1, 1, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x6); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 1, 1, 0>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x7); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 0, 0, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x8); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 0, 0, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0x9); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 1, 0, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0xA); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 1, 0, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0xB); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 0, 1, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0xC); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<1, 0, 1, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0xD); }
+		template<> inline XMVECTOR XM_CALLCONV XMVectorSelect<0, 1, 1, 1>(FXMVECTOR V1, FXMVECTOR V2) { return _mm_blend_ps(V1, V2, 0xE); }
+#endif
+*/
 	}
 
 #if defined(__SSE3__) && !defined(__SSE4__)

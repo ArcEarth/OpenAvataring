@@ -546,6 +546,18 @@ namespace stdx {
 			return connection{ _shared_disconnector, index };
 		}
 
+		template <class TCallback>
+		inline auto operator+=(TCallback &&callback)
+		{
+			return this->connect(std::move(callback));
+		}
+
+		template <class TCallback>
+		inline void operator-=(TCallback &&callback)
+		{
+			this->disconnect(std::move(callback));
+		}
+
 		/// Function call operator.
 		///
 		/// Calling this is how the signal is triggered and the

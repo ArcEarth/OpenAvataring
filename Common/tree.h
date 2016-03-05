@@ -902,6 +902,7 @@ namespace stdx
 	class tree_node
 	{
 	public:
+		friend typename _Ty;
 		//typedef tree_node<_Ty, _DescendabtsOwnership> self_type;
 		//static_assert(std::is_base_of<self_type, _Ty>::value, "_Ty should be a derived type of tree_node");
 

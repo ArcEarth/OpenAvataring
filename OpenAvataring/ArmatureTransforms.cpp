@@ -604,8 +604,8 @@ void PartilizedTransformer::SetTrackerVisualization()
 
 		auto wa = liks.maxCoeff();
 		g_Sample.col(0) = (liks / wa).cast<float>();
-		g_Sample.col(1) = (vts.cast<float>() + (g_TrackerStDevVt)) / 2 * g_TrackerStDevVt + 0.5;
-		g_Sample.col(2) = (scls.cast<float>() - (1 - g_TrackerStDevScale)) / 2 * g_TrackerStDevScale + 0.5;
+		g_Sample.col(1) = (vts.cast<float>()) / ( 2.0f * g_TrackerVtThreshold) + 0.5;
+		g_Sample.col(2) = (scls.cast<float>() - 1.0f) / (4.0f * g_TrackerStDevScale) + 0.5;
 		g_Sample.col(3) = timeline.cast<float>() / (float)tracker.Animation().Length().count();
 		g_Sample = g_Sample.cwiseMax(.0).cwiseMin(1.0);
 
@@ -661,6 +661,13 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 	auto& joints = cpart.Joints;
 
 	auto baseRot = target_frame[cpart.parent()->Joints.back()->ID].GblRotation;
+
+	for (int i = 0; i < target_frame.size(); i++)
+	{
+		assert(!DirectX::XMVector4IsNaN(target_frame[i].GblRotation));
+		assert(!DirectX::XMVector4IsNaN(target_frame[i].GblTranslation));
+	}
+
 	//sik.SetBaseRotation(baseRot);
 	sik.setChain(cpart.Joints, target_frame);
 
@@ -673,6 +680,8 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 		auto pvDim = xf.size() / 2;
 		Y = sik.apply(Xd.segment(0, pvDim).transpose(), Vector3d(Xd.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
 	}
+
+	assert(!Y.hasNaN());
 
 	m_pActiveF->Set(cpart, target_frame, Y.cast<float>());
 
@@ -986,11 +995,15 @@ void PartilizedTransformer::SetupTrackers(double expectedError, int stepSubdiv, 
 			dim *= 2;
 		Eigen::RowVectorXd var(dim);
 		var.setConstant(expectedError);
+		double velVar = g_TrackerNormalizedVelocityVariance;
+		if (!g_NormalizeVelocity)
+			velVar *= expectedError;
+
 		if (trackerVel)
 		{
 			for (int i = 0, d = m_pInputF->GetDimension(); i < ActiveParts.size(); i++)
 			{
-				var.segment(i*d * 2 + d, d).setConstant(g_TrackerNormalizedVelocityVariance);// *g_FrameTimeScaleFactor;
+				var.segment(i*d * 2 + d, d).setConstant(velVar);// *g_FrameTimeScaleFactor;
 			}
 		}
 
@@ -1101,9 +1114,29 @@ double PartilizedTransformer::DrivePartsTracker(int whichTracker, TrackerVectorT
 	auto& cparts = *m_cParts;
 	auto feature = m_pTrackerFeature.get();
 
-
 	auto& tracker = m_Trackers[whichTracker];
 	auto confi = tracker.Step(_x, frame_time);
+	auto statue = tracker.CurrentState();
+
+	auto dur = tracker.Animation().Duration.count();
+	auto t = statue(0); auto s = statue(1);
+
+	tracker.GetScaledFrame(target_frame, t, s);
+
+	auto& subordinates = m_controller.GetCharacterSubordinates();
+	for (auto& subchara : subordinates)
+	{
+		auto& subframe = subchara.Character->MapCurrentFrameForUpdate();
+
+		double ts = t * subchara.SpeedPreference + subchara.PhasePreference * dur;
+	
+		tracker.GetScaledFrame(subframe,
+			subchara.TimeFilter.Apply(ts),
+			subchara.ScaleFilter.Apply(s * subchara.ScalePreference));
+		subchara.Character->ReleaseCurrentFrameFrorUpdate();
+	}
+
+	return confi;
 
 	auto* idcies = tracker.GetTopKStates(g_TrackerTopK);
 	auto& sample = tracker.GetSampleMatrix();
@@ -1126,7 +1159,7 @@ double PartilizedTransformer::DrivePartsTracker(int whichTracker, TrackerVectorT
 	for (int i = 0; i < g_TrackerTopK; i++)
 	{
 		int id = idcies[i];
-		fmat.col(i) *= (liks(id) / confi); // inorder to prevent overflow, we do not multiply the weight until we get the normalization factor
+		fmat.col(i) *= (liks(id) / confi); // in order to prevent overflow, we do not multiply the weight until we get the normalization factor
 	}
 
 	auto fv = (fmat.rowwise().sum()).eval();

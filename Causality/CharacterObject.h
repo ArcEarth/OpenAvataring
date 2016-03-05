@@ -86,6 +86,7 @@ namespace Causality
 	class CharacterGlowParts : public GlowingBorder
 	{
 	public:
+		CharacterGlowParts();
 		typedef std::vector<DirectX::Color, DirectX::XMAllocator> BoneColorVector;
 		virtual void Render(IRenderContext * pContext, DirectX::IEffect* pEffect = nullptr) override;
 
@@ -96,8 +97,6 @@ namespace Causality
 		{ m_BoneColors[id] = color; }
 		// reset all bone color to Transparent
 		void	ResetBoneColor(const DirectX::Color& color);
-
-		virtual void OnParentChanged(SceneObject *oldParent) override;
 	private:
 		void Initialize();
 

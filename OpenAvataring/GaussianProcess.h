@@ -6,7 +6,7 @@ namespace Causality
 {
 	// k(x,x') = a * exp(-0.5*c*dis(x,x')) + b*delta(x,x')
 	// if theta = (a,b,r) , p(a,b,c) ~ a^-1*b^-1*c^-1 
-	// L(X, theta) = sum_k -ln p(Y_k | X, theta) - ln p(theta) = sum_k(0.5 * Y_k' * K^-1 * Y_k) + 0.5*D*ln|K| - ln p(theta)
+	// L(Y_k |X, theta) = sum_k -ln p(Y_k | X, theta) - ln p(theta) = sum_k(0.5 * Y_k' * K^-1 * Y_k) + 0.5*D*ln|K| - ln p(theta)
 	class gaussian_process_regression
 	{
 	public:
@@ -31,15 +31,15 @@ namespace Causality
 		KernalMatrixType  Dx; // Dx(i,j) = -0.5 * |X(i,:) - X(j,:)|^2
 		ParamType lparam;		// last theta
 		KernalMatrixType K;			// The covarience matrix, positive semidefined symetric matrix NxX
-		KernalMatrixType R;			// R = (0.5 * D * K^-1) - (0.5 * K^-1 * Y * Y' *K^-1), grad(t) = tr(R * (dK/dt)) - d(ln p(theta))/dt
+		KernalMatrixType R;			// R = d(L_GP) / d(K) = (0.5 * D * K^-1) - (0.5 * K^-1 * Y * Y' *K^-1), grad(t) = tr(R * (dK/dt)) - d(ln p(theta))/dt
 		MatrixType iKY;				// K^-1 * Y
 		MatrixType iK;				// K^-1
 		KernalMatrixType iKYYtiK;	// K^-1 * Y * Y' * K^-1 
 		Eigen::LDLT<KernalMatrixType> ldltK;
+
 		//mutable float detK;
-		KernalMatrixType dKalpha;		// d(K)/d(alpha)
-		KernalMatrixType dKgamma;		// d(K)/d(gemma)
-												//mutable MatrixXf invK;
+		KernalMatrixType dKalpha;	// d(K)/d(alpha)
+		KernalMatrixType dKgamma;	// d(K)/d(gemma)
 
 	public:
 		//template <class DerivedX, class DerivedY>
@@ -111,6 +111,7 @@ namespace Causality
 		#pragma endregion
 
 	protected:
+		void update_Dx();
 		// aka. set parameter
 		void update_kernal(const ParamType &param);
 	};
@@ -119,21 +120,65 @@ namespace Causality
 	class gaussian_process_lvm : protected gaussian_process_regression
 	{
 	public:
+		enum DynamicTypeEnum
+		{
+			NoDynamic = 0,
+			OnewayDynamic = 1,
+			PeriodicDynamic = 2,
+		};
+
+		using gpr = gaussian_process_regression;
+
 		using gaussian_process_regression::get_likelihood_xy;
 		using gaussian_process_regression::get_likelihood_x;
 		using gaussian_process_regression::get_parameters;
+
 		using gaussian_process_regression::alpha;
 		using gaussian_process_regression::beta;
 		using gaussian_process_regression::gamma;
 
-		void initialize(const MatrixType& Y, Eigen::DenseIndex dX);
+		// When sampleTimes == nullptr, we assume the sample are fixed interval sampled
+		void set_dynamic(DynamicTypeEnum type, double timespan, ColVectorType* sampleTimes = nullptr);
+		void set_default(RowVectorType defautY, double weight);
 
 		// aka. matrixX
 		const MatrixType& latent_coords() const;
 
+		// L_IK(x,y|theta)
+		double likelihood_xy(const RowVectorType& y, const RowVectorType& x);
+
+		// grad(L_IK(x,y|theta))
+		void likelihood_xy_gradiant(_Out_ RowVectorType& dy, _Out_ RowVectorType& dx, _In_ const RowVectorType& y, _In_ const RowVectorType& x);
+
+		// Allocate the storage for the model
+		void initialize(const MatrixType& Y, Eigen::DenseIndex dX);
+
+		// Load the model from external source,(e.g. files) to bypass the training
+		double load_model(const MatrixType& X, const ParamType& param);
+
+		// Train/learn the model with exited data Y
+		double learn_model();
+
+	protected:
+		void update_kernal(const MatrixType& x, const ParamType& param);
+		// negitive log likilihood of P(X,theta | Y)
+		double learning_likelihood(const MatrixType& x, const ParamType &param);
+
+		// gradiant of L
+		void learning_likelihood_derivative(_Out_ MatrixType& dx, _Out_ ParamType& dparam, _In_ const MatrixType& x, _In_ const ParamType &param);
+
 		// optimize the latent coordinate X
 		double optimize_x(const MatrixType& initalX);
+
+		double optimze_parameters(const ParamType& initial_param);
+
+		double optimze_parameters();
+
+		MatrixType dKx; // dK / dX_ij
+		DynamicTypeEnum dyna_type;
 	};
+
+	using gp_lvm = gaussian_process_lvm;
 
 	// gaussian-process-shared-latent-variable-model
 	class shared_gaussian_process_lvm

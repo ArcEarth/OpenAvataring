@@ -16,7 +16,6 @@ namespace Causality
 
 		void SetTarget(IRigid* pTarget);
 
-		virtual void OnParentChanged(SceneObject* oldParent) override;
 		// Inherited via ITimeAnimatable
 		virtual void Update(time_seconds const& time_delta) override;
 

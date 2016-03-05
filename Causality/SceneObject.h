@@ -6,9 +6,10 @@
 #include <chrono>
 #include <unordered_map>
 #include <functional>
+#include <tree.h>
 #include "String.h"
-#include "Common\tree.h"
 #include "Serialization.h"
+#include "Events.h"
 
 namespace Causality
 {
@@ -128,14 +129,28 @@ namespace Causality
 
 	// Basic class for all object, camera, entity, or light
 	// It also holds a Axis-Aligned bounding box for each node, thus a AABB-tree
-	XM_ALIGNATTR
-	class SceneObject : public tree_node<SceneObject>, virtual public IRigid, public AlignedNew<XMVECTOR>
+	class XM_ALIGNATTR SceneObject : public tree_node<SceneObject>, virtual public IRigid, public AlignedNew<XMVECTOR>
 	{
 	public:
+		friend class tree_node<SceneObject>;
 
 		typedef tree_node<SceneObject> tree_base_type;
 		typedef IsometricTransform TransformType;
+	private:
+		using tree_base_type::children;
+		using tree_base_type::children_begin;
+		using tree_base_type::children_end;
+		using tree_base_type::descendants;
+		using tree_base_type::descendants_begin;
+		using tree_base_type::descendants_end;
+		using tree_base_type::append_children_back;
+		using tree_base_type::append_children_front;
+		using tree_base_type::first_child;
+		using tree_base_type::last_child;
+		using tree_base_type::parent;
+		using tree_base_type::isolate;
 
+	public:
 		template <typename T>
 		bool Is() const
 		{
@@ -162,7 +177,36 @@ namespace Causality
 
 		virtual void AddChild(SceneObject* child);
 
-		virtual void OnParentChanged(SceneObject* oldParent);
+		void Remove();
+
+		auto Parent() const { return this->parent(); }
+		auto Parent() { return this->parent(); }
+
+		auto FirstChild() const { return this->first_child(); }
+		auto FirstChild() { return this->first_child(); }
+
+		auto LastChild() const { return this->first_child(); }
+		auto LastChild() { return this->first_child(); }
+
+		auto Children() const { return this->children(); }
+		auto Children() { return this->children(); }
+
+		auto Descendants() const { return this->descendants(); }
+		auto Descendants() { return this->descendants(); }
+
+		auto NextSubling() const { return this->next_sibling(); }
+		auto NextSubling() { return this->next_sibling(); }
+
+		auto PrevSibling() const { return this->prev_sibling(); }
+		auto PrevSibling() { return this->prev_sibling(); }
+
+		// this, old_parent
+		Event<SceneObject*, SceneObject*> OnParentChanged;
+
+		// this, child
+		Event<SceneObject*, SceneObject*> OnChildAdded;
+		// this, child
+		Event<SceneObject*, SceneObject*> OnChildRemoved;
 
 		template <typename T>
 		T* FirstAncesterOfType()
@@ -211,18 +255,18 @@ namespace Causality
 				return nullptr;
 		}
 
-		template <typename TInterface>
-		auto DescendantsOfType()
-		{
-			using namespace boost;
-			using namespace adaptors;
-			return
-				descendants()
-				| transformed([](auto pCom) {
-				return dynamic_cast<TInterface*>(pCom); })
-				| filtered([](auto pCom) {
-					return pCom != nullptr;});
-		}
+		//template <typename TInterface>
+		//auto DescendantsOfType()
+		//{
+		//	using namespace boost;
+		//	using namespace adaptors;
+		//	return
+		//		descendants()
+		//		| transformed([](auto pCom) {
+		//		return dynamic_cast<TInterface*>(pCom); })
+		//		| filtered([](auto pCom) {
+		//			return pCom != nullptr;});
+		//}
 
 		virtual void						Update(time_seconds const& time_delta);
 

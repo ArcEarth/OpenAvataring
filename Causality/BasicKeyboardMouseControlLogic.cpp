@@ -11,6 +11,10 @@ KeyboardMouseFirstPersonControl::KeyboardMouseFirstPersonControl(IRigid* pTarget
 {
 	Speed = 2.0f;
 	SetTarget(pTarget);
+	this->OnParentChanged.connect([this](SceneObject* _this, SceneObject* _oldParent)
+	{
+		this->SetTarget(this->Parent());
+	});
 }
 
 void KeyboardMouseFirstPersonControl::SetTarget(IRigid * pTarget)
@@ -31,11 +35,6 @@ void KeyboardMouseFirstPersonControl::SetTarget(IRigid * pTarget)
 			Register();
 	}
 
-}
-
-void KeyboardMouseFirstPersonControl::OnParentChanged(SceneObject * oldParent)
-{
-	SetTarget(parent());
 }
 
 void KeyboardMouseFirstPersonControl::Update(time_seconds const& time_delta)

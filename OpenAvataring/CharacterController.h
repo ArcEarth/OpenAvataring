@@ -4,6 +4,8 @@
 #include "ClipMetric.h"
 #include "StylizedIK.h"
 #include "Causality\Serialization.h"
+#include "Causality\Events.h"
+#include <Common\Filter.h>
 
 namespace tinyxml2
 {
@@ -19,6 +21,16 @@ namespace Causality
 	class ClipFacade;
 
 	void RemoveFrameRootTransform(ArmatureFrameView frame, const IArmature& armature);
+
+	struct SubordinateCharacter
+	{
+		CharacterObject* Character;
+		double PhasePreference;
+		double ScalePreference;
+		double SpeedPreference;
+		LowPassFilter<double> TimeFilter;
+		LowPassFilter<double> ScaleFilter;
+	};
 
 	class CharacterController
 	{
@@ -85,6 +97,7 @@ namespace Causality
 		size_t						m_trajectoryLength;
 		std::vector<std::pair<Vector3, Vector3>> m_PvHandles;
 		std::vector<std::deque<Vector3>> m_handelTrajectory;
+		mutable double				m_updateFrequency;
 
 		void push_handle(int pid, const std::pair<Vector3, Vector3>& handle);
 
@@ -110,6 +123,9 @@ namespace Causality
 
 		CharacterClipinfo& GetUnitedClipinfo() { return m_cpxClipinfo; }
 		const CharacterClipinfo& GetUnitedClipinfo() const { return m_cpxClipinfo; }
+
+		inline auto GetCharacterSubordinates() const { return std::make_range(m_subordinates.begin(), m_subordinates.end()); }
+		std::list<SubordinateCharacter> GetCharacterSubordinates() { return m_subordinates; }
 	protected:
 		// Cache frame for character
 		mutable
@@ -130,6 +146,12 @@ namespace Causality
 
 		std::vector<int>										m_ActiveParts;  // it's a set
 		std::vector<int>										m_SubactiveParts;
+
+		// These charactors will have similiar animation with this one, but have time variant
+		std::list<SubordinateCharacter>							m_subordinates;
+
+		scoped_connection										m_characon_add;
+		scoped_connection										m_characon_remove;
 	protected:
 		void SetTargetCharacter(CharacterObject& object);
 

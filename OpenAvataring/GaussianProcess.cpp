@@ -85,14 +85,21 @@ void gaussian_process_regression::initialize(const Eigen::MatrixXf & _X, const E
 	Y = Y - uY.replicate(N, 1);
 
 	Dx.resize(N, N);
-	for (int i = 0; i < N; i++)
-	{
-		Dx.row(i) = (-0.5f) * (X.row(i).replicate(N, 1) - X).cwiseAbs2().rowwise().sum().transpose();
-	}
+
 	K.resize(N, N);
 	R.resize(N, N);
 	iKY.resize(N, Y.cols());
 	iKYYtiK.resize(N, N);
+
+	update_Dx();
+}
+
+void gaussian_process_regression::update_Dx()
+{
+	for (int i = 0; i < N; i++)
+	{
+		Dx.row(i) = (-0.5f) * (X.row(i).replicate(N, 1) - X).cwiseAbs2().rowwise().sum().transpose();
+	}
 }
 
 void gaussian_process_regression::update_kernal(const ParamType & param)
@@ -255,7 +262,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	//lm.minimize(_x);
 	//double likelihood = lm.fvec(0);
 	double likelihood = dlib::find_min(
-			dlib::bfgs_search_strategy(),
+			dlib::cg_search_strategy(),
 			dlib::objective_delta_stop_strategy(1e-3),
 			f, df,//dlib::derivative(f)
 			_x,
@@ -515,7 +522,7 @@ double gaussian_process_regression::optimze_parameters(const ParamType & initial
 		min_likelihood =
 			dlib::find_min_box_constrained(
 				//dlib::find_min(
-				dlib::bfgs_search_strategy(),
+				dlib::cg_search_strategy(),
 				dlib::objective_delta_stop_strategy(1e-5),
 				f, df,//dlib::derivative(f),//df,
 				param, g_paramMin, g_paramMax);
@@ -587,4 +594,80 @@ double gaussian_process_regression::optimze_parameters()
 
 
 	return bestLikelihood;
+}
+
+
+void gp_lvm::update_kernal(const MatrixType& x, const ParamType& param)
+{
+	X = x;
+	update_Dx();
+	gpr::update_kernal(param);
+}
+
+double gp_lvm::learning_likelihood(const MatrixType & x, const ParamType & param)
+{
+	update_kernal(x, param);
+
+	//it's log detK
+	double lndetK = (ldltK.vectorD().array().abs() + g_paramMin).log().sum();
+	double L = 0.5* D *lndetK + g_paramWeight * param.array().abs().log().sum();
+
+	assert(std::isfinite(L));
+
+	// L += tr(Y' * iK * Y) = tr(iK * Y * Y') = tr(iK * YY') = sum(iK .* YY') = sum (Y .* iKY)
+
+	L += 0.5 * (Y.array() * iKY.array()).sum();
+
+	// NoDynamic
+	if (dyna_type == NoDynamic)
+		L += 0.5 * x.cwiseAbs2().sum(); // 0.5 * sum(|x_i|^2)
+
+	//for (int i = 0; i < D; i++)
+	//{
+	//	L += 0.5 * Y.col(i).transpose() * iKY.col(i); // Yi' * K^-1 * Yi
+	//}
+
+	return L;
+}
+
+void gaussian_process_lvm::learning_likelihood_derivative(MatrixType & dx, ParamType & dparam, const MatrixType & x, const ParamType & param)
+{
+	update_kernal(x, param);
+
+	//dx = x; // term d(0.5 * sum(|x_i|^2))
+
+	auto alpha = param[0], beta = param[1], gamma = param[2];
+
+	dKgamma = Dx.array() * K.array();
+
+	iKYYtiK = iKY*iKY.transpose(); // K^-1 * Y * Y' * K^-1 
+
+	// R = d(L_GP) / d(K)
+	R = D * iK - 0.5f * iKYYtiK;
+
+	// There is the space for improve as tr(A*B) can be simplifed to O(N^2)
+	dparam[0] = R.cwiseProduct(dKalpha.transpose()).sum() + g_paramWeight / alpha; // (R * dKa).trace() = sum(R .* dKa') 
+	dparam[1] = -(R.trace()) / (beta*beta) + g_paramWeight / beta; // note, d(K)/d(beta) = I
+	dparam[2] = R.cwiseProduct(dKgamma.transpose()).sum() + g_paramWeight / gamma;
+
+	// There should be someway to simply the caculation of this using matrix operatorions instead of for
+	R.array() *= K.array();
+	for (int i = 0; i < N; i++)
+	{
+		//RKi = (R.row(i).array() * K.row(i).array()).eval();
+		auto RKi = R.row(i);
+		dx.row(i) = RKi.sum() * X.row(i);
+		dx.row(i) -= (RKi.asDiagonal() * X).colwise().sum();
+		dx.row(i) *= -2.0 * gamma;
+	}
+
+	if (dyna_type == NoDynamic)
+		dx += X;
+}
+
+double gaussian_process_lvm::likelihood_xy(const RowVectorType & y, const RowVectorType & x)
+{
+	RowVectorType fx;
+	auto varX = get_expectation_and_likelihood(x, &fx);
+
 }
