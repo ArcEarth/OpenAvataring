@@ -101,6 +101,7 @@ void GetAttribute<unsigned>(_In_ XMLElement* node, _In_  const char* attr, _Inou
 	node->QueryUnsignedAttribute(attr, &value);
 }
 
+#if !defined(_M_IX86)
 template <>
 void GetAttribute<size_t>(_In_ XMLElement* node, _In_  const char* attr, _Inout_ size_t& value)
 {
@@ -108,6 +109,7 @@ void GetAttribute<size_t>(_In_ XMLElement* node, _In_  const char* attr, _Inout_
 	node->QueryUnsignedAttribute(attr, &ui);
 	value = ui;
 }
+#endif
 
 template <>
 void GetAttribute<string>(_In_ XMLElement* node, _In_  const char* attr, _Inout_ string& value)

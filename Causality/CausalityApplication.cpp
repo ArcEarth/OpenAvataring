@@ -263,9 +263,13 @@ bool App::OnStartup(const std::vector<std::string>& args)
 		GetParam(consoleSettings, "width", width);
 		GetParam(consoleSettings, "height", height);
 		GetParam(consoleSettings, "fullscreen", fullscreen);
+		int x, y;
+		GetParam(consoleSettings, "left", x);
+		GetParam(consoleSettings, "top", y);
 
 		pConsole = make_shared<DebugConsole>();
 		pConsole->Initialize(title, width, height, fullscreen);
+		pConsole->Move(x, y);
 	}
 
 	using namespace DirectX;

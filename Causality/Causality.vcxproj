@@ -31,7 +31,7 @@
     <DirectXHelperDir>..\DirectX</DirectXHelperDir>
     <DLibDir>..\dlib\</DLibDir>
     <EigenDir>..\Eigen\</EigenDir>
-    <FftwDir>..\fftw\</FftwDir>
+    <FftwDir>..\fftw</FftwDir>
     <AmpDir>..\amp</AmpDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -82,7 +82,7 @@
   </ImportGroup>
   <PropertyGroup>
     <IncludePath>$(LibOvr_Root)\Include;$(LeapSDK_Root)\include;$(FBX_SDK_ROOT)\include;$(KINECTSDK20_DIR)inc;$(Bullet3Dir)\src;$(DirectXTKDir)\Inc;$(TinyXml2Dir)\;$(DLibDir);$(EigenDir);$(FftwDir);$(SolutionDir)\DirectX\Inc\;$(SolutionDir)\GSL\include;$(SolutionDir)\;$(SolutionDir)\Common\;$(AmpDir)\ampalgorithms\inc\;$(AmpDir)\amprng\inc\;$(AmpDir)\amphlsl\inc\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LeapSDK_Root)\lib\$(PlatformTarget)\;$(LibOvr_Root)\Lib\$(Platform)\$(PlatformToolsetVersion)\;$(KINECTSDK20_DIR)lib\$(PlatformTarget)\;$(FBX_SDK_ROOT)\lib\vs2015\$(PlatformTarget)\$(Configuration)\;$(FftwDir)\$(PlatformTarget)\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -363,10 +363,11 @@
     <ClInclude Include="SettingsRegisteration.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="$(FftwDir)libfftw3f-3.dll">
+    <ClInclude Include="$(FftwDir)\fftw3.h" />
+    <CustomBuild Include="$(FftwDir)\$(PlatformTarget)\libfftw3f-3.dll">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
-      <Command>xcopy /y /d  "$(SolutionDir)fftw\libfftw3f-3.dll" "$(OutDir)"</Command>
+      <Command>xcopy /y /d  "$(FftwDir)\$(PlatformTarget)\libfftw3f-3.dll" "$(OutDir)"</Command>
       <Outputs>$(OutDir)libfftw3f-3.dll</Outputs>
       <LinkObjects>false</LinkObjects>
       <TreatOutputAsContent>true</TreatOutputAsContent>

@@ -104,12 +104,13 @@ void XM_CALLCONV SkyDome::UpdateViewMatrix(DirectX::FXMMATRIX view, DirectX::CXM
 	// Last column of View Inverse is camera's position
 	View.r[3] = g_XMIdentityR3;
 	m_pEffect->SetView(View);
-	m_pEffect->SetProjection(projection);
+	View = projection;
+	m_pEffect->SetProjection(View);
 }
 
 // Inherited via IVisual
 
 RenderFlags SkyDome::GetRenderFlags() const
 {
-	return RenderFlags::SkyView;
+	return RenderFlags::SpecialEffects;
 }

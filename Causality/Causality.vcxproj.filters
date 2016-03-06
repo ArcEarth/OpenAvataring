@@ -472,6 +472,9 @@
     <ClInclude Include="..\OpenAvataring\TrackerCS.inl">
       <Filter>Avataring Control</Filter>
     </ClInclude>
+    <ClInclude Include="$(FftwDir)\fftw3.h">
+      <Filter>Armature Animation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon1.ico">
@@ -495,8 +498,6 @@
     </Xml>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="$(FftwDir)libfftw3f-3.dll">
-      <Filter>Dlls</Filter>
-    </CustomBuild>
+    <CustomBuild Include="$(FftwDir)\$(PlatformTarget)\libfftw3f-3.dll" />
   </ItemGroup>
 </Project>

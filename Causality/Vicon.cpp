@@ -1,12 +1,13 @@
 #include "pch_bcl.h"
 #include "Vicon.h"
-#include <ViconReader\ViconRTClient.h>
-#pragma comment(lib,"ViconReader.lib")
+//#include <ViconReader\ViconRTClient.h>
+//#pragma comment(lib,"ViconReader.lib")
 
 using namespace Causality::Devices;
 using namespace Causality;
 using namespace Causality::Math;
 
+/*
 XM_ALIGNATTR
 class ViconReaderImpl : public IViconClient, public ViconRTClient, public AlignedNew<XMVECTOR>
 {
@@ -119,32 +120,34 @@ private:
 };
 
 wptr<ViconReaderImpl> g_wpVicon;
+*/
 
 sptr<IViconClient> IViconClient::GetFroCurrentView()
 {
-	if (!g_wpVicon.expired())
-		return g_wpVicon.lock();
+	//if (!g_wpVicon.expired())
+	//	return g_wpVicon.lock();
 	return nullptr;
 }
 
 sptr<IViconClient> IViconClient::Create(const std::string &serverIP)
 {
-	sptr<ViconReaderImpl> pClient;
-	if (g_wpVicon.expired())
-	{
-		pClient.reset(new ViconReaderImpl());
-		g_wpVicon = pClient;
-	}
-	else
-	{
-		auto pClient = g_wpVicon.lock();
-		pClient->stop();
-	}
+	//sptr<ViconReaderImpl> pClient;
+	//if (g_wpVicon.expired())
+	//{
+	//	pClient.reset(new ViconReaderImpl());
+	//	g_wpVicon = pClient;
+	//}
+	//else
+	//{
+	//	auto pClient = g_wpVicon.lock();
+	//	pClient->stop();
+	//}
 
-	if (!serverIP.empty())
-		pClient->init(serverIP);
+	//if (!serverIP.empty())
+	//	pClient->init(serverIP);
 
-	return pClient;
+	//return pClient;
+	return nullptr;
 }
 
 IViconClient::~IViconClient()

@@ -82,6 +82,7 @@ namespace Causality
 		virtual bool IsFullScreen() const = 0;
 		virtual void EnterFullScreen() = 0;
 		virtual void ExitFullScreen() = 0;
+		virtual bool Move(int x, int y) = 0;
 
 		virtual void OnResize(size_t width, size_t height) = 0;
 		virtual void OnMouseMove(int x, int y) = 0;
@@ -156,6 +157,7 @@ namespace Causality
 		virtual void OnKeyDown(unsigned char key) override;
 		virtual void OnKeyUp(unsigned char key) override;
 		virtual void OnResize(size_t width, size_t height) override;
+		virtual bool Move(int x, int y) override;
 
 
 	private:
@@ -184,6 +186,7 @@ namespace Causality
 
 		void EnterFullScreen();
 		void ExitFullScreen();
+		bool Move(int x, int y) override;
 
 		virtual void OnMouseMove(int x, int y) override;
 		virtual void OnKeyDown(unsigned char key) override;

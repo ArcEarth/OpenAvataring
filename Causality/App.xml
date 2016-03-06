@@ -8,5 +8,5 @@
   <title>Immitation Game</title>
 
 	<window width="1920" height="1080" fullscreen="false"></window>
-	<console width="640" height="720"></console>
+	<console width="640" height="720" left="1930" top="10" ></console>
 </application>

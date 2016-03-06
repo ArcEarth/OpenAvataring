@@ -172,8 +172,8 @@ void Scene::Render(IRenderContext * context)
 		for (int view = 0; view < viewCount; view++) // camera viewports
 		{
 			auto pView = pCamera->GetView(view);
-			auto v = pView->GetViewMatrix();
-			auto p = pView->GetProjectionMatrix();
+			DirectX::XMMATRIX v = pView->GetViewMatrix();
+			DirectX::XMMATRIX p = pView->GetProjectionMatrix();
 
 			auto& viewFrustum = pView->GetViewFrustum();
 
@@ -195,7 +195,7 @@ void Scene::Render(IRenderContext * context)
 				SetupEffectLight(pEffect, ambient, Lps);
 
 				pRenderer->Begin(context);
-				for (auto& pVisible : visibles) // visible objects
+				for (auto pVisible : visibles) // visible objects
 				{
 					if (pRenderer->AcceptRenderFlags(pVisible->GetRenderFlags()))
 					{
