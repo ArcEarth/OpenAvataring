@@ -7,7 +7,7 @@ using namespace Internal;
 #include "Shaders\Windows\SkyDomeEffect_VS.inc"
 #include "Shaders\Windows\SkyDomeEffect_PS.inc"
 
-class SkydomeEffect::Impl : public ShaderEffectBase<Internal::SkydomEffectConstantBuffer>
+class SkydomeEffect::Impl : public ShaderEffectBase<Internal::SkydomEffectConstantBuffer>, public AlignedNew<XMVECTOR>
 {
 public:
 	Impl(ID3D11Device* device)
@@ -34,12 +34,12 @@ public:
 		deviceContext->PSSetSamplers(0, 1, &m_sampler);
 	}
 
-	ID3D11ShaderResourceView *m_envMap;
-	ID3D11SamplerState		 *m_sampler;
 	Matrix4x4 m_world;
 	Matrix4x4 m_view;
 	Matrix4x4 m_proj;
 	bool	  m_dirty;
+	ID3D11ShaderResourceView *m_envMap;
+	ID3D11SamplerState		 *m_sampler;
 };
 
 SkydomeEffect::SkydomeEffect(ID3D11Device * device)

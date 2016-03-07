@@ -183,8 +183,8 @@ namespace Geometrics {
 		using SubBvh::_index;
 		using SubBvh::_tree;
 
-		predicate_type	   _pred; // _pred(const Volume& vol) &&  _pred(const Object& vol) must exist
 		std::vector<Index> _todo; // stack for saving context in DFS visit
+		predicate_type	   _pred; // _pred(const Volume& vol) &&  _pred(const Object& vol) must exist
 
 	public:
 		BvhPredIter(const TreeType& tree, const _TPredicator& pred)

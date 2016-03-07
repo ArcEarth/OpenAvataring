@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #ifdef WIN32 
 #	define NOMINMAX
 #	include <windows.h>

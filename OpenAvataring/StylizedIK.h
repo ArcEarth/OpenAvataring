@@ -38,7 +38,8 @@ namespace Causality
 		std::vector<DirectX::Quaternion, DirectX::XMAllocator>
 			m_chainRot;
 
-		gaussian_process_regression							m_gplvm;
+		gaussian_process_regression							m_gpr;
+		gaussian_process_lvm								m_gplvm;
 
 		double												m_ikWeight;
 		double												m_ikLimitWeight;
@@ -114,8 +115,11 @@ namespace Causality
 		template <class Derived>
 		void setYLimit(const Eigen::DenseBase<Derived>& limY) { m_limy = limY; }
 
-		gaussian_process_regression& Gplvm() { return m_gplvm; }
-		const gaussian_process_regression& Gplvm() const { return m_gplvm; }
+		gaussian_process_regression& Gpr() { return m_gpr; }
+		const gaussian_process_regression& Gpr() const { return m_gpr; }
+
+		gplvm& Gplvm() { return m_gplvm; }
+		const gplvm& Gplvm() const { return m_gplvm; }
 
 		double objective(const Eigen::RowVectorXd &x, const Eigen::RowVectorXd &y);
 

@@ -318,7 +318,7 @@ MetaBallModel::~MetaBallModel(void)
 
 typedef MetaBallModel::AcceleratedContainer::AabbType AabbType;
 
-XM_ALIGNATTR
+//XM_ALIGNATTR
 struct PointContainsOperator
 {
 	typedef AabbType::VectorType VectorType;
@@ -337,12 +337,12 @@ struct PointContainsOperator
 	}
 };
 
-XM_ALIGNATTR
+//XM_ALIGNATTR
 struct RayIntersectionOperator
 {
 	typedef AabbType::VectorType VectorType;
-	XMVECTOR origin;
-	XMVECTOR direction;
+	Vector4 origin;
+	Vector4 direction;
 
 	bool operator()(const Metaball& ball)
 	{

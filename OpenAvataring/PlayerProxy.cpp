@@ -1070,7 +1070,7 @@ void XM_CALLCONV DrawParticle(DirectX::SpriteBatch & sprites, DirectX::XMVECTOR 
 	sprites.Draw(pTrajectoryVisual, rect, nullptr, color, 0, DirectX::XMFLOAT2(0, 0), DirectX::SpriteEffects::SpriteEffects_None, depth);
 }
 
-void DrawControllerHandle(CharacterController& controller, DirectX::Color* colors, FXMMATRIX view, CXMMATRIX proj, const D3D11_VIEWPORT& vp, ID3D11ShaderResourceView* pTrajectoryVisual = nullptr)
+void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::Color* colors, FXMMATRIX view, CXMMATRIX proj, const D3D11_VIEWPORT& vp, ID3D11ShaderResourceView* pTrajectoryVisual = nullptr)
 {
 	using DirectX::Visualizers::g_PrimitiveDrawer;
 	using namespace Math;

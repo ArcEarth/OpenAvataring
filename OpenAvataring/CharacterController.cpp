@@ -152,7 +152,7 @@ public:
 			if (block->ActiveActions.size() > 0)
 			{
 				auto& sik = pController->GetStylizedIK(block->Index);
-				auto& gpr = sik.Gplvm();
+				auto& gpr = sik.Gpr();
 				gpr.get_expectation(X, &Y);
 				yf = Y.cast<float>();
 				yf *= block->Wx.cwiseInverse().asDiagonal();
@@ -193,7 +193,7 @@ public:
 			if (block->Index > 0 && block->ActiveActions.size() > 0)
 			{
 				auto& sik = pController->GetStylizedIK(block->Index);
-				auto& gpr = sik.Gplvm();
+				auto& gpr = sik.Gpr();
 				auto& joints = block->Joints;
 
 				RowVectorXf xf = inputExtractor.Get(*block, source_frame);
@@ -326,7 +326,7 @@ public:
 				{
 
 					auto& sik = pController->GetStylizedIK(block->Index);
-					auto& gpr = sik.Gplvm();
+					auto& gpr = sik.Gpr();
 
 					auto lk = gpr.get_expectation_and_likelihood(_xd, &Y);
 
@@ -896,6 +896,11 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		MatrixXf Xabpv = GenerateXapv(activeParts);
 		int dXabpv = Xabpv.cols();
 
+		gplvm lvm;
+		auto& allrc = allClipinfo.RcFacade;
+		lvm.initialize(allrc.GetAllPartsSequence().cast<double>(), 4);
+		lvm.learn_model(gplvm::ParamType(1.0,1e2,1.0));
+
 		parallel_for(0, (int)activeParts.size(), 1, [&, this](int apid)
 		{
 			InitializeAcvtivePart(*parts[activeParts[apid]], settings);
@@ -1025,7 +1030,8 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		auto &dframe = Character().Armature().bind_frame();
 
 		auto& sik = *m_SIKs[pid];
-		auto& gpr = sik.Gplvm();
+		auto& gpr = sik.Gpr();
+		auto& gplvm = sik.Gplvm();
 
 		gpr.initialize(Pv, X);
 		InitGprXML(settings, partName, gpr);
@@ -1090,7 +1096,7 @@ void CharacterController::InitializeSubacvtivePart(ArmaturePart & part, const Ei
 	else
 	{
 		auto& sik = *m_SIKs[pid];
-		auto& gpr = sik.Gplvm();
+		auto& gpr = sik.Gpr();
 		gpr.initialize(Pv, X);
 
 		// paramter caching 

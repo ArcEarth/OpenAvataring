@@ -500,4 +500,7 @@
   <ItemGroup>
     <CustomBuild Include="$(FftwDir)\$(PlatformTarget)\libfftw3f-3.dll" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\OpenAvataring\dlib.natvis" />
+  </ItemGroup>
 </Project>

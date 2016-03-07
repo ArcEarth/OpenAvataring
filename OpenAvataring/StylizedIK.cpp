@@ -71,7 +71,7 @@ void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, Armature
 		//m_iy.segment<3>(i * 3) = lq.cast<double>();
 	}
 
-	m_iy = m_gplvm.uY;
+	m_iy = m_gpr.uY;
 	if (!m_cValiad)
 		m_cy = m_iy;
 }
@@ -223,7 +223,7 @@ double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::Row
 	double markovdis = ((y - m_cy).cwiseAbs2().array() / m_cyNorm.array()).sum() / (double)m_cy.size() * m_markovWeight;
 
 	double fitlikelihood = ((y.array() /** m_wy.array()*/ - m_ey.array()).cwiseAbs2() / m_eyNorm.array()).sum() * (0.5 * m_segmaX / (double)m_ey.size());
-	//double fitlikelihood = m_gplvm.get_likelihood_xy(x, y) * g_StyleLikelihoodTermWeight;
+	//double fitlikelihood = m_gpr.get_likelihood_xy(x, y) * g_StyleLikelihoodTermWeight;
 
 	return ikdis + fitlikelihood + markovdis;//+iklimdis;
 }
@@ -254,7 +254,7 @@ RowVectorXd StylizedChainIK::objective_derv(const Eigen::RowVectorXd & x, const 
 	RowVectorXd markovderv = 2.0 * m_markovWeight * ((y - m_cy).array() / m_cyNorm.array()) / (double)m_cy.size();
 	//markovderv.setZero();
 
-	RowVectorXd animLkderv = (y.array()/* * m_wy.array()*/ - m_ey.array()) / m_eyNorm.array() * (m_segmaX / (double)m_ey.size()); //m_gplvm.get_likelihood_xy_derivative(x, y) * g_StyleLikelihoodTermWeight;
+	RowVectorXd animLkderv = (y.array()/* * m_wy.array()*/ - m_ey.array()) / m_eyNorm.array() * (m_segmaX / (double)m_ey.size()); //m_gpr.get_likelihood_xy_derivative(x, y) * g_StyleLikelihoodTermWeight;
 
 
 	derv.segment(x.size(), y.size()) = ikderv + markovderv;// + gplvm.likelihood_xy_derv;
@@ -309,7 +309,7 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 	}
 
 	RowVectorXd hint_y;
-	double lk = m_gplvm.get_expectation_and_likelihood(m_goal, &hint_y);
+	double lk = m_gpr.get_expectation_and_likelihood(m_goal, &hint_y);
 	lk = exp(-lk);
 
 	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
@@ -365,7 +365,7 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	x.segment<3>(3) = goal_velocity;
 
 	RowVectorXd hint_y;
-	double lk = m_gplvm.get_expectation_and_likelihood(x, &hint_y);
+	double lk = m_gpr.get_expectation_and_likelihood(x, &hint_y);
 	//hint_y.array() /= m_wy.array();
 	lk = exp(-lk);
 
@@ -395,7 +395,7 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	//auto vmin = ComposeOptimizeVector(m_cx * 0.9, m_limy.row(0));
 	//auto vmax = ComposeOptimizeVector(m_cx * 1.1, m_limy.row(1));
 
-	m_segmaX = m_gplvm.get_expectation_and_likelihood(m_cx, &m_ey);
+	m_segmaX = m_gpr.get_expectation_and_likelihood(m_cx, &m_ey);
 	m_segmaX = m_styleWeight * exp(-m_segmaX / (double)m_ey.cols() * 2.0);
 
 	m_cyNorm = .01 + m_cy.array().cwiseAbs2();
@@ -473,13 +473,13 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 
 //float StylizedChainIK::Fit(const Eigen::MatrixXf & X, const Eigen::MatrixXf & Y)
 //{
-//	return m_gplvm.fit_model(X, Y);
+//	return m_gpr.fit_model(X, Y);
 //}
 //
 //float StylizedChainIK::Predict(const Eigen::RowVectorXf & X, Eigen::RowVectorXf & Y)
 //{
 //	Y = Apply(X).cast<float>();
-//	return m_gplvm.get_likelihood_xy(m_cx, m_cy);
+//	return m_gpr.get_likelihood_xy(m_cx, m_cy);
 //}
 
 

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="dlib::matrix&lt;*,*,*,*,*&gt;">
+    <UIVisualizer ServiceId="{A452AFEA-3DF6-46BB-9177-C0B08F318025}" Id="1" />
+  </Type>
+
+  <!-- Fixed Sized Matrix -->
+  <Type Name="dlib::matrix&lt;*,*,*,*,*,*&gt;">
+
+    <Expand>
+      <Synthetic Name="[type]" Condition='strcmp("int", "$T1") == 0'>
+        <DisplayString>INT32</DisplayString>
+      </Synthetic>
+      <Synthetic Name="[type]" Condition='strcmp("float", "$T1") == 0'>
+        <DisplayString>FLOAT32</DisplayString>
+      </Synthetic>
+      <Synthetic Name="[type]" Condition='strcmp("double", "$T1") == 0'>
+        <DisplayString>FLOAT64</DisplayString>
+      </Synthetic>
+
+      <Item Name="[channels]">1</Item>
+      <Item Name="[rows]">$T2</Item>
+      <Item Name="[cols]">$T3</Item>
+
+      <Item Name="[width]">$T3</Item>
+
+      <Item Name="[height]">$T2</Item>
+
+      <Item Name="[data]">($T1*)(data.data)</Item>
+
+      <Item Name="[stride]">$T3*sizeof($T1)</Item>
+    </Expand>
+  </Type>
+  
+  <!-- Dynamic Row Vector -->
+  <Type Name="dlib::matrix&lt;*,1,0,*,*&gt;">
+        
+      <Expand>
+        <Synthetic Name="[type]" Condition='strcmp("int", "$T1") == 0'>
+            <DisplayString>INT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("float", "$T1") == 0'>
+            <DisplayString>FLOAT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("double", "$T1") == 0'>
+            <DisplayString>FLOAT64</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("__int64", "$T1") == 0'>
+            <DisplayString>INT64</DisplayString>
+        </Synthetic>
+        
+        <Item Name="[channels]">1</Item>         
+        <Item Name="[rows]">1</Item> 
+        <Item Name="[cols]">data.nc_</Item> 
+        <Item Name="[width]">data.nc_</Item> 
+        
+        <Item Name="[height]">1</Item> 
+        
+        <Item Name="[data]">data.data</Item>
+        
+        <Item Name="[stride]">data.nc_*sizeof($T1)</Item> <!-- row major layout -->
+      </Expand>
+  </Type>
+  
+  <!-- Dynamic Col Vector -->
+  <Type Name="dlib::matrix&lt;*,0,1,*,*&gt;">
+      <Expand>
+        <Synthetic Name="[type]" Condition='strcmp("int", "$T1") == 0'>
+            <DisplayString>INT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("float", "$T1") == 0'>
+            <DisplayString>FLOAT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("double", "$T1") == 0'>
+            <DisplayString>FLOAT64</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("__int64", "$T1") == 0'>
+            <DisplayString>INT64</DisplayString>
+        </Synthetic>
+        
+        <Item Name="[channels]">1</Item>         
+        <Item Name="[rows]">data.nr_</Item> 
+        <Item Name="[cols]">1</Item> 
+        <Item Name="[width]">1</Item> 
+        
+        <Item Name="[height]">data.nr_</Item> 
+        
+        <Item Name="[data]">data.data</Item>
+        
+        <Item Name="[stride]">sizeof($T1)</Item> <!-- row major layout -->
+      </Expand>
+  </Type>
+
+  <!-- Dynamic Col Vector -->
+  <Type Name="dlib::matrix&lt;*,0,0,*,*&gt;">
+      <Expand>
+        <Synthetic Name="[type]" Condition='strcmp("int", "$T1") == 0'>
+            <DisplayString>INT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("float", "$T1") == 0'>
+            <DisplayString>FLOAT32</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("double", "$T1") == 0'>
+            <DisplayString>FLOAT64</DisplayString>
+        </Synthetic>
+        <Synthetic Name="[type]" Condition='strcmp("__int64", "$T1") == 0'>
+            <DisplayString>INT64</DisplayString>
+        </Synthetic>
+        
+        <Item Name="[channels]">1</Item>         
+        <Item Name="[rows]">data.nr_</Item> 
+        <Item Name="[cols]">data.nc_</Item> 
+        <Item Name="[width]">data.nc_</Item> 
+        
+        <Item Name="[height]">data.nr_</Item> 
+        
+        <Item Name="[data]">data.data</Item>
+        
+        <Item Name="[stride]">data.nc_*sizeof($T1)</Item> <!-- row major layout -->
+      </Expand>
+  </Type>
+</AutoVisualizer>

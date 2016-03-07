@@ -4,19 +4,29 @@
 
 namespace Causality
 {
+	class gaussian_process_lvm;
+	class hierarchical_gaussian_process_lvm;
 	// k(x,x') = a * exp(-0.5*c*dis(x,x')) + b*delta(x,x')
 	// if theta = (a,b,r) , p(a,b,c) ~ a^-1*b^-1*c^-1 
 	// L(Y_k |X, theta) = sum_k -ln p(Y_k | X, theta) - ln p(theta) = sum_k(0.5 * Y_k' * K^-1 * Y_k) + 0.5*D*ln|K| - ln p(theta)
 	class gaussian_process_regression
 	{
 	public:
-		typedef Eigen::Vector3d ParamType;
+		friend class gaussian_process_lvm;
+		friend class hierarchical_gaussian_process_lvm;
+
+		using Scalar = double;
+		using Index = Eigen::Index;
+		static constexpr Index  ParamSize = 3;
+
+		typedef Eigen::Vector3d ParamType;	// RBF Param type
 		typedef Eigen::MatrixXd KernalMatrixType;
 		typedef Eigen::MatrixXd MatrixType;
 		typedef Eigen::RowVectorXd RowVectorType;
 		typedef Eigen::VectorXd	ColVectorType;
+
 		static constexpr double epsilon() {
-			return std::numeric_limits<double>::epsilon();
+			return std::numeric_limits<Scalar>::epsilon();
 		};
 
 		MatrixType X;
@@ -27,7 +37,7 @@ namespace Causality
 
 	public:
 		// Cache data
-		int N, D; // N = X.rows(), D = Y.cols();
+		Index N, D; // N = X.rows(), D = Y.cols();
 		KernalMatrixType  Dx; // Dx(i,j) = -0.5 * |X(i,:) - X(j,:)|^2
 		ParamType lparam;		// last theta
 		KernalMatrixType K;			// The covarience matrix, positive semidefined symetric matrix NxX
@@ -75,6 +85,8 @@ namespace Causality
 			return lparam;
 		}
 
+		Index sample_size() const { return N; }
+
 		// Get the most-likly <y> from an gaussian noised observation of <x> : <z>, that P(x|z) ~ N(z,cov(X|Z))
 		// return the likelihood of (y,x|z)
 		double get_expectation_from_observation(_In_ const RowVectorType& z, _In_ const MatrixType &covXZ, _Out_ RowVectorType* y) const;
@@ -116,6 +128,8 @@ namespace Causality
 		void update_kernal(const ParamType &param);
 	};
 
+	using gpr = gaussian_process_regression;
+
 	// gaussian-process-latent-variable-model
 	class gaussian_process_lvm : protected gaussian_process_regression
 	{
@@ -123,32 +137,47 @@ namespace Causality
 		enum DynamicTypeEnum
 		{
 			NoDynamic = 0,
-			OnewayDynamic = 1,
-			PeriodicDynamic = 2,
+			OnePointPrior = 1,
+			OnewayDynamic = 2,
+			PeriodicDynamic = 3,
 		};
 
-		using gpr = gaussian_process_regression;
+		//using gpr::get_likelihood_xy;
+		//using gpr::get_likelihood_x;
+		using gpr::ParamSize;
+		using gpr::MatrixType;
+		using gpr::RowVectorType;
+		using gpr::ColVectorType;
+		using gpr::ParamType;
 
-		using gaussian_process_regression::get_likelihood_xy;
-		using gaussian_process_regression::get_likelihood_x;
-		using gaussian_process_regression::get_parameters;
+		using gpr::get_parameters;
+		using gpr::alpha;
+		using gpr::beta;
+		using gpr::gamma;
+		using gpr::sample_size;
 
-		using gaussian_process_regression::alpha;
-		using gaussian_process_regression::beta;
-		using gaussian_process_regression::gamma;
+		gaussian_process_lvm() { dyna_type = NoDynamic; }
+		gaussian_process_lvm(const MatrixType& Y, Eigen::DenseIndex dX)
+			:gaussian_process_lvm()
+		{
+			initialize(Y, dX);
+		}
+
 
 		// When sampleTimes == nullptr, we assume the sample are fixed interval sampled
-		void set_dynamic(DynamicTypeEnum type, double timespan, ColVectorType* sampleTimes = nullptr);
+		void set_dynamic(DynamicTypeEnum type, double timespan = 0, const ParamType* timeparam = nullptr, ColVectorType* sampleTimes = nullptr);
 		void set_default(RowVectorType defautY, double weight);
 
 		// aka. matrixX
+		Index latent_dimension() const { return dimX; }
 		const MatrixType& latent_coords() const;
 
 		// L_IK(x,y|theta)
-		double likelihood_xy(const RowVectorType& y, const RowVectorType& x);
+		double likelihood_xy(const RowVectorType& x, const RowVectorType& y) const;
 
 		// grad(L_IK(x,y|theta))
-		void likelihood_xy_gradiant(_Out_ RowVectorType& dy, _Out_ RowVectorType& dx, _In_ const RowVectorType& y, _In_ const RowVectorType& x);
+		// return value layout = [dL/dx,dL/dy]
+		RowVectorType likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const;
 
 		// Allocate the storage for the model
 		void initialize(const MatrixType& Y, Eigen::DenseIndex dX);
@@ -157,15 +186,18 @@ namespace Causality
 		double load_model(const MatrixType& X, const ParamType& param);
 
 		// Train/learn the model with exited data Y
-		double learn_model();
+		double learn_model(const ParamType& param = ParamType(1.0,1e3,1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
 
-	protected:
-		void update_kernal(const MatrixType& x, const ParamType& param);
+	public:
+		template <typename DerivedX>
+		void update_kernal(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType& param);
 		// negitive log likilihood of P(X,theta | Y)
-		double learning_likelihood(const MatrixType& x, const ParamType &param);
+		template <typename DerivedX>
+		double learning_likelihood(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType &param);
 
 		// gradiant of L
-		void learning_likelihood_derivative(_Out_ MatrixType& dx, _Out_ ParamType& dparam, _In_ const MatrixType& x, _In_ const ParamType &param);
+		template <typename DerivedXOut, typename DerivedX>
+		void learning_likelihood_derivative(_Out_ Eigen::MatrixBase<DerivedXOut>& dx, _Out_ ParamType& dparam, _In_ const Eigen::MatrixBase<DerivedX>& x, _In_ const ParamType &param);
 
 		// optimize the latent coordinate X
 		double optimize_x(const MatrixType& initalX);
@@ -173,12 +205,20 @@ namespace Causality
 		double optimze_parameters(const ParamType& initial_param);
 
 		double optimze_parameters();
-
+	protected:
+		Index	   dimX;
 		MatrixType dKx; // dK / dX_ij
 		DynamicTypeEnum dyna_type;
+		
+		gpr			*parent;
+		//ParamType  tparam;
+		//Scalar	   tspan;
+		//MatrixType Kt; // Kernal of time dynamic
+		//MatrixType iKt; // K_t^-1
+		//MatrixType iKtX; // K_t^-1 * X, gradiant L_GP to X under time constraint Kt
 	};
 
-	using gp_lvm = gaussian_process_lvm;
+	using gplvm = gaussian_process_lvm;
 
 	// gaussian-process-shared-latent-variable-model
 	class shared_gaussian_process_lvm

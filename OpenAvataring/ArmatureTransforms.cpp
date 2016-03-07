@@ -395,7 +395,7 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 			{
 				auto dX = feature.cast<double>().eval();
 				auto& sik = m_controller.GetStylizedIK(block.Index);
-				auto& gpr = sik.Gplvm();
+				auto& gpr = sik.Gpr();
 				//sik.setBaseRotation(frame[block.parent()->Joints.back()->ID].GblRotation);
 				dY = sik.apply(dX.segment<3>(0).transpose().eval(), dX.segment<3>(3).transpose().eval(), baseRot).cast<double>();
 			}
@@ -644,7 +644,7 @@ void Causality::BlendFrame(IArmaturePartFeature& feature, const ShrinkedArmature
 void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowVectorXd &Xd, ArmatureFrameView target_frame)
 {
 	auto& sik = m_controller.GetStylizedIK(cpart.Index);
-	auto& gpr = sik.Gplvm();
+	auto& gpr = sik.Gpr();
 
 	RowVectorXd Y;
 	auto lk = gpr.get_expectation_and_likelihood(Xd, &Y);
@@ -657,7 +657,7 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 	RowVectorXd Xd, Y;
 
 	auto& sik = const_cast<StylizedChainIK&>(m_controller.GetStylizedIK(cpart.Index));
-	auto& gpr = sik.Gplvm();
+	auto& gpr = sik.Gpr();
 	auto& joints = cpart.Joints;
 
 	auto baseRot = target_frame[cpart.parent()->Joints.back()->ID].GblRotation;
