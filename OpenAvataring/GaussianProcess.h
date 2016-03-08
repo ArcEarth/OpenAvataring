@@ -38,7 +38,7 @@ namespace Causality
 
 	public:
 		// Cache data
-		Index N, D; // N = X.rows(), D = Y.cols();
+		Index N, D, dimX; // N = X.rows(), D = Y.cols(), dimX = X.cols();
 		KernalMatrixType  Dx; // Dx(i,j) = -0.5 * |X(i,:) - X(j,:)|^2
 		ParamType lparam;		// last theta
 		KernalMatrixType K;			// The covarience matrix, positive semidefined symetric matrix NxX
@@ -109,8 +109,12 @@ namespace Causality
 		// negitive log likilihood of P(theta | X,Y)
 		double likelihood(const ParamType &param);
 
+		double lp_param_on_xy();
+		ParamType lp_param_on_xy_grad();
+
 		// gradiant of L
 		ParamType likelihood_derivative(const ParamType &param);
+
 
 		double optimze_parameters(const ParamType& initial_param);
 
@@ -157,7 +161,7 @@ namespace Causality
 		using gpr::gamma;
 		using gpr::sample_size;
 
-		gaussian_process_lvm() { dyna_type = NoDynamic; }
+		gaussian_process_lvm() { dyna_type = NoDynamic; parent = nullptr; }
 		gaussian_process_lvm(const MatrixType& Y, Eigen::DenseIndex dX)
 			:gaussian_process_lvm()
 		{
@@ -187,7 +191,7 @@ namespace Causality
 		double load_model(const MatrixType& X, const ParamType& param);
 
 		// Train/learn the model with exited data Y
-		double learn_model(const ParamType& param = ParamType(1.0, 1e3, 1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
+		double learn_model(const ParamType& param = ParamType(1.0, 1e-3, 1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
 
 	public:
 		template <typename DerivedX>
@@ -207,7 +211,6 @@ namespace Causality
 
 		double optimze_parameters();
 	protected:
-		Index	   dimX;
 		MatrixType dKx; // dK / dX_ij
 		DynamicTypeEnum dyna_type;
 
@@ -223,7 +226,8 @@ namespace Causality
 
 	class hierarchical_gaussian_process_lvm : stdx::tree_node<hierarchical_gaussian_process_lvm>, public gaussian_process_lvm
 	{
-
+		std::vector<int> m_childrenDim;
+		std::vector<int> m_childrenDimStart;
 	};
 
 	// gaussian-process-shared-latent-variable-model

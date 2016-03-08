@@ -13,6 +13,10 @@ namespace Causality
 		using OptimzeVectorType = Eigen::RowVectorXf;
 		using OptimzeJacobiType = Eigen::MatrixXd;
 
+		using vector3_t = Eigen::Vector3d;
+		using row_vector_t = Eigen::RowVectorXd;
+		using quaternion_t = Causality::Quaternion;
+
 		class IFeatureDecoder abstract
 		{
 		public:
@@ -36,7 +40,7 @@ namespace Causality
 
 		// intermediate variable for IK caculation
 		std::vector<DirectX::Quaternion, DirectX::XMAllocator>
-			m_chainRot;
+			                                                m_chainRot;
 
 		gaussian_process_regression							m_gpr;
 		gaussian_process_lvm								m_gplvm;
@@ -51,18 +55,19 @@ namespace Causality
 		double												m_meanLk;
 		long												m_counter;
 		bool												m_cValiad;	// is current validate
-		Eigen::RowVectorXd									m_iy;	// initial y, default y
-		Eigen::RowVectorXd									m_cx;	// current x
-		Eigen::RowVectorXd									m_cy;	// current y
-		Eigen::RowVectorXd									m_cyNorm;
-		Eigen::RowVectorXd									m_eyNorm;
-		Eigen::RowVectorXd									m_wy;	//weights of y
+		row_vector_t									    m_ix;	// initial y, default y
+		row_vector_t									    m_iy;	// initial y, default y
+		row_vector_t									    m_cx;	// current x
+		row_vector_t									    m_cy;	// current y
+		row_vector_t									    m_cyNorm;
+		row_vector_t									    m_eyNorm;
+		row_vector_t									    m_wy;	//weights of y
 		Eigen::MatrixXd										m_limy;	//weights of y
 
-		Eigen::RowVectorXd									m_ey;
+		row_vector_t									    m_ey;
 		double												m_segmaX;
 
-		Eigen::Vector3d										m_goal;
+		vector3_t											m_goal;
 		Quaternion											m_baseRot;
 		int													m_maxIter;
 
@@ -83,15 +88,9 @@ namespace Causality
 
 		//const OptimzeVectorType & apply(const Vector3 & goal, const DirectX::Quaternion & baseRotation);
 		//const OptimzeVectorType & apply(const Vector3 & goal, const Vector3& goal_vel, const DirectX::Quaternion& baseRotation);
-		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const DirectX::Quaternion & baseRotation);
-		//{
-		//	return apply(Vector3(goal.x(), goal.y(), goal.z()),baseRotation);
-		//}
-		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const Eigen::Vector3d& goal_vel, const DirectX::Quaternion & baseRotation);
-		//{
-		//	return apply(Vector3(goal.x(), goal.y(), goal.z()), Vector3(goal_vel.x(), goal_vel.y(), goal_vel.z()), baseRotation);
-		//}
-		Eigen::RowVectorXd apply(const Eigen::Vector3d & goal, const Eigen::VectorXd & hint_y);
+		row_vector_t apply(const vector3_t & goal, const DirectX::Quaternion & baseRotation);
+		row_vector_t apply(const vector3_t & goal, const vector3_t& goal_vel, const DirectX::Quaternion & baseRotation);
+		row_vector_t apply(const vector3_t & goal, const Eigen::VectorXd & hint_y);
 
 
 		// set the functional that decode feature vector "Y" to local rotation quaternions
@@ -101,9 +100,9 @@ namespace Causality
 		const IFeatureDecoder* getDecoder() const { return m_fpDecoder.get(); }
 		IFeatureDecoder* getDecoder() { return m_fpDecoder.get(); }
 
-		void setGoal(const Eigen::Vector3d & goal);
+		void setGoal(const vector3_t & goal);
 		void setBaseRotation(const DirectX::Quaternion & q);
-		void setHint(const Eigen::RowVectorXd & y);
+		void setHint(const row_vector_t & y);
 
 		void setChain(const std::vector<const Joint*> &joints, ArmatureFrameConstView defaultframe);
 		void setIKWeight(double weight);
@@ -121,16 +120,22 @@ namespace Causality
 		gplvm& Gplvm() { return m_gplvm; }
 		const gplvm& Gplvm() const { return m_gplvm; }
 
-		double objective(const Eigen::RowVectorXd &x, const Eigen::RowVectorXd &y);
+		double objective(const row_vector_t &x, const row_vector_t &y);
 
-		Eigen::RowVectorXd objective_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y);
+		row_vector_t objective_derv(const row_vector_t & x, const row_vector_t & y);
+
+		row_vector_t solve(const vector3_t & goal, const vector3_t& goal_vel, const DirectX::Quaternion & baseRotation);
+		double objective_xy(const row_vector_t &x, const row_vector_t &y);
+		row_vector_t objective_xy_derv(const row_vector_t & x, const row_vector_t & y);
 
 		DirectX::XMVECTOR EndPosition(const DirectX::XMFLOAT4A* rotqs);
 		Eigen::Matrix3Xf EndPositionJacobi(const DirectX::XMFLOAT4A* rotqs);
 
 		void JacobbiFromR(DirectX::XMFLOAT4X4A &jac, _In_reads_(3) const float* r);
 
-	};
+		void set_goal(const Eigen::Vector3d & goal);
+
+};
 
 	class AbsoluteLnQuaternionDecoder : public StylizedChainIK::IFeatureDecoder
 	{

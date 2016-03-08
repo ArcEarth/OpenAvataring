@@ -13,6 +13,7 @@ using namespace Eigen;
 using namespace DirectX;
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
+using scik = Causality::StylizedChainIK;
 
 template <class DerivedX, class DerivedY>
 dlib_vector ComposeOptimizeVector(const DenseBase<DerivedX> &x, const DenseBase<DerivedY> &y);
@@ -296,10 +297,7 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 {
 	setBaseRotation(baseRotation);
 
-	if (goal.norm() <= m_chainLength)
-		m_goal = goal;
-	else
-		m_goal = goal * (m_chainLength / goal.norm());
+	set_goal(goal);
 
 	if (!m_cValiad)
 	{
@@ -348,6 +346,15 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 
 	m_cx = m_goal;
 	return apply(m_goal, hint_y.transpose().eval());
+
+}
+
+void Causality::StylizedChainIK::set_goal(const Eigen::Vector3d & goal)
+{
+	if (goal.norm() <= m_chainLength)
+		m_goal = goal;
+	else
+		m_goal = goal * (m_chainLength / goal.norm());
 
 }
 
@@ -560,4 +567,115 @@ void RelativeLnQuaternionPcaDecoder::EncodeJacobi(array_view<const DirectX::Quat
 
 StylizedChainIK::IFeatureDecoder::~IFeatureDecoder()
 {
+}
+
+
+double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
+{
+	const auto n = m_chain.size();
+
+	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
+
+	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	Vector3f epf; XMStoreFloat3(epf.data(), ep);
+
+	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
+
+	double stylik = m_gplvm.likelihood_xy(x, y);
+
+	return ikdis + stylik;//+iklimdis;
+}
+
+RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
+{
+	const auto n = m_chain.size();
+
+	RowVectorXd derv(x.size() + y.size());
+
+	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
+
+	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	MatrixXd jacb = EndPositionJacobi(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data())).cast<double>();
+
+	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
+
+	Vector3f epf; Vector3f goalf = m_goal.cast<float>();
+	XMStoreFloat3(epf.data(), ep);
+
+	// IK term derv
+	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf - goalf)).transpose().cast<double>() * jacb;
+
+	// stylik gradiant
+	derv = m_gplvm.likelihood_xy_derivative(x, y);
+	derv.segment(x.size(), y.size()) += ikderv;
+
+	return derv;//derv
+}
+
+scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_t & goal_vel, const DirectX::Quaternion & baseRotation)
+{
+	dlib_vector v;
+	if (m_cValiad)
+		v = ComposeOptimizeVector(m_cx, m_cy);
+	else
+		v = ComposeOptimizeVector(m_ix, m_iy);
+
+	set_goal(goal);
+
+	auto f = [this](const dlib_vector& v)->double {
+		RowVectorXd x(m_cx.size()), y(v.size() - m_cx.size());
+		DecomposeOptimizeVector(v, x, y);
+		return objective_xy(x, y);
+	};
+
+	auto df = [this](const dlib_vector& v)->dlib_vector {
+		RowVectorXd x(m_cx.size()), y(v.size() - m_cx.size());
+		DecomposeOptimizeVector(v, x, y);
+		auto derv = objective_xy_derv(x, y);
+		dlib_vector val(derv.size());
+		std::copy_n(derv.data(), v.size(), val.begin());
+		return val;
+	};
+
+	auto numberic_diff = dlib::derivative(f)(v);
+	auto anaylatic_diff = df(v);
+
+	std::cout << "numberic derv = " << dlib::trans(numberic_diff) << "anaylatic derv = " << dlib::trans(anaylatic_diff) << std::endl;
+	std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
+		<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
+
+	double result;
+
+	try
+	{
+		result = dlib::find_min //_box_constrained
+			(
+				dlib::cg_search_strategy(),
+				dlib::objective_delta_stop_strategy(1e-4, m_maxIter),//.be_verbose(),
+				f, df,
+				//dlib::derivative(f),
+				v,
+				0//vmin,vmax//,0
+				);
+
+		DecomposeOptimizeVector(v, m_cx, m_cy);
+	}
+	catch (const std::exception&)
+	{
+		// skip this frame if failed to optimze
+		result = 1.0;
+		m_cValiad = false;
+		cout << "[Error] S-IK failed." << std::endl;
+	}
+
+	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
+	Vector3 ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+
+	if (g_EnableDebugLogging >= 2)
+	{
+		cout << "pred = " << m_segmaX << " error = " << result << " | goal = (" << goal.transpose() << ") achived = (" << ep << ')' << endl;
+		cout << "joints angles = " << m_cy << endl;
+	}
+
+	return m_cy;
 }

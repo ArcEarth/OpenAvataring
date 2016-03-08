@@ -92,10 +92,10 @@ public:
 		inputExtractor;
 
 	mutable
-		Pcad <
+		//Pcad <
 		Weighted <
 		RelativeDeformation <
-		AllJoints < LclRotLnQuatFeature > > > >
+		AllJoints < LclRotLnQuatFeature > > > //>
 		outputExtractor;
 
 	//mutable MatrixXd m_Xs;
@@ -115,7 +115,7 @@ public:
 		auto& parts = *pBlockArmature;
 		auto& ucinfo = pController->GetUnitedClipinfo();
 
-		outputExtractor.InitPcas(parts.size());
+		//outputExtractor.InitPcas(parts.size());
 		outputExtractor.SetDefaultFrame(pBlockArmature->Armature().bind_frame());
 		outputExtractor.InitializeWeights(parts);
 
@@ -128,12 +128,12 @@ public:
 			{
 				auto &pca = facade.GetPartPca(pid);
 				auto d = facade.GetPartPcaDim(pid);
-				outputExtractor.SetPca(pid, pca.components(d), pca.mean());
+				//outputExtractor.SetPca(pid, pca.components(d), pca.mean());
 			}
 			else
 			{
 				int odim = facade.GetPartDimension(pid);
-				outputExtractor.SetPca(pid, MatrixXf::Identity(odim, odim), facade.GetPartMean(pid));
+				//outputExtractor.SetPca(pid, MatrixXf::Identity(odim, odim), facade.GetPartMean(pid));
 			}
 		}
 	}
@@ -899,7 +899,7 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		gplvm lvm;
 		auto& allrc = allClipinfo.RcFacade;
 		lvm.initialize(allrc.GetAllPartsSequence().cast<double>(), 4);
-		lvm.learn_model(gplvm::ParamType(1.0,1e2,1.0));
+		lvm.learn_model(gplvm::ParamType(1.0,1e-2,1.0));
 
 		parallel_for(0, (int)activeParts.size(), 1, [&, this](int apid)
 		{
@@ -1154,6 +1154,9 @@ void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, 
 			blockSetting->SetAttribute("gamma", param[2]);
 		}
 	}
+
+	std::cout << "Part gplvm initialized : " << blockName << " = {" << param << '}' << std::endl;
+
 }
 
 
