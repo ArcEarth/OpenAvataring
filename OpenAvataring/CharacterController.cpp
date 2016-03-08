@@ -1005,7 +1005,6 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		rcFacade.CaculatePartPcaQr(pid);
 
 	// Prepare the local transform pair
-	auto X = rcFacade.GetPartPcadSequence(pid);
 	auto PartPv = pvFacade.GetPartSequence(pid);
 	auto ParentPv = pvFacade.GetPartSequence(parentid);
 	MatrixXf Pv = PartPv - ParentPv;
@@ -1033,22 +1032,24 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		auto& gpr = sik.Gpr();
 		auto& gplvm = sik.Gplvm();
 
+		//auto X = rcFacade.GetPartPcadSequence(pid);
+		auto X = rcFacade.GetPartSequence(pid);
 		gpr.initialize(Pv, X);
 		InitGprXML(settings, partName, gpr);
 
 		auto &pca = rcFacade.GetPartPca(pid);
 		auto d = rcFacade.GetPartPcaDim(pid);
 
-		//auto pDecoder = std::make_unique<RelativeLnQuaternionDecoder>();
 		//! PCA Decoder configration
 		auto Wjx = part.Wx.cast<double>().eval();
 
-		auto pDecoder = std::make_unique<RelativeLnQuaternionPcaDecoder>();
-		pDecoder->meanY = pca.mean().cast<double>() * Wjx.cwiseInverse().asDiagonal();
-		pDecoder->pcaY = pca.components(d).cast<double>();
-		pDecoder->invPcaY = pDecoder->pcaY.transpose();
-		pDecoder->pcaY = Wjx.asDiagonal() * pDecoder->pcaY;
-		pDecoder->invPcaY *= Wjx.cwiseInverse().asDiagonal();
+		auto pDecoder = std::make_unique<RelativeLnQuaternionDecoder>();
+		//auto pDecoder = std::make_unique<RelativeLnQuaternionPcaDecoder>();
+		//pDecoder->meanY = pca.mean().cast<double>() * Wjx.cwiseInverse().asDiagonal();
+		//pDecoder->pcaY = pca.components(d).cast<double>();
+		//pDecoder->invPcaY = pDecoder->pcaY.transpose();
+		//pDecoder->pcaY = Wjx.asDiagonal() * pDecoder->pcaY;
+		//pDecoder->invPcaY *= Wjx.cwiseInverse().asDiagonal();
 
 		pDecoder->bases.reserve(joints.size());
 		for (auto joint : joints)

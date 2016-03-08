@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen\Dense>
 #include <limits>
+#include <tree.h>
 
 namespace Causality
 {
@@ -54,7 +55,7 @@ namespace Causality
 	public:
 		//template <class DerivedX, class DerivedY>
 		gaussian_process_regression(const Eigen::MatrixXf& _X, const Eigen::MatrixXf& _Y);
-		
+
 		gaussian_process_regression();
 
 		// initialize basic variables
@@ -104,7 +105,7 @@ namespace Causality
 		double get_likelihood_x(const RowVectorType& x) const;
 		RowVectorType get_ikelihood_x_derivative(const RowVectorType& x) const;
 
-		#pragma region Parameter Tuning Methods
+#pragma region Parameter Tuning Methods
 		// negitive log likilihood of P(theta | X,Y)
 		double likelihood(const ParamType &param);
 
@@ -120,7 +121,7 @@ namespace Causality
 			update_kernal(param);
 		}
 
-		#pragma endregion
+#pragma endregion
 
 	protected:
 		void update_Dx();
@@ -186,7 +187,7 @@ namespace Causality
 		double load_model(const MatrixType& X, const ParamType& param);
 
 		// Train/learn the model with exited data Y
-		double learn_model(const ParamType& param = ParamType(1.0,1e3,1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
+		double learn_model(const ParamType& param = ParamType(1.0, 1e3, 1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
 
 	public:
 		template <typename DerivedX>
@@ -209,7 +210,7 @@ namespace Causality
 		Index	   dimX;
 		MatrixType dKx; // dK / dX_ij
 		DynamicTypeEnum dyna_type;
-		
+
 		gpr			*parent;
 		//ParamType  tparam;
 		//Scalar	   tspan;
@@ -219,6 +220,11 @@ namespace Causality
 	};
 
 	using gplvm = gaussian_process_lvm;
+
+	class hierarchical_gaussian_process_lvm : stdx::tree_node<hierarchical_gaussian_process_lvm>, public gaussian_process_lvm
+	{
+
+	};
 
 	// gaussian-process-shared-latent-variable-model
 	class shared_gaussian_process_lvm
