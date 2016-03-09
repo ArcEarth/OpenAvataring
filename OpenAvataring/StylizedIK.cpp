@@ -56,20 +56,19 @@ void StylizedChainIK::setDecoder(std::unique_ptr<StylizedChainIK::IFeatureDecode
 
 void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, ArmatureFrameConstView defaultframe)
 {
-	m_chain.resize(joints.size());
-	m_chainRot.resize(joints.size());
-	//m_iy.setZero(joints.size() * 3);
+	resize(joints.size());
+
 	m_chainLength = 0;
+	std::vector<DirectX::Quaternion, DirectX::XMAllocator>	rots;
 	for (int i = 0; i < joints.size(); i++)
 	{
 		auto& bone = defaultframe[joints[i]->ID];
-		m_chain[i].w = 1.0f;
-		reinterpret_cast<DirectX::Vector3&>(m_chain[i]) = bone.LclTranslation;
-		m_chainLength += bone.LclTranslation.Length();
+		auto Q = XMLoadA(bone.LclRotation);
+		auto V = XMLoadA(bone.LclTranslation);
+		V = XMVector3InverseRotate(V, Q);
+		m_bones[i] = V;
 
-		Vector3f lq;
-		XMStoreFloat3(lq.data(), XMQuaternionLn(XMLoadA(bone.LclRotation)));
-		//m_iy.segment<3>(i * 3) = lq.cast<double>();
+		m_chainLength += bone.LclTranslation.Length();
 	}
 
 	m_iy = m_gpr.uY;
@@ -80,25 +79,8 @@ void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, Armature
 		m_cy = m_iy;
 }
 
-void StylizedChainIK::setGoal(const Eigen::Vector3d & goal)
-{
-	m_goal = goal;
-}
-
-void StylizedChainIK::setIKWeight(double weight)
-{
-	m_ikWeight = weight;
-}
-
-void StylizedChainIK::setMarkovWeight(double weight)
-{
-	m_markovWeight = weight;
-}
-
-void StylizedChainIK::setBaseRotation(const DirectX::Quaternion & q)
-{
-	m_baseRot = q;
-}
+void StylizedChainIK::setIKWeight(double weight){m_ikWeight = weight; }
+void StylizedChainIK::setMarkovWeight(double weight){ m_markovWeight = weight;}
 
 void StylizedChainIK::setHint(const Eigen::RowVectorXd & y)
 {
@@ -107,113 +89,13 @@ void StylizedChainIK::setHint(const Eigen::RowVectorXd & y)
 	//m_cValiad = true;
 }
 
-DirectX::XMVECTOR StylizedChainIK::EndPosition(const XMFLOAT4A* rotqs)
-{
-	const auto n = m_chain.size();
-
-	XMVECTOR q, t, gt, gq;
-	Eigen::Vector4f qs;
-	qs.setZero();
-
-	gt = XMVectorZero();
-	gq = XMLoad(m_baseRot);
-
-	for (int i = 0; i < n; i++)
-	{
-		q = XMLoadFloat4A(&rotqs[i]);
-		t = m_chain[i];
-
-		t = XMVector3Rotate(t, gq);
-		gq = XMQuaternionMultiply(q, gq);
-
-		gt += t;
-	}
-
-	return gt;
-}
-
-void AbsoluteLnQuaternionDecode(_Out_cap_(n) DirectX::Quaternion* rots, const Eigen::RowVectorXd& y)
-{
-	int n = y.size() / 3;
-	Eigen::Vector4f qs;
-	XMVECTOR q;
-	qs.setZero();
-	for (int i = 0; i < n; i++)
-	{
-		qs.segment<3>(0) = y.segment<3>(i * 3).cast<float>();
-		q = XMLoadFloat4A(qs.data());
-		q = XMQuaternionExp(q); // revert the log map
-		XMStoreA(rots[i], q);
-	}
-
-	//return rots;
-}
-
-Eigen::Matrix3Xf StylizedChainIK::EndPositionJacobi(const XMFLOAT4A* rotqs)
-{
-	const auto n = m_chain.size();
-
-	Matrix3Xf jacb(3, 3 * n);
-	MatrixXf rad(3, n);
-
-
-	XMVECTOR q, t, gt, gq;
-
-	gt = XMVectorZero();
-	gq = XMQuaternionIdentity();
-	t = XMVectorZero();
-
-	for (int i = n - 1; i >= 0; i--)
-	{
-		q = XMLoadFloat4A(&rotqs[i]);
-
-		gt = XMVector3Rotate(gt, q);
-		t = XMLoadA(m_chain[i]);
-		XMStoreFloat3(rad.col(i).data(), gt);
-		gt += t;
-	}
-
-	XMMATRIX rot;
-	XMFLOAT4X4A jac;
-	jac._11 = jac._22 = jac._33 = 0;
-	jac._41 = jac._42 = jac._43 = jac._44 = jac._14 = jac._24 = jac._34 = 0;
-
-	gq = XMLoad(m_baseRot);
-	for (int i = 0; i < n; i++)
-	{
-		q = XMLoadFloat4A(&rotqs[i]);
-
-		auto& r = rad.col(i);
-		jacobbiRespectAxisAngle(jac, r.data());
-
-		rot = XMMatrixRotationQuaternion(XMQuaternionConjugate(gq));
-		// transpose as XMMatrix is row major
-		rot = _DXMEXT XMMatrixMultiplyTranspose(rot, XMLoadA(jac));
-		for (int j = 0; j < 3; j++)
-		{
-			XMStoreFloat3(jacb.col(i * 3 + j).data(), rot.r[j]);
-		}
-
-		gq = XMQuaternionMultiply(q, gq);
-	}
-
-	return jacb;
-}
-
-void StylizedChainIK::jacobbiRespectAxisAngle(DirectX::XMFLOAT4X4A &j, _In_reads_(3) const float* r)
-{
-	j._11 = 0, j._12 = r[2], j._13 = -r[1];
-	j._21 = -r[2], j._22 = 0, j._23 = r[0];
-	j._31 = r[1], j._32 = -r[0], j._33 = 0;
-}
-
 double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_chain.size();
+	const auto n = m_bones.size();
 
 	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
 
-	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	XMVECTOR ep = endPosition(m_chainRot);
 	Vector3f epf;
 	XMStoreFloat3(epf.data(), ep);
 
@@ -231,14 +113,15 @@ double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::Row
 
 RowVectorXd StylizedChainIK::objective_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_chain.size();
+	const auto n = m_bones.size();
 
 	RowVectorXd derv(x.size() + y.size());
 
 	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
 
-	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
-	MatrixXd jacb = EndPositionJacobi(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data())).cast<double>();
+	XMVECTOR ep = endPosition(m_chainRot);
+	endPositionJaccobiRespectAxisAngle(m_chainRot, m_jac);
+	MatrixXd jacb = Eigen::Matrix3Xf::Map(&m_jac[0].x, 3, 3 * n).cast<double>();
 
 	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
 
@@ -295,9 +178,7 @@ void DecomposeOptimizeVector(const dlib_vector & v, RowVectorXd & x, RowVectorXd
 
 RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quaternion & baseRotation)
 {
-	setBaseRotation(baseRotation);
-
-	set_goal(goal);
+	setGoal(goal);
 
 	if (!m_cValiad)
 	{
@@ -311,13 +192,13 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 	lk = exp(-lk);
 
 	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
-	Vector3 cyep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	Vector3 cyep = endPosition(m_chainRot);
 	Vector3d cyepmap = Vector3f::Map(&cyep.x).cast<double>();
 	Vector3d cydiff = m_goal - cyepmap;
 
 
 	m_fpDecoder->Decode(m_chainRot, hint_y.cast<float>());
-	Vector3 ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	Vector3 ep = endPosition(m_chainRot);
 	Vector3d epmap = Vector3f::Map(&ep.x).cast<double>();
 	Vector3d diff = m_goal - epmap;
 
@@ -349,7 +230,7 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 
 }
 
-void Causality::StylizedChainIK::set_goal(const Eigen::Vector3d & goal)
+void StylizedChainIK::setGoal(const Eigen::Vector3d & goal)
 {
 	if (goal.norm() <= m_chainLength)
 		m_goal = goal;
@@ -360,8 +241,6 @@ void Causality::StylizedChainIK::set_goal(const Eigen::Vector3d & goal)
 
 Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goal, const Eigen::Vector3d & goal_velocity, const DirectX::Quaternion & baseRotation)
 {
-	setBaseRotation(baseRotation);
-
 	if (goal.norm() <= m_chainLength)
 		m_goal = goal;
 	else
@@ -461,13 +340,11 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 
 
 
-	Vector3 ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
-
 	//m_cy = m_ey;
 	m_currentError = result;
 
 	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
-	ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	Vector3 ep = ep = endPosition(m_chainRot);
 
 	if (g_EnableDebugLogging >= 2)
 	{
@@ -572,11 +449,11 @@ StylizedChainIK::IFeatureDecoder::~IFeatureDecoder()
 
 double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_chain.size();
+	const auto n = m_bones.size();
 
 	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
 
-	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	XMVECTOR ep = endPosition(m_chainRot);
 	Vector3f epf; XMStoreFloat3(epf.data(), ep);
 
 	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
@@ -589,15 +466,16 @@ double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::
 
 RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_chain.size();
+	const auto n = m_bones.size();
 
 	RowVectorXd derv(x.size() + y.size());
 	derv.setZero();
 
 	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
 
-	XMVECTOR ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
-	MatrixXd jacb = EndPositionJacobi(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data())).cast<double>();
+	XMVECTOR ep = endPosition(m_chainRot);
+	endPositionJaccobiRespectAxisAngle(m_chainRot, m_jac);
+	MatrixXd jacb = Eigen::Matrix3Xf::Map(&m_jac[0].x, 3, 3 * n).cast<double>();
 
 	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
 
@@ -625,7 +503,7 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 		m_cx = m_ix; m_cy = m_iy;
 	}
 
-	set_goal(goal);
+	setGoal(goal);
 
 	auto f = [this](const dlib_vector& v)->double {
 		RowVectorXd x(m_cx.size()), y(v.size() - m_cx.size());
@@ -675,7 +553,7 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 	}
 
 	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
-	Vector3 ep = EndPosition(reinterpret_cast<XMFLOAT4A*>(m_chainRot.data()));
+	Vector3 ep = endPosition(m_chainRot);
 
 	if (g_EnableDebugLogging >= 2)
 	{
@@ -684,4 +562,19 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 	}
 
 	return m_cy;
+}
+
+void AbsoluteLnQuaternionDecode(_Out_cap_(n) DirectX::Quaternion* rots, const Eigen::RowVectorXd& y)
+{
+	int n = y.size() / 3;
+	Eigen::Vector4f qs;
+	XMVECTOR q;
+	qs.setZero();
+	for (int i = 0; i < n; i++)
+	{
+		qs.segment<3>(0) = y.segment<3>(i * 3).cast<float>();
+		q = XMLoadFloat4A(qs.data());
+		q = XMQuaternionExp(q); // revert the log map
+		XMStoreA(rots[i], q);
+	}
 }

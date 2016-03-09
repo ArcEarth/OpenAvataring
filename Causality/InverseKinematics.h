@@ -14,8 +14,8 @@ namespace Causality
 	protected:
 		std::vector<DirectX::Vector4, DirectX::XMAllocator>	m_bones;
 		std::vector<Vector3>   m_jointWeights;
-		std::vector<Vector3>   m_boneMinLimits;
-		std::vector<Vector3>   m_boneMaxLimits;
+		std::vector<Vector3>   m_boneMinLimits; // Eular angles
+		std::vector<Vector3>   m_boneMaxLimits; // Eular angles
 		float				   m_tol;
 		int					   m_maxItrs;
 
@@ -72,6 +72,7 @@ namespace Causality
 		/// <param name="rotations">Local Rotation Quaternions for each joint</param>
 		/// <param name="jacb">size should be 3n</param>
 		void endPositionJaccobiRespectEuler(array_view<const Quaternion> rotations, _Out_ array_view<Vector3> jacb) const;
+		void endPositionJaccobiRespectAxisAngle(array_view<const Quaternion> rotations, _Out_ array_view<Vector3> jacb) const;
 
 		bool XM_CALLCONV solve(_In_ FXMVECTOR goal, _Inout_ array_view<Quaternion> rotations) const;
 
@@ -85,6 +86,8 @@ namespace Causality
 		static void jacobbiRespectAxisAngle(_Out_ Matrix4x4 &j, _In_reads_(3) const float* r);
 
 		static XMMATRIX XM_CALLCONV jacobbiTransposeRespectEuler(const Vector3& r, const Vector3& euler, FXMVECTOR globalRot);
+
+		static XMMATRIX XM_CALLCONV jacobbiTransposeRespectAxisAngle(const Vector3& r, const Vector3& lnq, FXMVECTOR globalRot);
 	private:
 		struct OptimizeFunctor;
 	};

@@ -1014,6 +1014,13 @@ namespace Causality
 			std::vector<float> prev_angs(numBones);
 			std::vector < XM_ALIGNATTR DirectX::Vector4,
 				DirectX::AlignedAllocator < XMVECTOR >> prev_axiss(numBones);
+			std::vector<std::vector<Vector3>> lclts;
+			lclts.resize(numBones);
+			for (auto& buf : lclts)
+			{
+				buf.resize(frameCount);
+			}
+
 			for (int bidx = 0; bidx < numBones; bidx++)
 			{
 				DirectX::XMVECTOR q = dframe[bidx].LclRotation;
@@ -1185,8 +1192,18 @@ namespace Causality
 			//	lq = XMQuaternionLn(XMLoadA(buffer[i][5].LclRotation));
 			//	bone32.block(20, i, 4, 1) = Eigen::Vector4f::Map(&lq.x);
 			//}
-		}
 
+			for (int i = 0; i < frameCount; i++)
+			{
+				for (int j = 1; j < numBones; j++)
+				{
+					auto& bone = buffer[i][j];
+					auto& pbone = buffer[i][m_Armature->at(j)->ParentID];
+					lclts[j][i] = DirectX::XMVector3InverseRotate(bone.LclTranslation, pbone.LclRotation);
+				}
+			}
+
+		}
 	};
 
 

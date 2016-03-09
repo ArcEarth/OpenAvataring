@@ -269,6 +269,39 @@ XMMATRIX XM_CALLCONV ChainInverseKinematics::jacobbiTransposeRespectEuler(const 
 	return MJ;
 }
 
+XMMATRIX XM_CALLCONV Causality::ChainInverseKinematics::jacobbiTransposeRespectAxisAngle(const Vector3 & rv, const Vector3 & lnq, FXMVECTOR globalRot)
+{
+	using namespace DirectX;
+
+	// Jaccobi to Euler 
+	// J = Ry*Jy + Ry*Rx*Jx + Ry*Rx*Rz*Jz
+
+	XMVECTOR V;
+	XMMATRIX MJ;
+	XM_ALIGNATTR Vector4 r = rv;
+	
+	XM_ALIGNATTR Matrix4x4 jac;
+	jacobbiRespectAxisAngle(jac, &rv.x);
+
+	XMVECTOR Q = globalRot;
+	XMVECTOR lQ;
+	lQ = XMQuaternionExp(lnq);
+	Q = XMQuaternionMultiply(lQ, Q);
+
+	V = XMLoadFloat4A(jac.m[0]);
+	V = XMVector3Rotate(V, Q);
+	MJ.r[0] = V;
+	V = XMLoadFloat4A(jac.m[1]);
+	V = XMVector3Rotate(V, Q);
+	MJ.r[1] = V;
+	V = XMLoadFloat4A(jac.m[2]);
+	V = XMVector3Rotate(V, Q);
+	MJ.r[2] = V;
+	MJ.r[3] = XMVectorZero();
+
+	return MJ;
+}
+
 XMVECTOR Causality::ChainInverseKinematics::endPosition(array_view<const Quaternion> rotations) const
 {
 	using namespace DirectX;
@@ -299,7 +332,6 @@ void ChainInverseKinematics::endPositionJaccobiRespectEuler(array_view<const Qua
 	using namespace Eigen;
 	using namespace DirectX;
 	const auto n = m_bones.size();
-	//jacb.resize(3, 3 * n);
 
 	// Chain Position Vectors
 	std::vector<DirectX::Vector4, DirectX::XMAllocator>	rad(n);
@@ -332,18 +364,56 @@ void ChainInverseKinematics::endPositionJaccobiRespectEuler(array_view<const Qua
 		auto& r = reinterpret_cast<Vector3&>(rad[i]);
 		jac = jacobbiTransposeRespectEuler(r, eular, gq);
 
-		// jacb.block<3,3>(0,3*i) = (float3x3)rot.transpose();
 		for (int j = 0; j < 3; j++)
 			jacb[i * 3 + j] = Vector3(jac.m[j]);
-		//for (int j = 0; j < 3; j++)
-		//{
-		//	XMStoreFloat3(jacb.col(i * 3 + j).data(), rot.r[j]);
-		//}
 
 		gq = XMQuaternionMultiply(q,gq);
 	}
 
 	//return jacb;
+}
+
+void ChainInverseKinematics::endPositionJaccobiRespectAxisAngle(array_view<const Quaternion> rotations, array_view<Vector3> jacb) const
+{
+	using namespace Eigen;
+	using namespace DirectX;
+	const auto n = m_bones.size();
+
+	// Chain Position Vectors
+	std::vector<DirectX::Vector4, DirectX::XMAllocator>	rad(n);
+
+	XMVECTOR q, t, gt, gq;
+
+	gt = XMVectorZero();
+	t = XMVectorZero();
+
+	for (int i = n - 1; i >= 0; i--)
+	{
+		q = XMLoadA(rotations[i]);
+		t = XMLoadA(m_bones[i]);
+		gt += t;
+		rad[i] = gt;
+		gt = XMVector3Rotate(gt, q);
+	}
+
+	//XMMATRIX rot;
+	XM_ALIGNATTR Matrix4x4 jac;
+	jac._11 = jac._22 = jac._33 = 0;
+	jac._41 = jac._42 = jac._43 = jac._44 = jac._14 = jac._24 = jac._34 = 0;
+
+	gq = XMQuaternionIdentity();
+	for (int i = 0; i < n; i++)
+	{
+		q = XMLoadA(rotations[i]);
+
+		auto& r = reinterpret_cast<Vector3&>(rad[i]);
+		jac = jacobbiTransposeRespectAxisAngle(r, q, gq);
+
+		for (int j = 0; j < 3; j++)
+			jacb[i * 3 + j] = Vector3(jac.m[j]);
+
+		gq = XMQuaternionMultiply(q, gq);
+	}
 }
 
 bool XM_CALLCONV ChainInverseKinematics::solve(FXMVECTOR goal, array_view<Quaternion> rotations) const

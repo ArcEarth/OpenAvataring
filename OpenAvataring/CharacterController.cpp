@@ -203,7 +203,7 @@ public:
 				auto xyf = inputExtractor.Get(*block, target_frame);
 				auto pDecoder = sik.getDecoder();
 				auto baseRot = target_frame[block->parent()->Joints.back()->ID].GblRotation;
-				sik.setBaseRotation(baseRot);
+				//sik.setBaseRotation(baseRot);
 				sik.setChain(block->Joints, target_frame);
 
 				//sik.SetGplvmWeight(block->Wx.cast<double>());
