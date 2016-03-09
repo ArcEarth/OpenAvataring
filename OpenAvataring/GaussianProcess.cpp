@@ -11,9 +11,10 @@
 
 using namespace Causality;
 
-double g_paramMin = 1e-7;
-double g_paramMax = 1e7;
-double g_paramWeight = 1;
+static constexpr double almost_zero = 1e-6;
+static constexpr double g_paramMin = 1e-7;
+static constexpr double g_paramMax = 1e7;
+static constexpr double g_paramWeight = 1;
 
 // Generic functor
 template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
@@ -41,29 +42,6 @@ struct Functor
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
 
-double dlib_likelihood(gaussian_process_regression* pThis, const dlib_vector& m);
-
-// This is a helper function used while optimizing the rosen() function.  
-dlib_vector dlib_likelihood_derv(gaussian_process_regression* pThis, const dlib_vector& m);
-
-double dlib_likelihood(gaussian_process_regression* pThis, const dlib_vector& m)
-{
-	gaussian_process_regression::ParamType param(m(0), m(1), m(2));
-	return pThis->likelihood(param);
-}
-
-dlib_vector dlib_likelihood_derv(gaussian_process_regression* pThis, const dlib_vector& m)
-{
-	gaussian_process_regression::ParamType param(m(0), m(1), m(2));
-	auto grad = pThis->likelihood_derivative(param);
-
-	dlib_vector result = m;
-	result(0) = grad(0);
-	result(1) = grad(1);
-	result(2) = grad(2);
-	return result;
-}
-
 gaussian_process_regression::gaussian_process_regression(const Eigen::MatrixXf & _X, const Eigen::MatrixXf & _Y)
 //: DenseFunctor<float, 3, 1>()
 {
@@ -72,7 +50,30 @@ gaussian_process_regression::gaussian_process_regression(const Eigen::MatrixXf &
 
 gaussian_process_regression::gaussian_process_regression()
 {
-	dimX = 0; N = 0; D = 0;
+	dimX = 0; N = 0; dimY = 0;
+}
+
+void gaussian_process_regression::initialize(Index _N, Index _DimY, Index _DimX)
+{
+	dimX = _DimX; N = _N; dimY = _DimY;
+	lparam.setZero(ParamSize);
+	wY.setOnes(dimY);
+
+	X.resize(N, dimX);
+	Y.resize(N, dimY);
+	K.resize(N, N);
+
+	uX.setZero(dimX);
+	uY.setZero(dimY);
+	Dx.resize(N, N);
+	R.resize(N, N);
+	RcK.resize(N, N);
+	iKY.resize(N, dimY);
+	iK.resize(N, N);
+
+	iKYYtiK.resize(N, N);
+	dKalpha.resize(N, N);
+	dKgamma.resize(N, N);
 }
 
 void gaussian_process_regression::initialize(const Eigen::MatrixXf & _X, const Eigen::MatrixXf & _Y)
@@ -82,7 +83,8 @@ void gaussian_process_regression::initialize(const Eigen::MatrixXf & _X, const E
 
 	dimX = _X.cols();
 	N = _X.rows();
-	D = _Y.cols();
+	dimY = _Y.cols();
+	initialize(N, dimY, dimX);
 
 	X = _X.cast<double>();
 	Y = _Y.cast<double>();
@@ -90,13 +92,6 @@ void gaussian_process_regression::initialize(const Eigen::MatrixXf & _X, const E
 	uY = Y.colwise().mean();
 	X = X - uX.replicate(N, 1);
 	Y = Y - uY.replicate(N, 1);
-
-	Dx.resize(N, N);
-
-	K.resize(N, N);
-	R.resize(N, N);
-	iKY.resize(N, Y.cols());
-	iKYYtiK.resize(N, N);
 
 	update_Dx();
 }
@@ -111,9 +106,6 @@ void gaussian_process_regression::update_Dx()
 
 void gaussian_process_regression::update_kernal(const ParamType & param)
 {
-	//if ((lparam - param).cwiseAbs().sum() < 1e-8)
-	//	return;
-
 	lparam = param;
 
 	dKalpha.array() = (Dx * gamma()).array().exp();
@@ -127,7 +119,7 @@ void gaussian_process_regression::update_kernal(const ParamType & param)
 	iKY.noalias() = iK * Y;//ldltK.solve(Y);
 }
 
-double gaussian_process_regression::get_expectation_from_observation(const RowVectorType & z, _In_ const MatrixType &covXZ, RowVectorType * y) const
+double gaussian_process_regression::get_ey_on_obser_x(const RowVectorType & z, _In_ const MatrixType &covXZ, RowVectorType * y) const
 {
 	// Center Z with the mean
 	assert(z.size() == covXZ.rows() && covXZ.rows() == covXZ.cols() && "CovXZ should be positive semi-defined");
@@ -135,71 +127,6 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	auto ldltCov = covXZ.ldlt();
 	auto invCov = ldltCov.solve(MatrixType::Identity(z.size(), z.size())).eval();
 	auto detCov = ldltCov.vectorD().prod();
-
-	struct ObsvExpectionFunctor : public Functor<double>
-	{
-		const RowVectorType& cZ;
-		const Eigen::MatrixXd& invCov;
-		const gaussian_process_regression& _this;
-
-		ObsvExpectionFunctor(const gaussian_process_regression& gpr, const RowVectorType& _cZ, const Eigen::MatrixXd& _invCov)
-			: _this(gpr), cZ(_cZ), invCov(_invCov), Functor<double>(_cZ.size(), 1)
-		{
-		}
-
-		int operator()(const ColVectorType& _x, ColVectorType& fvec)
-		{
-			RowVectorType x = _x.transpose();
-			//auto x = RowVectorType::Map(_x.begin(), _x.end() - _x.begin());
-
-			ColVectorType Kx = (x.replicate(_this.N, 1) - _this.X).cwiseAbs2().rowwise().sum();
-			Kx.array() = ((-0.5*_this.gamma()) * Kx.array()).exp() * _this.alpha();
-
-			ColVectorType iKkx = _this.iK * Kx;//ldltK.solve(Kx);
-			double cov = Kx.transpose() * iKkx;
-			double varX = _this.alpha() + _this.beta() - cov;
-			varX = std::max(varX, 1e-5);
-			assert(varX > 0);
-			RowVectorType dxCz = x - cZ;
-			double value = 0.5 * _this.D * log(varX) + 0.5 * dxCz * invCov * dxCz.transpose();
-
-			fvec(0) = value;
-			//return value;
-			return 0;
-		};
-
-		int df(const ColVectorType& _x, Eigen::MatrixXd& fjac)
-		{
-			//auto x = RowVectorType::Map(_x.begin(), _x.end() - _x.begin());
-			RowVectorType x = _x.transpose();
-
-			// N x d
-			MatrixType dx = x.replicate(_this.N, 1) - _this.X;
-			// N x 1
-			ColVectorType Kx = dx.cwiseAbs2().rowwise().sum();
-			Kx = ((-0.5*_this.gamma()) * Kx.array()).exp() * _this.alpha();
-			// N x d
-			MatrixType dKxx = dx.array() * Kx.replicate(1, dx.cols()).array();
-
-			ColVectorType iKkx = _this.iK * Kx;//ldltK.solve(Kx);
-			double cov = Kx.transpose() * iKkx;
-			double varX = _this.alpha() + _this.beta() - cov;
-
-			RowVectorType derv = iKkx.transpose() * dKxx;
-			derv = -_this.D / varX * derv + (x - cZ) * invCov; // / varZ;
-
-			fjac = derv;
-			return 0;
-			//return derv.transpose();
-			//dlib_vector _dx(derv.cols());
-			//for (int i = 0; i < derv.cols(); i++)
-			//{
-			//	_dx(i) = derv(i);
-			//}
-
-			//return _dx;
-		};
-	} functor(*this, cZ, invCov);
 
 	auto f = [this, &cZ, &invCov](const dlib_vector& _x) -> double
 	{
@@ -214,7 +141,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 		varX = std::max(varX, 1e-5);
 		assert(varX > 0);
 		RowVectorType dxCz = x - cZ;
-		double value = 0.5 * D * log(varX) + 0.5 * dxCz * invCov * dxCz.transpose();
+		double value = 0.5 * dimY * log(varX) + 0.5 * dxCz * invCov * dxCz.transpose();
 
 		return value;
 	};
@@ -236,7 +163,7 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 		double varX = alpha() + beta() - cov;
 
 		RowVectorType derv = iKkx.transpose() * dKxx;
-		derv = -D / varX * derv + (x - cZ) * invCov; // / varZ;
+		derv = -dimY / varX * derv + (x - cZ) * invCov; // / varZ;
 
 		dlib_vector _dx(derv.cols());
 		for (int i = 0; i < derv.cols(); i++)
@@ -263,9 +190,6 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 	//std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
 	//	<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
 
-	//Eigen::LevenbergMarquardt<ObsvExpectionFunctor,double> lm(functor);
-	//lm.minimize(_x);
-	//double likelihood = lm.fvec(0);
 	double likelihood = dlib::find_min(
 		dlib::cg_search_strategy(),
 		dlib::objective_delta_stop_strategy(1e-3),
@@ -273,175 +197,126 @@ double gaussian_process_regression::get_expectation_from_observation(const RowVe
 		_x,
 		std::numeric_limits<double>::min());
 
-	//RowVectorType eX = _x.transpose() + uX;
 	RowVectorType eX = RowVectorType::Map(_x.begin(), _x.end() - _x.begin()) + uX;
 
-	//std::cout << "Optimzation over L(X|Z=" << z << "), yield E(X) = " << eX << ", -Log(L) = " << likelihood << std::endl;
-
-	get_expectation(eX, y);
+	get_ey_on_x(eX, y);
 
 	likelihood = exp(-likelihood);
 
 	return likelihood;
 }
 
-double gaussian_process_regression::get_expectation_and_likelihood(const RowVectorType & x, RowVectorType * y) const
+void gpr::lp_xy_helper(const RowVectorType & x, RowVectorType & zx, ColVectorType &Kx, ColVectorType &iKkx, double &varX, RowVectorType &ey) const
 {
-	assert(x.cols() == X.cols());
-
-	RowVectorType dx = x.cast<double>() - uX;
-	ColVectorType Kx = (dx.replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
+	zx = x - uX;
+	Kx = (zx.replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
 	Kx.array() = ((-0.5*gamma()) * Kx.array()).exp() * alpha();
 
-	ColVectorType iKkx = iK * Kx;//ldltK.solve(Kx);
+	iKkx = iK * Kx;//ldltK.solve(Kx);
 	double cov = Kx.transpose() * iKkx;
-	double varX = alpha() + beta() - cov;
+	varX = alpha() + beta() - cov;
+	// ensure the result is valiad(not nessary correct) under numberic jittering close to zero
+	varX = fmax(fabs(varX), almost_zero);
 
-	//assert(varX > 0);
-
-	if (y != nullptr)
-		*y = uY + iKkx.transpose() * Y;
-
-	return 0.5 * D * log(abs(varX));
+	ey = uY + iKkx.transpose() * Y;
 }
 
-gaussian_process_regression::ColVectorType gaussian_process_regression::get_expectation_and_likelihood(const MatrixType & x, MatrixType * y) const
+double gaussian_process_regression::get_ey_on_x(const RowVectorType & x, RowVectorType * y) const
+{
+	RowVectorType ey(dimY) ,zx(dimX);
+	ColVectorType Kx(N), iKkx(N);
+	double varX;
+
+	lp_xy_helper(x, zx, Kx, iKkx, varX, ey);
+
+	if (y != nullptr)
+		*y = ey;
+
+	return 0.5 * dimY * log(fabs(varX));
+}
+
+gaussian_process_regression::ColVectorType gaussian_process_regression::get_ey_on_x(const MatrixType & x, MatrixType * y) const
 {
 	assert(x.cols() == X.cols());
 
 	double varX = alpha() + beta();
 
-	MatrixType dx = x - uX.replicate(x.rows(), 1);
+	MatrixType zx = x - uX.replicate(x.rows(), 1);
+
 	MatrixType Kx(N, x.rows());
 	for (size_t i = 0; i < x.rows(); i++)
-	{
-		Kx.col(i) = (-0.5*gamma()) * (dx.row(i).replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
-	}
+		Kx.col(i) = (-0.5*gamma()) * (zx.row(i).replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
+
 	Kx = Kx.array().exp() * alpha(); // N x m, m = x.rows()
 
 	MatrixType iKkx = iK * Kx;//ldltK.solve(Kx); // N x m
 
 	if (y != nullptr)
-	{
 		*y = uY.replicate(x.rows(), 1) + iKkx.transpose() * Y;
-	}
 
 	ColVectorType cov = (Kx.array() * iKkx.array()).colwise().sum().transpose();
-	cov = (0.5 * D) * (varX - cov.array()).abs().log();
-
+	cov = (0.5 * dimY) * (varX - cov.array()).abs().log();
 
 	return cov;
-
-
-}
-
-void gaussian_process_regression::get_expectation(const RowVectorType & x, RowVectorType * y) const
-{
-	assert(x.cols() == X.cols());
-
-	RowVectorType dx = x.cast<double>() - uX;
-	ColVectorType Kx = (dx.replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
-	Kx = ((-0.5*gamma()) * Kx.array()).exp() * alpha();
-
-	if (y != nullptr)
-	{
-		ColVectorType iKkx = iK * Kx;//ldltK.solve(Kx);
-		*y = uY + iKkx.transpose() * Y;
-		//*y = uY + (Y.transpose() * ldltK.solve(Kx)).transpose();
-	}
-}
-
-void gaussian_process_regression::get_expectation(const MatrixType & x, MatrixType * y) const
-{
-	assert(x.cols() == X.cols());
-	MatrixType dx = x - uX.replicate(x.rows(), 1);
-	MatrixType Kx(x.rows(), N);
-	for (size_t i = 0; i < x.rows(); i++)
-	{
-		Kx.row(i) = (-0.5*gamma()) * (dx.row(i).replicate(N, 1) - X).cwiseAbs2().rowwise().sum().transpose();
-	}
-	Kx.array() = (Kx.array()).exp() * alpha(); // m x N, m = x.rows()
-
-	if (y != nullptr)
-	{
-		MatrixType iKkx = (iK * Kx.transpose()).transpose();//ldltK.solve(Kx.transpose()).transpose(); // m X N
-		*y = uY.replicate(x.rows(), 1) + iKkx * Y;
-	}
 }
 
 // negitive log likilihood of P(y | theta,x)
 double gaussian_process_regression::get_likelihood_xy(const RowVectorType & x, const RowVectorType & y) const
 {
-	RowVectorType ey(y.size());
-	double varX = alpha() + beta();
+	RowVectorType ey(dimY), zx(dimX);
+	ColVectorType Kx(N), iKkx(N);
+	double varX;
 
-	RowVectorType dx = x.cast<double>() - uX;
-	ColVectorType Kx = (dx.replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
-	Kx.array() = ((-0.5*gamma()) * Kx.array()).exp() * alpha();
-
-	ColVectorType iKkx = iK * Kx;//ldltK.solve(Kx);
-	double cov = Kx.transpose() * iKkx;
-	varX = std::max(1e-5, varX - cov);
-
-	assert(varX > 0);
-
-	ey = uY + iKkx.transpose() * Y;
+	lp_xy_helper(x, zx, Kx, iKkx, varX, ey);
 
 	double difY = (y - ey).cwiseAbs2().sum();
 
-	double lxy = 0.5*(difY / varX + D * log(varX));
+	double lxy = 0.5*(difY / varX + dimY * log(varX));
 
 	return lxy;
 }
 
+
 gaussian_process_regression::RowVectorType gaussian_process_regression::get_likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const
 {
-	RowVectorType ey(y.size());
+	RowVectorType ey(dimY), zx(dimX);
+	ColVectorType Kx(N), iKkx(N);
+	double varX;
 
-	RowVectorType zx = x.cast<double>() - uX;
+	lp_xy_helper(x, zx, Kx, iKkx, varX, ey);
+
 	auto dKx = (zx.replicate(N, 1) - X).eval();
-
-	ColVectorType Kx = dKx.cwiseAbs2().rowwise().sum();
-	Kx = ((-0.5*gamma()) * Kx.array()).exp() * alpha();
-
 	dKx = Kx.asDiagonal() * dKx;
 
-	ColVectorType iKkx = iK * Kx;//ldltK.solve(Kx);
-	double cov = Kx.transpose() * iKkx;
-	double varX = alpha() + beta() - cov; // sigma^2(x)
-
-	ey = uY + iKkx.transpose() * Y;
-
-	RowVectorType derv(x.size() + y.size());
+	RowVectorType derv(dimX + dimY);
 	auto difY = (y - ey).eval();
 
-	auto dy = derv.segment(x.size(), y.size());
+	auto dy = derv.segment(dimX, dimY);
 	dy = difY / varX;
 
-	auto dx = derv.segment(0, x.size());
+	auto dx = derv.segment(0, dimX);
 
 	auto dfx = Y.transpose() * iK * dKx;
 
 	auto dvarx = 2 * Kx * iK * dKx;
 
-	dx = difY * dfx / varX - (difY.squaredNorm() / varX + D) / (2 * varX) * dvarx;
+	dx = difY * dfx / varX - (difY.squaredNorm() / varX + dimY) / (2 * varX) * dvarx;
 
 	return derv;
 }
 
 
-double gaussian_process_regression::likelihood(const ParamType & param)
+double gaussian_process_regression::learning_likelihood_on_xy(const ParamType & param)
 {
 	update_kernal(param);
-
 	return lp_param_on_xy();
 }
 
 double Causality::gaussian_process_regression::lp_param_on_xy()
 {
 	//it's log detK
-	double lndetK = (ldltK.vectorD().array().abs() + g_paramMin).log().sum();
-	double L = 0.5* D *lndetK;
+	double lndetK = (ldltK.vectorD().array().abs().cwiseMax(almost_zero)).log().sum();
+	double L = 0.5* dimY *lndetK;
 
 	L += 0.5 * (Y.array() * iKY.array()).sum();
 
@@ -455,9 +330,8 @@ double Causality::gaussian_process_regression::lp_param_on_xy()
 
 }
 
-gaussian_process_regression::ParamType gaussian_process_regression::likelihood_derivative(const ParamType & param)
+gaussian_process_regression::ParamType gaussian_process_regression::learning_likelihood_on_xy_derivative(const ParamType & param)
 {
-	//if ((param - lparam).cwiseAbs2().sum() > epsilon() * epsilon())
 	update_kernal(param);
 
 	return lp_param_on_xy_grad();
@@ -467,12 +341,11 @@ gpr::ParamType gpr::lp_param_on_xy_grad()
 {
 	dKgamma = Dx.array() * K.array();
 
-	// L += tr(Y' * iK * Y) = tr(iK * Y * Y') = tr(iK * YY')
-	// = sum(iK .* YY') = sum (Y .* iKY)
+	// L += tr(Y' * iK * Y) = tr(iK * Y * Y') = tr(iK * YY') = sum(iK .* YY') = sum (Y .* iKY)
 	iKYYtiK = iKY*iKY.transpose(); // K^-1 * Y * Y' * K^-1 
 
 	 // R = d(L_GP) / d(K)
-	R = 0.5f * (D * iK - iKYYtiK);
+	R = 0.5f * (dimY * iK - iKYYtiK);
 
 	ParamType grad(lparam.rows(), lparam.cols());
 	// There is the space for improve as tr(A*B) can be simplifed to O(N^2)
@@ -487,40 +360,28 @@ double gaussian_process_regression::optimze_parameters(const ParamType & initial
 {
 	update_kernal(initial_param);
 
-	struct ParamTuneFunctor : Functor<double>
-	{
-		ParamTuneFunctor(gaussian_process_regression& gpr)
-			:_this(gpr), Functor<double>(ParamType::SizeAtCompileTime, ParamType::SizeAtCompileTime)
-		{}
-		gaussian_process_regression& _this;
-		int operator()(const ColVectorType& param, ValueType& fvec)
-		{
-			fvec.setZero();
-			fvec(0) = _this.likelihood(param);
-			return 0;
-		}
-
-		int df(const ColVectorType& param, JacobianType& fjac)
-		{
-			fjac.setZero();
-			fjac.col(0) = _this.likelihood_derivative(param);
-			return 0;
-		}
-	} functor(*this);
-
-	//ColVectorType param = initial_param;
-
-	//Eigen::LevenbergMarquardt<ParamTuneFunctor, double> lm(functor);
-	//lm.minimize(param);
-	//double min_likelihood = lm.fvec(0);
-
 	dlib_vector param(3);
 	param(0) = initial_param(0);
 	param(1) = initial_param(1);
 	param(2) = initial_param(2);
 
-	auto f = std::bind(&dlib_likelihood, this, std::placeholders::_1);
-	auto df = std::bind(&dlib_likelihood_derv, this, std::placeholders::_1);
+	auto f = [this](const dlib_vector& m) -> double
+	{
+		gaussian_process_regression::ParamType param(m(0), m(1), m(2));
+		return this->learning_likelihood_on_xy(param);
+	};
+
+	auto df = [this](const dlib_vector& m) -> dlib_vector
+	{
+		gaussian_process_regression::ParamType param(m(0), m(1), m(2));
+		auto grad = this->learning_likelihood_on_xy_derivative(param);
+
+		dlib_vector result = m;
+		result(0) = grad(0);
+		result(1) = grad(1);
+		result(2) = grad(2);
+		return result;
+	};
 
 	//auto numberic_diff = dlib::derivative(f)(param);
 	//auto anaylatic_diff = df(param);
@@ -534,7 +395,6 @@ double gaussian_process_regression::optimze_parameters(const ParamType & initial
 	{
 		min_likelihood =
 			dlib::find_min_box_constrained(
-				//dlib::find_min(
 				dlib::cg_search_strategy(),
 				dlib::objective_delta_stop_strategy(1e-4,200),
 				f, df,//dlib::derivative(f),//df,
@@ -612,11 +472,9 @@ double gaussian_process_regression::optimze_parameters()
 template <typename DerivedX>
 void gplvm::update_kernal(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType& param)
 {
-	X = x;
+	gpr::update_kernal<DerivedX>(x,param);
 	if (parent)
 		parent->iKY = iK * X;
-	update_Dx();
-	gpr::update_kernal(param);
 }
 
 
@@ -643,11 +501,11 @@ void gplvm::learning_likelihood_derivative(_Out_ Eigen::MatrixBase<DerivedXOut>&
 	dparam = lp_param_on_xy_grad();
 
 	// There should be someway to simply the caculation of this using matrix operatorions instead of for
-	R.array() *= K.array();
+	RcK = R.array() * K.array();
 	for (int i = 0; i < N; i++)
 	{
 		//RKi = (R.row(i).array() * K.row(i).array()).eval();
-		auto RKi = R.row(i);
+		auto RKi = RcK.row(i);
 		dx.row(i) = RKi.sum() * X.row(i);
 		dx.row(i) -= (RKi.asDiagonal() * X).colwise().sum();
 		dx.row(i) *= -2.0 * gamma();
@@ -668,48 +526,6 @@ Eigen::Map<Eigen::RowVectorXd> as_eigen(dlib_vector& dlibv)
 	return Eigen::Map<Eigen::RowVectorXd>(dlibv.begin(), dlibv.size());
 }
 
-double dib_lik_xparam(gplvm* _this, const dlib_vector& xparam)
-{
-	gplvm::ParamType param = Eigen::Map<const gplvm::ParamType>(xparam.end() - gplvm::ParamSize, gplvm::ParamSize);
-
-	Eigen::Map<const gplvm::MatrixType> xmap(
-		xparam.begin(),
-		_this->sample_size(),
-		_this->latent_dimension());
-
-	return _this->learning_likelihood(
-		xmap,
-		param);
-}
-
-// This is a helper function used while optimizing the rosen() function.  
-dlib_vector dib_lik_xparam_derv(gplvm* _this, const dlib_vector& xparam)
-{
-	dlib_vector derv(xparam.size());
-
-	Eigen::Map<const gplvm::MatrixType> xmap(
-		xparam.begin(),
-		_this->sample_size(),
-		_this->latent_dimension());
-
-	Eigen::Map<gplvm::MatrixType> dxmap(
-		derv.begin(),
-		_this->sample_size(),
-		_this->latent_dimension());
-
-	gplvm::ParamType dparam, param;
-	param = Eigen::Map<const gplvm::ParamType>(xparam.end() - gplvm::ParamSize, gplvm::ParamSize);
-
-	_this->learning_likelihood_derivative(dxmap, dparam,
-		xmap,
-		param);
-
-	std::copy_n(dparam.data(), 3, derv.end() - 3);
-
-	return derv;
-}
-
-
 double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int max_iter )
 {
 	ParamType initParam = init_param;
@@ -717,13 +533,48 @@ double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int 
 	dlib_vector xparam(X.size() + ParamSize);
 	dlib_vector param(3);
 	std::copy_n(initParam.data(), initParam.size(), param.begin());
-
-
 	std::copy_n(X.data(), X.size(), xparam.begin());
 	std::copy_n(initParam.data(), initParam.size(), xparam.end() - 3);
 
-	auto f = std::bind(&dib_lik_xparam, this, std::placeholders::_1);
-	auto df = std::bind(&dib_lik_xparam_derv, this, std::placeholders::_1);
+	auto f = [this](const dlib_vector& xparam) -> double
+	{
+		gplvm::ParamType param = Eigen::Map<const gplvm::ParamType>(xparam.end() - gplvm::ParamSize, gplvm::ParamSize);
+
+		Eigen::Map<const gplvm::MatrixType> xmap(
+			xparam.begin(),
+			this->sample_size(),
+			this->latent_dimension());
+
+		return this->learning_likelihood(
+			xmap,
+			param);
+	};
+
+	auto df = [this](const dlib_vector& xparam) -> dlib_vector
+	{
+		dlib_vector derv(xparam.size());
+
+		Eigen::Map<const gplvm::MatrixType> xmap(
+			xparam.begin(),
+			this->sample_size(),
+			this->latent_dimension());
+
+		Eigen::Map<gplvm::MatrixType> dxmap(
+			derv.begin(),
+			this->sample_size(),
+			this->latent_dimension());
+
+		gplvm::ParamType dparam, param;
+		param = Eigen::Map<const gplvm::ParamType>(xparam.end() - gplvm::ParamSize, gplvm::ParamSize);
+
+		this->learning_likelihood_derivative(dxmap, dparam,
+			xmap,
+			param);
+
+		std::copy_n(dparam.data(), 3, derv.end() - 3);
+
+		return derv;
+	};
 	//auto dpf = std::bind(&dlib_likelihood_derv, static_cast<gpr*>(this), std::placeholders::_1);
 
 	//update_kernal(X, initParam);
@@ -774,10 +625,7 @@ double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int 
 	return min_likelihood;
 }
 
-// aka. matrixX
-inline const gplvm::MatrixType & gplvm::latent_coords() const { return X; }
-
-double gplvm::likelihood_xy(const RowVectorType & x, const RowVectorType & y) const
+double gplvm::get_likelihood_xy(const RowVectorType & x, const RowVectorType & y) const
 {
 	auto lxy = gpr::get_likelihood_xy(x, y);
 
@@ -787,7 +635,7 @@ double gplvm::likelihood_xy(const RowVectorType & x, const RowVectorType & y) co
 	return lxy;
 }
 
-gplvm::RowVectorType gplvm::likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const
+gplvm::RowVectorType gplvm::get_likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const
 {
 	RowVectorType derv = get_likelihood_xy_derivative(x, y);
 
@@ -800,13 +648,9 @@ gplvm::RowVectorType gplvm::likelihood_xy_derivative(const RowVectorType & x, co
 
 void gplvm::initialize(const MatrixType & _Y, Eigen::DenseIndex dX)
 {
-	N = _Y.rows();
-	D = _Y.cols();
-	dimX = dX;
+	initialize(_Y.rows(), _Y.cols(), dX);
 
 	lparam = { 1.0,1.0,1.0 };
-
-	Y = _Y;
 
 	auto pcaY = Eigen::Pca<MatrixType>(Y);
 	uY = pcaY.mean();
@@ -814,13 +658,6 @@ void gplvm::initialize(const MatrixType & _Y, Eigen::DenseIndex dX)
 
 	X = pcaY.coordinates(dimX);
 	uX.setZero(dimX);
-
-	Dx.resize(N, N);
-	K.resize(N, N);
-	R.resize(N, N);
-	iKY.resize(N, Y.cols());
-	iKYYtiK.resize(N, N);
-	dKx.resize(N, N);
 
 	if (parent)
 	{

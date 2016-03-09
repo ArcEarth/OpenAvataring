@@ -7,9 +7,11 @@ namespace Causality
 {
 	class gaussian_process_lvm;
 	class hierarchical_gaussian_process_lvm;
-	// k(x,x') = a * exp(-0.5*c*dis(x,x')) + b*delta(x,x')
+	// Gaussian Process with RBF kernal
+	// Kernal : k(x,x') = a * exp(-0.5*c*dis(x,x')) + b*delta(x,x')
 	// if theta = (a,b,r) , p(a,b,c) ~ a^-1*b^-1*c^-1 
-	// L(Y_k |X, theta) = sum_k -ln p(Y_k | X, theta) - ln p(theta) = sum_k(0.5 * Y_k' * K^-1 * Y_k) + 0.5*D*ln|K| - ln p(theta)
+	// For regressional prediction : 
+	// L(Y_k |X, theta) = sum_k -ln p(Y_k | X, theta) - ln p(theta) = sum_k(0.5 * Y_k' * K^-1 * Y_k) + 0.5*dimY*ln|K| - ln p(theta)
 	class gaussian_process_regression
 	{
 	public:
@@ -25,32 +27,28 @@ namespace Causality
 		typedef Eigen::MatrixXd MatrixType;
 		typedef Eigen::RowVectorXd RowVectorType;
 		typedef Eigen::VectorXd	ColVectorType;
+		typedef Eigen::LDLT<KernalMatrixType> KernalLDLTType;
 
-		static constexpr double epsilon() {
-			return std::numeric_limits<Scalar>::epsilon();
-		};
-
-		MatrixType X;
-		MatrixType Y;
-		RowVectorType wY; // Scale weights that applies to Y
-		RowVectorType uX;
-		RowVectorType uY;
+		// Process model data
+		Index N, dimY, dimX; // N = X.rows(), dimY = Y.cols(), dimX = X.cols();
+		MatrixType X;		 // input/latent variable samples
+		MatrixType Y;		 // [zero meaned] output variable samples
+		ParamType lparam;	 // RBF parameter
+		KernalMatrixType K;  // The covarience matrix, positive semidefined symetric matrix NxN
+		RowVectorType wY;	 // Scale weights that applies to Y
+		RowVectorType uY; 	 // mean of Y_i,:
+		RowVectorType uX;	 // mean of X, should be zero in most time
 
 	public:
-		// Cache data
-		Index N, D, dimX; // N = X.rows(), D = Y.cols(), dimX = X.cols();
-		KernalMatrixType  Dx; // Dx(i,j) = -0.5 * |X(i,:) - X(j,:)|^2
-		ParamType lparam;		// last theta
-		KernalMatrixType K;			// The covarience matrix, positive semidefined symetric matrix NxX
-		KernalMatrixType R;			// R = d(L_GP) / d(K) = (0.5 * D * K^-1) - (0.5 * K^-1 * Y * Y' *K^-1), grad(t) = tr(R * (dK/dt)) - d(ln p(theta))/dt
+		KernalMatrixType Dx;		// Dx(i,j) = -0.5 * |X(i,:) - X(j,:)|^2
+		KernalMatrixType R;			// R = d(L_GP) / d(K) = (0.5 * dimY * K^-1) - (0.5 * K^-1 * Y * Y' *K^-1), grad(t) = tr(R * (dK/dt)) - d(ln p(theta))/dt
+		KernalMatrixType RcK;		// RcK = R .* K;
 		MatrixType iKY;				// K^-1 * Y
-		MatrixType iK;				// K^-1
+		KernalMatrixType iK;		// K^-1
 		KernalMatrixType iKYYtiK;	// K^-1 * Y * Y' * K^-1 
-		Eigen::LDLT<KernalMatrixType> ldltK;
-
-		//mutable float detK;
 		KernalMatrixType dKalpha;	// d(K)/d(alpha)
-		KernalMatrixType dKgamma;	// d(K)/d(gemma)
+		KernalMatrixType dKgamma;	// d(K)/d(gamma)
+		KernalLDLTType	 ldltK; // det(K) == ldlt.dialog().product
 
 	public:
 		//template <class DerivedX, class DerivedY>
@@ -58,6 +56,8 @@ namespace Causality
 
 		gaussian_process_regression();
 
+		// allocate the storage
+		void initialize(Index _N, Index _DimY, Index _DimX);
 		// initialize basic variables
 		void initialize(const Eigen::MatrixXf& _X, const Eigen::MatrixXf& _Y);
 
@@ -68,76 +68,84 @@ namespace Causality
 			return optimze_parameters();
 		}
 
-		inline double alpha() const
-		{
-			return lparam[0];
-		}
-		inline double beta() const
-		{
-			return lparam[1];
-		}
-		inline double gamma() const
-		{
-			return lparam[2];
-		}
-
-		inline const ParamType &get_parameters() const
-		{
-			return lparam;
-		}
+		// the kernal output scale
+		inline double alpha() const	{ return lparam[0];}
+		// the white noise comes with trainning data
+		inline double beta() const { return lparam[1]; }
+		// the kernal internal variance
+		inline double gamma() const { return lparam[2]; }
+		inline const ParamType &get_parameters() const { return lparam; }
 
 		Index sample_size() const { return N; }
+		const MatrixType& samples() const { return Y; }
+		Index output_dimension() const { return Y.size(); }
+		Index latent_dimension() const { return dimX; }
+		const MatrixType& latent_coords() const { return X; }
 
-		// Get the most-likly <y> from an gaussian noised observation of <x> : <z>, that P(x|z) ~ N(z,cov(X|Z))
-		// return the likelihood of (y,x|z)
-		double get_expectation_from_observation(_In_ const RowVectorType& z, _In_ const MatrixType &covXZ, _Out_ RowVectorType* y) const;
+		// get the <expection> of <y> value under the condition of given laten coordinate x
+		// return the negitive log uncertainty of this prediction
+		// low value means good (close to trainning data)
+		double get_ey_on_x(_In_ const RowVectorType& x, _Out_ RowVectorType* y = nullptr) const;
+		// get the <expection(s)> of <Y> value under the condition of given laten coordinate(s) X
+		// Batch version, overload for row-vector aggregation X
+		// return the negitive log uncertainty of this prediction
+		// low value means good (close to trainninget_likelihood_xyg data)
+		ColVectorType get_ey_on_x(_In_ const MatrixType& x, _Out_  MatrixType* y) const;
 
-		double get_expectation_and_likelihood(_In_ const RowVectorType& x, _Out_ RowVectorType* y = nullptr) const;
-		ColVectorType get_expectation_and_likelihood(_In_ const MatrixType& x, _Out_  MatrixType* y) const;
+		//void get_expectation(_In_ const RowVectorType& x, _Out_  RowVectorType* y) const;
+		//void get_expectation(_In_ const MatrixType& x, _Out_  MatrixType* y) const;
 
-		void get_expectation(_In_ const RowVectorType& x, _Out_  RowVectorType* y) const;
-		void get_expectation(_In_ const MatrixType& x, _Out_  MatrixType* y) const;
-
-		// negitive log likilihood of P(y | theta,x)
+		// negitive log likilihood of P(y,x|theta)
 		double get_likelihood_xy(const RowVectorType& x, const RowVectorType& y) const;
 		RowVectorType get_likelihood_xy_derivative(const RowVectorType& x, const RowVectorType& y) const;
 
-		double get_likelihood_x(const RowVectorType& x) const;
-		RowVectorType get_ikelihood_x_derivative(const RowVectorType& x) const;
+		//double get_likelihood_x(const RowVectorType& x) const;
+		//RowVectorType get_ikelihood_x_derivative(const RowVectorType& x) const;
 
 #pragma region Parameter Tuning Methods
 		// negitive log likilihood of P(theta | X,Y)
-		double likelihood(const ParamType &param);
-
-		double lp_param_on_xy();
-		ParamType lp_param_on_xy_grad();
-
-		// gradiant of L
-		ParamType likelihood_derivative(const ParamType &param);
+		double learning_likelihood_on_xy(const ParamType &param);
+		// gradiant of negitive log likilihood of P(theta | X,Y)
+		ParamType learning_likelihood_on_xy_derivative(const ParamType &param);
 
 
 		double optimze_parameters(const ParamType& initial_param);
-
 		double optimze_parameters();
-
 		inline void set_parameters(const ParamType &param)
 		{
 			update_kernal(param);
 		}
-
 #pragma endregion
+
+		// Get the <most-likly-estimiton> of <y> from an gaussian noised observation of <x> : <z>, that P(x|z) ~ N(z,cov(X|Z))
+		// return the likelihood of (y,x|z)
+		double get_ey_on_obser_x(_In_ const RowVectorType& z, _In_ const MatrixType &covXZ, _Out_ RowVectorType* y) const;
 
 	protected:
 		void update_Dx();
 		// aka. set parameter
 		void update_kernal(const ParamType &param);
+
+		template <typename DerivedX>
+		void update_kernal(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType& param);
+
+		// internal helper for caculate P(x,y|theta)
+		void lp_xy_helper(const RowVectorType & x, RowVectorType & zx, ColVectorType &Kx, ColVectorType &iKkx, double &varX, RowVectorType &ey) const;
+		// internal helper for caculate P(theta|x,y)
+		double lp_param_on_xy();
+		// internal helper for caculate P(theta|x,y)
+		ParamType lp_param_on_xy_grad();
+
 	};
 
 	using gpr = gaussian_process_regression;
 
 	// gaussian-process-latent-variable-model
-	class gaussian_process_lvm : protected gaussian_process_regression
+	class gaussian_process_lvm : public gaussian_process_regression
 	{
+	private:
+		using gpr::initialize;
+		using gpr::fit_model;
 	public:
 		enum DynamicTypeEnum
 		{
@@ -146,20 +154,6 @@ namespace Causality
 			OnewayDynamic = 2,
 			PeriodicDynamic = 3,
 		};
-
-		//using gpr::get_likelihood_xy;
-		//using gpr::get_likelihood_x;
-		using gpr::ParamSize;
-		using gpr::MatrixType;
-		using gpr::RowVectorType;
-		using gpr::ColVectorType;
-		using gpr::ParamType;
-
-		using gpr::get_parameters;
-		using gpr::alpha;
-		using gpr::beta;
-		using gpr::gamma;
-		using gpr::sample_size;
 
 		gaussian_process_lvm() { dyna_type = NoDynamic; parent = nullptr; }
 		gaussian_process_lvm(const MatrixType& Y, Eigen::DenseIndex dX)
@@ -173,16 +167,12 @@ namespace Causality
 		void set_dynamic(DynamicTypeEnum type, double timespan = 0, const ParamType* timeparam = nullptr, ColVectorType* sampleTimes = nullptr);
 		void set_default(RowVectorType defautY, double weight);
 
-		// aka. matrixX
-		Index latent_dimension() const { return dimX; }
-		const MatrixType& latent_coords() const;
-
 		// L_IK(x,y|theta)
-		double likelihood_xy(const RowVectorType& x, const RowVectorType& y) const;
+		double get_likelihood_xy(const RowVectorType& x, const RowVectorType& y) const;
 
 		// grad(L_IK(x,y|theta))
 		// return value layout = [dL/dx,dL/dy]
-		RowVectorType likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const;
+		RowVectorType get_likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const;
 
 		// Allocate the storage for the model
 		void initialize(const MatrixType& Y, Eigen::DenseIndex dX);
@@ -204,34 +194,32 @@ namespace Causality
 		template <typename DerivedXOut, typename DerivedX>
 		void learning_likelihood_derivative(_Out_ Eigen::MatrixBase<DerivedXOut>& dx, _Out_ ParamType& dparam, _In_ const Eigen::MatrixBase<DerivedX>& x, _In_ const ParamType &param);
 
-		// optimize the latent coordinate X
-		double optimize_x(const MatrixType& initalX);
-
-		double optimze_parameters(const ParamType& initial_param);
-
-		double optimze_parameters();
 	protected:
-		MatrixType dKx; // dK / dX_ij
 		DynamicTypeEnum dyna_type;
-
 		gpr			*parent;
-		//ParamType  tparam;
-		//Scalar	   tspan;
-		//MatrixType Kt; // Kernal of time dynamic
-		//MatrixType iKt; // K_t^-1
-		//MatrixType iKtX; // K_t^-1 * X, gradiant L_GP to X under time constraint Kt
 	};
 
 	using gplvm = gaussian_process_lvm;
 
 	class hierarchical_gaussian_process_lvm : stdx::tree_node<hierarchical_gaussian_process_lvm>, public gaussian_process_lvm
 	{
+	public:
 		std::vector<int> m_childrenDim;
 		std::vector<int> m_childrenDimStart;
+
 	};
 
 	// gaussian-process-shared-latent-variable-model
 	class shared_gaussian_process_lvm
 	{
 	};
+
+	template<typename DerivedX>
+	inline void gaussian_process_regression::update_kernal(const Eigen::MatrixBase<DerivedX>& x, const ParamType & param)
+	{
+		X = x;
+		uX = X.colwise().mean();
+		update_Dx();
+		update_kernal(param);
+	}
 }

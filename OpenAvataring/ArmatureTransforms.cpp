@@ -401,8 +401,8 @@ void PerceptiveVector::Set(const ArmaturePart & block, ArmatureFrameView frame, 
 			}
 			double likilyhood = 1.0;
 
-			//auto likilyhood = cpart.PdGpr.get_expectation_from_observation(feature.cast<double>(), covObsr, &dY);
-			//auto likilyhood = cpart.PdGpr.get_expectation_and_likelihood(feature.cast<double>(), &dY);
+			//auto likilyhood = cpart.PdGpr.get_ey_on_obser_x(feature.cast<double>(), covObsr, &dY);
+			//auto likilyhood = cpart.PdGpr.get_ey_on_x(feature.cast<double>(), &dY);
 			Y = dY.cast<float>();
 			//Y *= cpart.Wx.cwiseInverse().asDiagonal(); // Inverse scale feature
 
@@ -647,7 +647,7 @@ void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowV
 	auto& gpr = sik.Gpr();
 
 	RowVectorXd Y;
-	auto lk = gpr.get_expectation_and_likelihood(Xd, &Y);
+	auto lk = gpr.get_ey_on_x(Xd, &Y);
 
 	m_pDrivenF->Set(cpart, target_frame, Y.cast<float>());
 }

@@ -73,6 +73,9 @@ void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, Armature
 	}
 
 	m_iy = m_gpr.uY;
+
+	m_ix.setZero(m_gplvm.latent_dimension());
+
 	if (!m_cValiad)
 		m_cy = m_iy;
 }
@@ -307,7 +310,7 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 	}
 
 	RowVectorXd hint_y;
-	double lk = m_gpr.get_expectation_and_likelihood(m_goal, &hint_y);
+	double lk = m_gpr.get_ey_on_x(m_goal, &hint_y);
 	lk = exp(-lk);
 
 	m_fpDecoder->Decode(m_chainRot, m_cy.cast<float>());
@@ -372,7 +375,7 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	x.segment<3>(3) = goal_velocity;
 
 	RowVectorXd hint_y;
-	double lk = m_gpr.get_expectation_and_likelihood(x, &hint_y);
+	double lk = m_gpr.get_ey_on_x(x, &hint_y);
 	//hint_y.array() /= m_wy.array();
 	lk = exp(-lk);
 
@@ -402,7 +405,7 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	//auto vmin = ComposeOptimizeVector(m_cx * 0.9, m_limy.row(0));
 	//auto vmax = ComposeOptimizeVector(m_cx * 1.1, m_limy.row(1));
 
-	m_segmaX = m_gpr.get_expectation_and_likelihood(m_cx, &m_ey);
+	m_segmaX = m_gpr.get_ey_on_x(m_cx, &m_ey);
 	m_segmaX = m_styleWeight * exp(-m_segmaX / (double)m_ey.cols() * 2.0);
 
 	m_cyNorm = .01 + m_cy.array().cwiseAbs2();
@@ -581,7 +584,7 @@ double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::
 
 	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
 
-	double stylik = m_gplvm.likelihood_xy(x, y);
+	double stylik = m_gplvm.get_likelihood_xy(x, y);
 
 	return ikdis + stylik;//+iklimdis;
 }
@@ -606,7 +609,7 @@ RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, con
 	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf - goalf)).transpose().cast<double>() * jacb;
 
 	// stylik gradiant
-	derv = m_gplvm.likelihood_xy_derivative(x, y);
+	derv = m_gplvm.get_likelihood_xy_derivative(x, y);
 	derv.segment(x.size(), y.size()) += ikderv;
 
 	return derv;//derv
@@ -653,9 +656,8 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 				dlib::cg_search_strategy(),
 				dlib::objective_delta_stop_strategy(1e-4, m_maxIter),//.be_verbose(),
 				f, df,
-				//dlib::derivative(f),
 				v,
-				0//vmin,vmax//,0
+				-1e5
 				);
 
 		DecomposeOptimizeVector(v, m_cx, m_cy);

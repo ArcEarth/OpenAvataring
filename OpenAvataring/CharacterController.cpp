@@ -153,7 +153,7 @@ public:
 			{
 				auto& sik = pController->GetStylizedIK(block->Index);
 				auto& gpr = sik.Gpr();
-				gpr.get_expectation(X, &Y);
+				gpr.get_ey_on_x(X, &Y);
 				yf = Y.cast<float>();
 				yf *= block->Wx.cwiseInverse().asDiagonal();
 
@@ -261,7 +261,7 @@ public:
 				//VectorXd Pxs = (Xs - X.replicate(detail * 2 + 1, 1)).cwiseAbs2().rowwise().sum();
 				//Pxs = (-Pxs.array() / semga).exp();
 
-				//VectorXd Py_xs = block->PdGpr.get_expectation_and_likelihood(Xs, &Ys);
+				//VectorXd Py_xs = block->PdGpr.get_ey_on_x(Xs, &Ys);
 				//Py_xs = (-Py_xs.array()).exp() * Pxs.array();
 				//Py_xs /= Py_xs.sum();
 
@@ -271,7 +271,7 @@ public:
 				covObsr.setZero();
 				covObsr.diagonal() = g_NoiseInterpolation.replicate(1, g_PvDimension / 3).transpose() * varZ;
 
-				//block->PdGpr.get_expectation_from_observation(X, covObsr, &Y);
+				//block->PdGpr.get_ey_on_obser_x(X, covObsr, &Y);
 				//block->PdGpr.get_expectation(X, &Y);
 				//auto yc = yf;
 				//yf = Y.cast<float>();
@@ -328,7 +328,7 @@ public:
 					auto& sik = pController->GetStylizedIK(block->Index);
 					auto& gpr = sik.Gpr();
 
-					auto lk = gpr.get_expectation_and_likelihood(_xd, &Y);
+					auto lk = gpr.get_ey_on_x(_xd, &Y);
 
 					yf = Y.cast<float>();
 					//yf *= block->Wx.cwiseInverse().asDiagonal();
