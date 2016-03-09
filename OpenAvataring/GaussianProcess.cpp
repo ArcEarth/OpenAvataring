@@ -298,7 +298,7 @@ gaussian_process_regression::RowVectorType gaussian_process_regression::get_like
 
 	auto dfx = Y.transpose() * iK * dKx;
 
-	auto dvarx = 2 * Kx * iK * dKx;
+	auto dvarx = 2 * Kx.transpose() * iK * dKx;
 
 	dx = difY * dfx / varX - (difY.squaredNorm() / varX + dimY) / (2 * varX) * dvarx;
 
@@ -637,7 +637,7 @@ double gplvm::get_likelihood_xy(const RowVectorType & x, const RowVectorType & y
 
 gplvm::RowVectorType gplvm::get_likelihood_xy_derivative(const RowVectorType & x, const RowVectorType & y) const
 {
-	RowVectorType derv = get_likelihood_xy_derivative(x, y);
+	RowVectorType derv = gpr::get_likelihood_xy_derivative(x, y);
 
 	auto dx = derv.segment(0, x.size());
 	if (dyna_type > NoDynamic)
@@ -652,7 +652,7 @@ void gplvm::initialize(const MatrixType & _Y, Eigen::DenseIndex dX)
 
 	lparam = { 1.0,1.0,1.0 };
 
-	auto pcaY = Eigen::Pca<MatrixType>(Y);
+	auto pcaY = Eigen::Pca<MatrixType>(_Y);
 	uY = pcaY.mean();
 	Y -= uY.replicate(N, 1);
 

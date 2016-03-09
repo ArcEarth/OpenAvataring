@@ -184,11 +184,11 @@ Eigen::Matrix3Xf StylizedChainIK::EndPositionJacobi(const XMFLOAT4A* rotqs)
 		q = XMLoadFloat4A(&rotqs[i]);
 
 		auto& r = rad.col(i);
-		JacobbiFromR(jac, r.data());
+		jacobbiRespectAxisAngle(jac, r.data());
 
 		rot = XMMatrixRotationQuaternion(XMQuaternionConjugate(gq));
 		// transpose as XMMatrix is row major
-		rot = XMMatrixMultiplyTranspose(rot, XMLoadA(jac));
+		rot = _DXMEXT XMMatrixMultiplyTranspose(rot, XMLoadA(jac));
 		for (int j = 0; j < 3; j++)
 		{
 			XMStoreFloat3(jacb.col(i * 3 + j).data(), rot.r[j]);
@@ -200,14 +200,11 @@ Eigen::Matrix3Xf StylizedChainIK::EndPositionJacobi(const XMFLOAT4A* rotqs)
 	return jacb;
 }
 
-void Causality::StylizedChainIK::JacobbiFromR(DirectX::XMFLOAT4X4A &jac, _In_reads_(3) const float* r)
+void StylizedChainIK::jacobbiRespectAxisAngle(DirectX::XMFLOAT4X4A &j, _In_reads_(3) const float* r)
 {
-	jac._12 = r[2];
-	jac._13 = -r[1];
-	jac._21 = -r[2];
-	jac._23 = r[0];
-	jac._31 = r[1];
-	jac._32 = -r[0];
+	j._11 = 0, j._12 = r[2], j._13 = -r[1];
+	j._21 = -r[2], j._22 = 0, j._23 = r[0];
+	j._31 = r[1], j._32 = -r[0], j._33 = 0;
 }
 
 double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
@@ -584,7 +581,8 @@ double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::
 
 	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
 
-	double stylik = m_gplvm.get_likelihood_xy(x, y);
+	double stylik = 0;
+	//stylik = m_gplvm.get_likelihood_xy(x, y);
 
 	return ikdis + stylik;//+iklimdis;
 }
@@ -594,6 +592,7 @@ RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, con
 	const auto n = m_chain.size();
 
 	RowVectorXd derv(x.size() + y.size());
+	derv.setZero();
 
 	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
 
@@ -602,14 +601,14 @@ RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, con
 
 	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
 
-	Vector3f epf; Vector3f goalf = m_goal.cast<float>();
+	Vector3f epf;
 	XMStoreFloat3(epf.data(), ep);
 
 	// IK term derv
-	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf - goalf)).transpose().cast<double>() * jacb;
+	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf.cast<double>() - m_goal)).transpose() * jacb;
 
 	// stylik gradiant
-	derv = m_gplvm.get_likelihood_xy_derivative(x, y);
+	//derv = m_gplvm.get_likelihood_xy_derivative(x, y);
 	derv.segment(x.size(), y.size()) += ikderv;
 
 	return derv;//derv
@@ -621,7 +620,10 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 	if (m_cValiad)
 		v = ComposeOptimizeVector(m_cx, m_cy);
 	else
+	{
 		v = ComposeOptimizeVector(m_ix, m_iy);
+		m_cx = m_ix; m_cy = m_iy;
+	}
 
 	set_goal(goal);
 
@@ -661,6 +663,8 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 				);
 
 		DecomposeOptimizeVector(v, m_cx, m_cy);
+		m_cValiad = true;
+
 	}
 	catch (const std::exception&)
 	{

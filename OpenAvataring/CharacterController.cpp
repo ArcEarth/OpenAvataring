@@ -278,6 +278,8 @@ public:
 				//yf.array() *= block->Wx.cwiseInverse().array().transpose();
 
 				//block->PdStyleIk.SetHint();
+
+				//Y = sik.solve(X.transpose(), X.transpose(), baseRot);
 				if (!g_UseVelocity)
 					Y = sik.apply(X.transpose(), baseRot).cast<double>();
 				else
@@ -896,11 +898,6 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		MatrixXf Xabpv = GenerateXapv(activeParts);
 		int dXabpv = Xabpv.cols();
 
-		gplvm lvm;
-		auto& allrc = allClipinfo.RcFacade;
-		lvm.initialize(allrc.GetAllPartsSequence().cast<double>(), 4);
-		lvm.learn_model(gplvm::ParamType(1.0,1e-2,1.0));
-
 		parallel_for(0, (int)activeParts.size(), 1, [&, this](int apid)
 		{
 			InitializeAcvtivePart(*parts[activeParts[apid]], settings);
@@ -1035,7 +1032,9 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		//auto X = rcFacade.GetPartPcadSequence(pid);
 		auto X = rcFacade.GetPartSequence(pid);
 		gpr.initialize(Pv, X);
+		gplvm.initialize(X.cast<double>(), 3);
 		InitGprXML(settings, partName, gpr);
+		gplvm.learn_model({ 1.0,0.01,1.0 }, 0.01, 100);
 
 		auto &pca = rcFacade.GetPartPca(pid);
 		auto d = rcFacade.GetPartPcaDim(pid);

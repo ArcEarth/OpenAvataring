@@ -362,14 +362,17 @@ bool XM_CALLCONV ChainInverseKinematics::solve(FXMVECTOR goal, array_view<Quater
 	typedef OptimizeFunctor DfFunctor;
 	//typedef Eigen::NumericalDiff<OptimizeFunctor> DfFunctor;
 
-	//Eigen::MatrixXf aJac(functor.values(), functor.inputs());
-	//Eigen::MatrixXf nJac(functor.values(), functor.inputs());
-	//Eigen::VectorXf ep(functor.values());
+	Eigen::MatrixXf aJac(functor.values(), functor.inputs());
+	Eigen::MatrixXf nJac(functor.values(), functor.inputs());
+	Eigen::VectorXf ep(functor.values());
 
-	//Eigen::NumericalDiff<OptimizeFunctor> ndffunctor(functor);
-	//functor(x, ep);
-	//functor.df(x, aJac);
-	//ndffunctor.df(x, nJac);
+	Eigen::NumericalDiff<OptimizeFunctor> ndffunctor(functor);
+	functor(x, ep);
+	functor.df(x, aJac);
+	ndffunctor.df(x, nJac);
+
+	std::cout << "Numberic Jaccobi : " << std::endl << nJac << std::endl;
+	std::cout << "Analatic Jaccobi : " << std::endl << aJac << std::endl;
 
 	Eigen::LevenbergMarquardt<DfFunctor, float> lm(functor);
 	lm.parameters.maxfev = m_maxItrs;

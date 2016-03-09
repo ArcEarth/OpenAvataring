@@ -131,7 +131,7 @@ namespace Causality
 		DirectX::XMVECTOR EndPosition(const DirectX::XMFLOAT4A* rotqs);
 		Eigen::Matrix3Xf EndPositionJacobi(const DirectX::XMFLOAT4A* rotqs);
 
-		void JacobbiFromR(DirectX::XMFLOAT4X4A &jac, _In_reads_(3) const float* r);
+		void jacobbiRespectAxisAngle(DirectX::XMFLOAT4X4A &jac, _In_reads_(3) const float* r);
 
 		void set_goal(const Eigen::Vector3d & goal);
 
