@@ -226,6 +226,10 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="..\OpenAvataring\StylizedIKCodec.cpp">
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="..\OpenAvataring\CharacterActionTracker.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>

@@ -206,3 +206,4 @@ Output-Build.txt
 
 #Analayze Datas
 Assets/CharacterAnalayze/*.csv
+Causality/*.csv

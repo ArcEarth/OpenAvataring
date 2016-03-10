@@ -117,6 +117,14 @@ namespace Causality
 		const gplvm& Gplvm() const { return m_gplvm; }
 
 	public:
+		// Decode input vector into local rotation quaternions
+		//! IMPORTANT
+		// Shift the rotations right by 1 unit
+		// rots[0] = base_rotation , as the rots[n] have no effect in term of end effector position
+		void decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const row_vector_t& x);
+		// Encode joint rotations into input vector 
+		void encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ row_vector_t& x);
+
 		double objective(const row_vector_t &x, const row_vector_t &y);
 
 		row_vector_t objective_derv(const row_vector_t & x, const row_vector_t & y);

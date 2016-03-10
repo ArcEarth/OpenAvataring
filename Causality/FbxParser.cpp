@@ -3,6 +3,7 @@
 #include "FbxParser.h"
 //#include "EigenExtension.h"
 #include <iostream>
+#include <fstream>
 
 #pragma comment(lib,"libfbxsdk.lib")
 
@@ -1041,17 +1042,18 @@ namespace Causality
 				for (size_t nodeIdx = 0; nodeIdx < numBones; nodeIdx++)
 				{
 					auto pNode = m_BoneNodes[nodeIdx];
-					//auto pParent = pNode->GetParent();
-					//const char *name = pNode->GetName();
-					//const char *parName = nullptr;
-					//if (pParent)
-					//{
-					//	parName = pParent->GetName();
-					//}
+					auto pParent = pNode->GetParent();
+					const char *name = pNode->GetName();
+					const char *parName = nullptr;
+					if (pParent)
+					{
+						parName = pParent->GetName();
+					}
 
-					auto lt = pNode->LclTranslation.EvaluateValue(time);
-					auto lr = pNode->LclRotation.EvaluateValue(time);
-					auto ls = pNode->LclScaling.EvaluateValue(time);
+					//auto lt = pNode->LclTranslation.EvaluateValue(time);
+					//auto lr = pNode->LclRotation.EvaluateValue(time);
+					//auto ls = pNode->LclScaling.EvaluateValue(time);
+
 					//auto rp = pNode->RotationPivot.EvaluateValue(time);
 					//auto sp = pNode->ScalingPivot.EvaluateValue(time);
 					//auto rf = pNode->RotationOffset.EvaluateValue(time);
@@ -1059,11 +1061,11 @@ namespace Causality
 					//auto ptr = pNode->PostRotation.EvaluateValue(time);
 					//auto prr = pNode->PreRotation.EvaluateValue(time);
 
-					//FbxQuaternion qprr,qlr,qk;
+					//FbxQuaternion qprr,qlr,qk, parQ;
 					//qprr.ComposeSphericalXYZ(prr);
 					//qlr.ComposeSphericalXYZ(lr);
 					//qk = qlr * qprr;
-					//qprr *= qlr;
+					//qprr = qprr * qlr;
 
 					//FbxEuler::EOrder lRotationOrder;
 					//pNode->GetRotationOrder(FbxNode::eSourcePivot, lRotationOrder);
@@ -1082,6 +1084,9 @@ namespace Causality
 					auto t = lclM.GetT();
 					auto q = lclM.GetQ();
 					auto s = lclM.GetS();
+
+					//if (pParent)
+					//	parQ = pParent->EvaluateLocalTransform(time).GetQ();
 
 					//parM *= lclM;
 
@@ -1193,16 +1198,29 @@ namespace Causality
 			//	bone32.block(20, i, 4, 1) = Eigen::Vector4f::Map(&lq.x);
 			//}
 
-			for (int i = 0; i < frameCount; i++)
-			{
-				for (int j = 1; j < numBones; j++)
-				{
-					auto& bone = buffer[i][j];
-					auto& pbone = buffer[i][m_Armature->at(j)->ParentID];
-					lclts[j][i] = DirectX::XMVector3InverseRotate(bone.LclTranslation, pbone.LclRotation);
-				}
-			}
+			//string animName = pAnimStack->GetName();
+			//string sceneName = pAnimStack->GetScene()->GetName();
+			//using namespace std::string_literals;
+			//std::ofstream ofs(sceneName + '_' + animName + ".csv");
 
+			//for (int i = 0; i < frameCount; i++)
+			//{
+			//	for (int j = 1; j < numBones; j++)
+			//	{
+			//		DirectX::Vector3 roted;
+			//		auto& bone = buffer[i][j];
+			//		auto& pbone = buffer[i][m_Armature->at(j)->ParentID];
+			//		roted = bone.LclTranslation;
+			//		ofs << roted.x << ',' << roted.y << ',' << roted.z << ',';
+			//		//roted = DirectX::XMVector3InverseRotate(bone.LclTranslation, bone.LclRotation);
+			//		//ofs << roted.x << ',' << roted.y << ',' << roted.z << ',';
+			//		//roted = DirectX::XMVector3Rotate(bone.LclTranslation, bone.LclRotation);
+			//		//ofs << roted.x << ',' << roted.y << ',' << roted.z << ",|,";
+			//	}
+			//	ofs << std::endl;
+			//}
+			//ofs.close();
+			//std::cout << lclts[0][0];
 		}
 	};
 
