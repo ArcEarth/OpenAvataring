@@ -4,7 +4,6 @@
 #pragma warning (disable : 4297 )
 #include <dlib\optimization\optimization.h>
 #pragma warning (pop)
-#include <unsupported\Eigen\LevenbergMarquardt>
 #include "Causality\Settings.h"
 
 using namespace Causality;
@@ -13,21 +12,32 @@ using namespace Eigen;
 using namespace DirectX;
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
-using scik = Causality::StylizedChainIK;
+using row_vector_t = StylizedChainIK::row_vector_t;
 
-template <class DerivedX, class DerivedY>
-dlib_vector ComposeOptimizeVector(const DenseBase<DerivedX> &x, const DenseBase<DerivedY> &y);
-
-void DecomposeOptimizeVector(const dlib_vector& v, RowVectorXd &x, RowVectorXd &y);
-
-template<class DerivedX, class DerivedY>
-inline dlib_vector ComposeOptimizeVector(const DenseBase<DerivedX>& x, const DenseBase<DerivedY>& y)
+namespace detail
 {
-	dlib_vector v(x.size() + y.size());
-	RowVectorXd::Map(v.begin(), x.size()) = x;
-	RowVectorXd::Map(v.begin() + x.size(), y.size()) = y;
-	return v;
+	template <class DerivedX, class DerivedY>
+	static dlib_vector ComposeOptimizeVector(const DenseBase<DerivedX> &x, const DenseBase<DerivedY> &y);
+
+	static void DecomposeOptimizeVector(const dlib_vector& v, RowVectorXd &x, RowVectorXd &y);
+
+	template<class DerivedX, class DerivedY>
+	inline dlib_vector ComposeOptimizeVector(const DenseBase<DerivedX>& x, const DenseBase<DerivedY>& y)
+	{
+		dlib_vector v(x.size() + y.size());
+		RowVectorXd::Map(v.begin(), x.size()) = x;
+		RowVectorXd::Map(v.begin() + x.size(), y.size()) = y;
+		return v;
+	}
+
+	inline void DecomposeOptimizeVector(const dlib_vector & v, RowVectorXd & x, RowVectorXd & y)
+	{
+		x = RowVectorXd::Map(v.begin(), x.size());
+		y = RowVectorXd::Map(v.begin() + x.size(), y.size());
+	}
 }
+
+using namespace ::detail;
 
 StylizedChainIK::StylizedChainIK()
 {
@@ -84,22 +94,56 @@ void StylizedChainIK::setMarkovWeight(double weight){ m_markovWeight = weight;}
 
 void StylizedChainIK::setHint(const Eigen::RowVectorXd & y)
 {
-	//m_cy = y;
+	m_cy = y;
 	m_iy = y;
-	//m_cValiad = true;
+	m_cValiad = true;
+}
+
+double StylizedChainIK::ikDistance(const row_vector_t & y) const
+{
+	const auto n = m_bones.size();
+
+	rotation_collection_t rotations(n);
+	decode(rotations, y);
+
+	XMVECTOR ep = endPosition(rotations);
+	Vector3f epf; XMStoreFloat3(epf.data(), ep);
+
+	XMStoreFloat3(epf.data(), ep);
+
+	double ikdis = (epf.cast<double>() - m_goal).squaredNorm()/* * m_ikWeight / m_chainLength*/;
+
+	return ikdis;
+}
+
+StylizedChainIK::row_vector_t StylizedChainIK::ikDistanceDerivative(const row_vector_t & y) const
+{
+	const auto n = m_bones.size();
+
+	rotation_collection_t rotations(n);
+	jaccobi_collection_t  jaccobis(3 * n);
+
+	decode(rotations, y);
+
+	XMVECTOR ep = endPosition(rotations);
+	Vector3f epf; XMStoreFloat3(epf.data(), ep);
+
+	endPositionJaccobiRespectLnQuaternion(rotations, jaccobis);
+	MatrixXd jacb(3, 3 * n);
+	jacb.leftCols(3 * (n - 1)) = Eigen::Matrix3Xf::Map(&jaccobis[3].x, 3, 3 * (n - 1)).cast<double>();
+	jacb.rightCols(3).setZero();
+
+	m_fpDecoder->EncodeJacobi(rotations, jacb); // this should be empty function
+
+	// IK term derv
+	RowVectorXd ikderv = (2.0 /** m_ikWeight / m_chainLength*/ * (epf.cast<double>() - m_goal)).transpose() * jacb;
+
+	return ikderv;
 }
 
 double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_bones.size();
-
-	decode(m_chainRot, y);
-
-	XMVECTOR ep = endPosition(m_chainRot);
-	Vector3f epf;
-	XMStoreFloat3(epf.data(), ep);
-
-	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
+	double ikdis = ikDistance(y);
 
 	//double iklimdis = ((m_limy.row(0) - y).cwiseMax(y - m_limy.row(1))).cwiseMax(0).cwiseAbs2().sum() * m_ikLimitWeight;
 
@@ -113,26 +157,10 @@ double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::Row
 
 RowVectorXd StylizedChainIK::objective_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_bones.size();
-
 	RowVectorXd derv(x.size() + y.size());
 
-	decode(m_chainRot, y);
-
-	XMVECTOR ep = endPosition(m_chainRot);
-	endPositionJaccobiRespectAxisAngle(m_chainRot, m_jac);
-	MatrixXd jacb(3, 3 * n);
-	jacb.leftCols(3 * (n - 1)) = Eigen::Matrix3Xf::Map(&m_jac[3].x, 3, 3 * (n - 1)).cast<double>();
-	jacb.rightCols(3).setZero();
-
-	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
-
-	Vector3f epf;
-	Vector3f goalf = m_goal.cast<float>();
-	XMStoreFloat3(epf.data(), ep);
-
 	// IK term derv
-	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf - goalf)).transpose().cast<double>() * jacb;
+	RowVectorXd ikderv = ikDistanceDerivative(y);
 
 	//RowVectorXd iklimderv = 2.0 * m_ikLimitWeight * ((y - m_limy.row(0)).cwiseMin(0) + (y - m_limy.row(1)).cwiseMax(0));
 
@@ -170,17 +198,11 @@ void StylizedChainIK::reset()
 	m_maxIter = 200;
 }
 
-void DecomposeOptimizeVector(const dlib_vector & v, RowVectorXd & x, RowVectorXd & y)
-{
-	x = RowVectorXd::Map(v.begin(), x.size());
-	y = RowVectorXd::Map(v.begin() + x.size(), y.size());
-}
-
 // return the joints rotation vector
-
 RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quaternion & baseRotation)
 {
 	setGoal(goal);
+	m_baseRot = baseRotation;
 
 	if (!m_cValiad)
 	{
@@ -193,14 +215,15 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 	double lk = m_gpr.get_ey_on_x(m_goal, &hint_y);
 	lk = exp(-lk);
 
-	decode(m_chainRot, m_cy);
-	Vector3 cyep = endPosition(m_chainRot);
+	rotation_collection_t rotations(m_bones.size());
+	decode(rotations, m_cy);
+	Vector3 cyep = endPosition(rotations);
 	Vector3d cyepmap = Vector3f::Map(&cyep.x).cast<double>();
 	Vector3d cydiff = m_goal - cyepmap;
 
 
-	decode(m_chainRot, hint_y);
-	Vector3 ep = endPosition(m_chainRot);
+	decode(rotations, hint_y);
+	Vector3 ep = endPosition(rotations);
 	Vector3d epmap = Vector3f::Map(&ep.x).cast<double>();
 	Vector3d diff = m_goal - epmap;
 
@@ -234,6 +257,7 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 
 void StylizedChainIK::setGoal(const Eigen::Vector3d & goal)
 {
+	// make the goal achiveable 
 	if (goal.norm() <= m_chainLength)
 		m_goal = goal;
 	else
@@ -243,10 +267,8 @@ void StylizedChainIK::setGoal(const Eigen::Vector3d & goal)
 
 Eigen::RowVectorXd StylizedChainIK::apply(const Eigen::Vector3d & goal, const Eigen::Vector3d & goal_velocity, const DirectX::Quaternion & baseRotation)
 {
-	if (goal.norm() <= m_chainLength)
-		m_goal = goal;
-	else
-		m_goal = goal * (m_chainLength / goal.norm());
+	setGoal(goal);
+	m_baseRot = baseRotation;
 
 	RowVectorXd x(1, 6);
 	x.segment<3>(0) = m_goal;
@@ -345,8 +367,9 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	//m_cy = m_ey;
 	m_currentError = result;
 
-	decode(m_chainRot, m_cy);
-	Vector3 ep = ep = endPosition(m_chainRot);
+	rotation_collection_t rotations(m_bones.size());
+	decode(rotations, m_cy);
+	Vector3 ep = ep = endPosition(rotations);
 
 	if (g_EnableDebugLogging >= 2)
 	{
@@ -359,60 +382,37 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 
 double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_bones.size();
-
-	decode(m_chainRot, y);
-
-	XMVECTOR ep = endPosition(m_chainRot);
-	Vector3f epf; XMStoreFloat3(epf.data(), ep);
-
-	double ikdis = (epf.cast<double>() - m_goal).cwiseAbs2().sum() * m_ikWeight / m_chainLength;
+	double ikdis = ikDistance(y);
 
 	double stylik = 0;
 	//stylik = m_gplvm.get_likelihood_xy(x, y);
 
-	return ikdis + stylik;//+iklimdis;
+	return ikdis + stylik;
 }
 
 RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	const auto n = m_bones.size();
-
 	RowVectorXd derv(x.size() + y.size());
 	derv.setZero();
 
-	decode(m_chainRot, y);
-
-	XMVECTOR ep = endPosition(m_chainRot);
-	endPositionJaccobiRespectAxisAngle(m_chainRot, m_jac);
-	MatrixXd jacb(3, 3 * n);
-	jacb.leftCols(3 * (n - 1)) = Eigen::Matrix3Xf::Map(&m_jac[3].x, 3, 3 * (n - 1)).cast<double>();
-	jacb.rightCols(3).setZero();
-
-	m_fpDecoder->EncodeJacobi(m_chainRot, jacb);
-
-	Vector3f epf;
-	XMStoreFloat3(epf.data(), ep);
-
-	// IK term derv
-	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf.cast<double>() - m_goal)).transpose() * jacb;
+	RowVectorXd ikderv = ikDistanceDerivative(y);
 
 	// stylik gradiant
 	//derv = m_gplvm.get_likelihood_xy_derivative(x, y);
 	derv.segment(x.size(), y.size()) += ikderv;
 
-	return derv;//derv
+	return derv;
 }
 
-void StylizedChainIK::decode(array_view<DirectX::Quaternion> rots, const row_vector_t & y)
+void StylizedChainIK::decode(array_view<DirectX::Quaternion> rots, const row_vector_t & y) const
 {
-	m_fpDecoder->Decode(m_chainRot, y.cast<float>());
+	m_fpDecoder->Decode(rots, y.cast<float>());
 	for (int i = m_bones.size() - 1; i > 0; i--)
 		rots[i] = rots[i - 1];
 	rots[0] = m_baseRot;
 }
 
-void StylizedChainIK::encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ row_vector_t& y)
+void StylizedChainIK::encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ row_vector_t& y) const
 {
 	std::vector<DirectX::Quaternion, DirectX::XMAllocator> tempRots;
 	for (int i = 0; i < m_bones.size() - 1; i++)
@@ -424,7 +424,7 @@ void StylizedChainIK::encode(_In_ array_view<const DirectX::Quaternion> rots, _O
 }
 
 
-scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_t & goal_vel, const DirectX::Quaternion & baseRotation)
+row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_t & goal_vel, const DirectX::Quaternion & baseRotation)
 {
 	dlib_vector v;
 	if (m_cValiad)
@@ -435,6 +435,7 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 		m_cx = m_ix; m_cy = m_iy;
 	}
 
+	m_baseRot = baseRotation;
 	setGoal(goal);
 
 	auto f = [this](const dlib_vector& v)->double {
@@ -452,12 +453,12 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 		return val;
 	};
 
-	auto numberic_diff = dlib::derivative(f)(v);
-	auto anaylatic_diff = df(v);
+	//auto numberic_diff = dlib::derivative(f)(v);
+	//auto anaylatic_diff = df(v);
 
-	std::cout << "numberic derv = " << dlib::trans(numberic_diff) << "anaylatic derv = " << dlib::trans(anaylatic_diff) << std::endl;
-	std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
-		<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
+	//std::cout << "numberic derv = " << dlib::trans(numberic_diff) << "anaylatic derv = " << dlib::trans(anaylatic_diff) << std::endl;
+	//std::cout << "Difference between analytic derivative and numerical approximation of derivative: "
+	//	<< dlib::length(numberic_diff - anaylatic_diff) << std::endl;
 
 	double result;
 
@@ -484,8 +485,9 @@ scik::row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_
 		cout << "[Error] S-IK failed." << std::endl;
 	}
 
-	decode(m_chainRot, m_cy);
-	Vector3 ep = endPosition(m_chainRot);
+	rotation_collection_t rotations(m_bones.size());
+	decode(rotations, m_cy);
+	Vector3 ep = endPosition(rotations);
 
 	if (g_EnableDebugLogging >= 2)
 	{

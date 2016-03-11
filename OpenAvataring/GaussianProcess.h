@@ -102,20 +102,12 @@ namespace Causality
 		//double get_likelihood_x(const RowVectorType& x) const;
 		//RowVectorType get_ikelihood_x_derivative(const RowVectorType& x) const;
 
-#pragma region Parameter Tuning Methods
-		// negitive log likilihood of P(theta | X,Y)
-		double learning_likelihood_on_xy(const ParamType &param);
-		// gradiant of negitive log likilihood of P(theta | X,Y)
-		ParamType learning_likelihood_on_xy_derivative(const ParamType &param);
-
-
 		double optimze_parameters(const ParamType& initial_param);
 		double optimze_parameters();
 		inline void set_parameters(const ParamType &param)
 		{
 			update_kernal(param);
 		}
-#pragma endregion
 
 		// Get the <most-likly-estimiton> of <y> from an gaussian noised observation of <x> : <z>, that P(x|z) ~ N(z,cov(X|Z))
 		// return the likelihood of (y,x|z)
@@ -136,6 +128,10 @@ namespace Causality
 		// internal helper for caculate P(theta|x,y)
 		ParamType lp_param_on_xy_grad();
 
+		// negitive log likilihood of P(theta | X,Y)
+		double learning_likelihood_on_xy(const ParamType &param);
+		// gradiant of negitive log likilihood of P(theta | X,Y)
+		ParamType learning_likelihood_on_xy_derivative(const ParamType &param);
 	};
 
 	using gpr = gaussian_process_regression;
@@ -183,7 +179,7 @@ namespace Causality
 		// Train/learn the model with exited data Y
 		double learn_model(const ParamType& param = ParamType(1.0, 1e-3, 1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
 
-	public:
+	protected:
 		template <typename DerivedX>
 		void update_kernal(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType& param);
 		// negitive log likilihood of P(X,theta | Y)

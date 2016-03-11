@@ -268,6 +268,7 @@
     <ClCompile Include="SkinningModelFromFbx.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="StreamDevice.cpp" />
+    <ClCompile Include="Tests.cpp" />
     <ClCompile Include="TrackedArmature.cpp" />
     <ClCompile Include="Vicon.cpp" />
     <ClCompile Include="VisualObject.cpp" />
@@ -349,6 +350,7 @@
     <ClInclude Include="SmartPointers.h" />
     <ClInclude Include="StreamDevice.h" />
     <ClInclude Include="String.h" />
+    <ClInclude Include="Tests.h" />
     <ClInclude Include="TrackedArmature.h" />
     <ClInclude Include="Vicon.h" />
     <ClInclude Include="VisualObject.h" />

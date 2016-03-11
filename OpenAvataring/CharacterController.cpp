@@ -204,7 +204,7 @@ public:
 				auto pDecoder = sik.getDecoder();
 				auto baseRot = target_frame[block->parent()->Joints.back()->ID].GblRotation;
 				//sik.setBaseRotation(baseRot);
-				sik.setChain(block->Joints, target_frame);
+				//sik.setChain(block->Joints, target_frame);
 
 				//sik.SetGplvmWeight(block->Wx.cast<double>());
 
@@ -278,12 +278,12 @@ public:
 				//yf.array() *= block->Wx.cwiseInverse().array().transpose();
 
 				//block->PdStyleIk.SetHint();
-
-				//Y = sik.solve(X.transpose(), X.transpose(), baseRot);
-				if (!g_UseVelocity)
-					Y = sik.apply(X.transpose(), baseRot).cast<double>();
-				else
-					Y = sik.apply(X.segment(0, pvDim).transpose(), Vector3d(X.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
+				//sik.setHint(yf.cast<double>());
+				Y = sik.solve(X.transpose(), X.transpose(), baseRot);
+				//if (!g_UseVelocity)
+				//	Y = sik.apply(X.transpose(), baseRot).cast<double>();
+				//else
+				//	Y = sik.apply(X.segment(0, pvDim).transpose(), Vector3d(X.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
 
 				//block->PdStyleIk.SetGoal(X.leftCols<3>());
 
@@ -1033,8 +1033,8 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		auto X = rcFacade.GetPartSequence(pid);
 		gpr.initialize(Pv, X);
 		gplvm.initialize(X.cast<double>(), 3);
+		gplvm.learn_model({ 1.0, 0.001, 1.0 }, 0.01, 100);
 		InitGprXML(settings, partName, gpr);
-		gplvm.learn_model({ 1.0,0.01,1.0 }, 0.01, 100);
 
 		auto &pca = rcFacade.GetPartPca(pid);
 		auto d = rcFacade.GetPartPcaDim(pid);

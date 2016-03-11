@@ -73,12 +73,16 @@ namespace Causality
 		/// <param name="jacb">size should be 3n</param>
 		void endPositionJaccobiRespectEuler(array_view<const Quaternion> rotations, _Out_ array_view<Vector3> jacb) const;
 		void endPositionJaccobiRespectAxisAngle(array_view<const Quaternion> rotations, _Out_ array_view<Vector3> jacb) const;
+		void endPositionJaccobiRespectLnQuaternion(array_view<const Quaternion> rotations, _Out_ array_view<Vector3> jacb) const;
 
 		bool XM_CALLCONV solve(_In_ FXMVECTOR goal, _Inout_ array_view<Quaternion> rotations) const;
 
 		// solve the IK optimization problem with a reference configuration
 		// the reference are weighted in min-square manar
 		bool XM_CALLCONV solveWithStyle(_In_ FXMVECTOR goal, _Inout_ array_view<Quaternion> rotations, _In_ array_view<Quaternion> styleReference, _In_ float styleReferenceWeight) const;
+
+	protected:
+		std::vector<Vector4, DirectX::XMAllocator> getRadiusVectors(array_view<const Quaternion> &rotations) const;
 
 		// Static functions
 	public:
@@ -87,7 +91,7 @@ namespace Causality
 
 		static XMMATRIX XM_CALLCONV jacobbiTransposeRespectEuler(const Vector3& r, const Vector3& euler, FXMVECTOR globalRot);
 
-		static XMMATRIX XM_CALLCONV jacobbiTransposeRespectAxisAngle(const Vector3& r, const Vector3& lnq, FXMVECTOR globalRot);
+		static XMMATRIX XM_CALLCONV jacobbiTransposeRespectAxisAngle(const Vector3& r, FXMVECTOR qrot, FXMVECTOR globalRot);
 	private:
 		struct OptimizeFunctor;
 	};

@@ -17,6 +17,9 @@ namespace Causality
 		using row_vector_t = Eigen::RowVectorXd;
 		using quaternion_t = Causality::Quaternion;
 
+		using rotation_collection_t = std::vector<DirectX::Quaternion, DirectX::XMAllocator>;
+		using jaccobi_collection_t = std::vector<DirectX::Vector3, DirectX::XMAllocator>;
+
 		class IFeatureDecoder abstract
 		{
 		public:
@@ -35,11 +38,6 @@ namespace Causality
 
 	private:
 		float												m_chainLength;
-
-		// intermediate variable for IK caculation
-		mutable std::vector<DirectX::Quaternion, DirectX::XMAllocator>
-			m_chainRot;
-		mutable std::vector<DirectX::Vector3, DirectX::XMAllocator>	m_jac;
 
 		gaussian_process_regression							m_gpr;
 		gaussian_process_lvm								m_gplvm;
@@ -116,22 +114,27 @@ namespace Causality
 		gplvm& Gplvm() { return m_gplvm; }
 		const gplvm& Gplvm() const { return m_gplvm; }
 
-	public:
-		// Decode input vector into local rotation quaternions
-		//! IMPORTANT
-		// Shift the rotations right by 1 unit
-		// rots[0] = base_rotation , as the rots[n] have no effect in term of end effector position
-		void decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const row_vector_t& x);
-		// Encode joint rotations into input vector 
-		void encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ row_vector_t& x);
+		row_vector_t solve(const vector3_t & goal, const vector3_t& goal_vel, const DirectX::Quaternion & baseRotation);
 
+	protected:
 		double objective(const row_vector_t &x, const row_vector_t &y);
 
 		row_vector_t objective_derv(const row_vector_t & x, const row_vector_t & y);
 
-		row_vector_t solve(const vector3_t & goal, const vector3_t& goal_vel, const DirectX::Quaternion & baseRotation);
 		double objective_xy(const row_vector_t &x, const row_vector_t &y);
 		row_vector_t objective_xy_derv(const row_vector_t & x, const row_vector_t & y);
+
+	protected:
+		double ikDistance(const row_vector_t & y) const;
+		row_vector_t ikDistanceDerivative(const row_vector_t & y) const;
+
+		// Decode input vector into local rotation quaternions
+		//! IMPORTANT
+		// Shift the rotations right by 1 unit
+		// rots[0] = base_rotation , as the rots[n] have no effect in term of end effector position
+		void decode(_Out_ array_view<DirectX::Quaternion> rots, _In_ const row_vector_t& x) const;
+		// Encode joint rotations into input vector 
+		void encode(_In_ array_view<const DirectX::Quaternion> rots, _Out_ row_vector_t& x) const;
 	};
 
 	class AbsoluteLnQuaternionDecoder : public StylizedChainIK::IFeatureDecoder

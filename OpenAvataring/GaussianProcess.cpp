@@ -16,30 +16,6 @@ static constexpr double g_paramMin = 1e-7;
 static constexpr double g_paramMax = 1e7;
 static constexpr double g_paramWeight = 1;
 
-// Generic functor
-template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
-struct Functor
-{
-	typedef _Scalar Scalar;
-	enum {
-		InputsAtCompileTime = NX,
-		ValuesAtCompileTime = NY
-	};
-	typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
-	typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
-	typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
-
-	int m_inputs, m_values;
-
-	Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-	Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
-
-	int inputs() const { return m_inputs; }
-	int values() const { return m_values; }
-
-};
-
-
 typedef dlib::matrix<double, 0, 1> dlib_vector;
 
 gaussian_process_regression::gaussian_process_regression(const Eigen::MatrixXf & _X, const Eigen::MatrixXf & _Y)
@@ -269,11 +245,15 @@ double gaussian_process_regression::get_likelihood_xy(const RowVectorType & x, c
 
 	lp_xy_helper(x, zx, Kx, iKkx, varX, ey);
 
-	double difY = (y - ey).cwiseAbs2().sum();
+	double difY = (y - ey).squaredNorm();
 
-	double lxy = 0.5*(difY / varX + dimY * log(varX));
+	double lxy = 0.5 / varX * difY  + 0.5 * dimY * log(varX);
 
 	return lxy;
+	// return 0.5 * difY;
+	// return Kx.squaredNorm();
+	// return 1.0 / varX;
+	// return log(varX);
 }
 
 
@@ -285,23 +265,31 @@ gaussian_process_regression::RowVectorType gaussian_process_regression::get_like
 
 	lp_xy_helper(x, zx, Kx, iKkx, varX, ey);
 
-	auto dKx = (zx.replicate(N, 1) - X).eval();
-	dKx = Kx.asDiagonal() * dKx;
-
 	RowVectorType derv(dimX + dimY);
 	auto difY = (y - ey).eval();
 
 	auto dy = derv.segment(dimX, dimY);
 	dy = difY / varX;
+	double sqndify = difY.squaredNorm();
+
+	// after this line , all d(XXX) is d(XXX)/dx
+	auto dKx = (zx.replicate(N, 1) - X).eval();
+	dKx = -gamma() * Kx.asDiagonal() * dKx;
+
+	auto dfx = (Y.transpose() * iK * dKx).eval();
+
+	auto dvarx = (-2 * Kx.transpose() * iK * dKx).eval();
 
 	auto dx = derv.segment(0, dimX);
-
-	auto dfx = Y.transpose() * iK * dKx;
-
-	auto dvarx = 2 * Kx.transpose() * iK * dKx;
-
-	dx = difY * dfx / varX - (difY.squaredNorm() / varX + dimY) / (2 * varX) * dvarx;
-
+	//dx = (-0.5/varX) * difY * dfx + (/*dimY*/ - difY.squaredNorm() / varX ) / (2 * varX) * dvarx;
+	//dx = 0.5 * ( - difY * dfx / varX - difY.squaredNorm() / (varX * varX) * dvarx);
+	dx = -0.5 * sqndify / (varX*varX) * dvarx - difY * dfx / varX + 0.5 * dimY * dvarx / varX;
+	// ****** dKx && dvarx : Checked
+	// dx = -difY * dfx; // lxy = 0.5 * difY.squaredNorm();
+	// dx = 2.0 * Kx.transpose() * dKx;
+	// dx = -1.0/(varX*varX) * dvarx; // lxy = 1.0/ varX;
+	// dx = dvarx / varX; // log(varX);
+	// dy.setZero();
 	return derv;
 }
 

@@ -233,6 +233,8 @@
     <ClCompile Include="..\OpenAvataring\ArmatureAssignment.cpp">
       <Filter>Avataring Control</Filter>
     </ClCompile>
+    <ClCompile Include="..\OpenAvataring\StylizedIKCodec.cpp" />
+    <ClCompile Include="Tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -474,6 +476,9 @@
     </ClInclude>
     <ClInclude Include="$(FftwDir)\fftw3.h">
       <Filter>Armature Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Tests.h">
+      <Filter>Platform Application Logic</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -2,8 +2,107 @@
 #include "InverseKinematics.h"
 #include <Eigen\Core>
 #include <unsupported\Eigen\NonLinearOptimization>
+#include "Tests.h"
+
+#define _DEBUG_JACCOBI 1
 
 using namespace Causality;
+
+enum RotationEncodeMethodsEnum
+{
+	EulerAngles = 0,
+	LnQuaterternion = 1,
+};
+
+static constexpr RotationEncodeMethodsEnum RotationEncodeMethod = LnQuaterternion;
+
+namespace Test
+{
+	using namespace DirectX;
+	using namespace std;
+
+	float randf()
+	{
+		float r = (float)rand();
+		r /= (float)(RAND_MAX);
+		return r;
+	}
+
+	float rand2pi()
+	{
+		return randf() * XM_2PI - XM_PI;
+	}
+
+	float randpi()
+	{
+		return randf() * XM_PI - XM_PIDIV2;
+	}
+
+	bool QuaternionEulerTest()
+	{
+		// Patch Yaw Roll = (1.4,0.8,0.4)
+		Quaternion q = XMQuaternionRotationRollPitchYaw(1.4, 0.8, -1.4);
+		cout << "q = " << q << endl;
+
+		Vector3 eular = XMQuaternionEulerAngleYawPitchRoll(q);
+		cout << "eular = " << eular << endl;
+
+		Quaternion lq = XMQuaternionLn(q);
+		cout << "ln(q) = " << lq << endl;
+		Quaternion ldq(0.01f, 0, 0, 0);
+		cout << "dlnq = d(ln(q)) = " << ldq << endl;
+		Quaternion dq = XMQuaternionExp(ldq);
+		cout << "dq = exp(d(ln(q))) = " << dq << endl;
+
+		lq = XMQuaternionExp((lq + ldq));
+		cout << "exp(ln(q)+d(ln(q))) = " << lq << endl;
+
+		lq = XMQuaternionMultiply(q, dq);
+		cout << "q * dq= " << lq << endl;
+
+		lq = XMQuaternionMultiply(dq, q);
+		cout << "dq * q= " << lq << endl;
+		return true;
+	}
+
+	bool InverseKinematicsTest()
+	{
+		using namespace DirectX;
+
+		ChainInverseKinematics cik(3);
+		cik.bone(0) = Vector4(0, 1.0f, 0, 1.0f);
+		cik.bone(1) = Vector4(0, 1.0f, 0, 1.0f);
+		cik.bone(2) = Vector4(0, 1.0f, 0, 1.0f);
+		//cik.m_boneMinLimits[0].x = 0;
+		//cik.m_boneMaxLimits[0].x = 0;
+		cik.minRotation(1).y = 0;
+		cik.maxRotation(1).y = 0;
+		cik.minRotation(2).y = 0;
+		cik.maxRotation(2).y = 0;
+		//cik.computeJointWeights();
+		vector<Quaternion> rotations(3);
+		for (size_t i = 0; i < 1; i++)
+		{
+			rotations[0] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.1);
+			rotations[1] = XMQuaternionRotationRollPitchYaw(0.5, 0, 0.5);
+			rotations[2] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.1);
+			Vector3 goal = XMVectorSet(1.0f + randf(), randf(), randf(), 0);
+			auto code = cik.solve(goal, rotations);
+			Vector3 achieved = cik.endPosition(rotations);
+			cout << "ik test : goal = " << goal << " ; achieved position = " << achieved << endl;
+		}
+		cout << "rotations = {" << std::endl;
+		for (size_t i = 0; i < 3; i++)
+		{
+			cout << "  " << rotations[i] << std::endl;
+		}
+		cout << '}' << endl;
+
+		return true;
+	}
+
+	REGISTER_TEST_METHOD(InverseKinematicsTest,InverseKinematicsTest);
+}
 
 namespace Internal
 {
@@ -32,7 +131,7 @@ namespace Internal
 }
 namespace Causality
 {
-	void DecodeRotations(Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> &rotations)
+	static void DecodeRotationsEuler(const Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> rotations)
 	{
 		int n = rotations.size();
 		for (int i = 0; i < n; i++)
@@ -42,7 +141,7 @@ namespace Causality
 		}
 	}
 
-	void EncodeRotations(Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> &rotations)
+	static void EncodeRotationsEuler(Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> rotations)
 	{
 		int n = rotations.size();
 		for (int i = 0; i < n; i++)
@@ -52,6 +151,44 @@ namespace Causality
 			DirectX::XMStoreFloat3(euler.data(), dxeuler);
 		}
 	}
+
+	static void DecodeRotationsLnQ(const Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> rotations)
+	{
+		int n = rotations.size();
+		for (int i = 0; i < n; i++)
+		{
+			auto lnq = x.segment<3>(i * 3);
+			rotations[i] = DirectX::XMQuaternionExp(DirectX::XMLoadFloat3(lnq.data()));
+		}
+	}
+
+	static void EncodeRotationsLnQ(Eigen::VectorXf &x, Causality::array_view<const DirectX::SimpleMath::Quaternion> rotations)
+	{
+		int n = rotations.size();
+		for (int i = 0; i < n; i++)
+		{
+			auto lnq = x.segment<3>(i * 3);
+			auto dxlnq = DirectX::XMQuaternionLn(rotations[i]);
+			DirectX::XMStoreFloat3(lnq.data(), dxlnq);
+		}
+	}
+
+	static inline void DecodeRotations(const Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> rotations)
+	{
+		if (RotationEncodeMethod == EulerAngles)
+			DecodeRotationsEuler(x, rotations);
+		else
+			DecodeRotationsLnQ(x, rotations);
+	}
+
+	static inline void EncodeRotations(Eigen::VectorXf &x, Causality::array_view<DirectX::SimpleMath::Quaternion> rotations)
+	{
+		if (RotationEncodeMethod == EulerAngles)
+			EncodeRotationsEuler(x, rotations);
+		else
+			EncodeRotationsLnQ(x, rotations);
+	}
+
 }
 
 struct ChainInverseKinematics::OptimizeFunctor : public Internal::Functor<float>
@@ -68,16 +205,12 @@ struct ChainInverseKinematics::OptimizeFunctor : public Internal::Functor<float>
 	bool							                                m_useRef;
 
 	mutable std::vector<DirectX::Quaternion, DirectX::XMAllocator>	m_rots;
-	mutable std::vector<DirectX::Vector3,	DirectX::XMAllocator>	m_jac;
+	mutable std::vector<DirectX::Vector3, DirectX::XMAllocator>	m_jac;
 
 	void fillRotations(const InputType &x) const
 	{
 		assert(x.size() == 3 * n);
-		for (int i = 0; i < n; i++)
-		{
-			auto euler = x.segment<3>(i * 3);
-			m_rots[i] = DirectX::XMQuaternionRotationRollPitchYaw(euler[0], euler[1], euler[2]);
-		}
+		DecodeRotations(x, m_rots);
 	}
 
 	OptimizeFunctor(const ChainInverseKinematics& _ik, const Vector3 & goal)
@@ -118,6 +251,9 @@ struct ChainInverseKinematics::OptimizeFunctor : public Internal::Functor<float>
 		fillRotations(x);
 		Vector3 v = ik.endPosition(m_rots);
 		v -= m_goal;
+
+		assert(fvec.size() == 3 + x.size());
+
 		fvec.setZero();
 		fvec.head<3>() = Eigen::Vector3f::Map(&v.x);
 
@@ -143,7 +279,12 @@ struct ChainInverseKinematics::OptimizeFunctor : public Internal::Functor<float>
 		fillRotations(x);
 		fjac.setZero();
 
-		ik.endPositionJaccobiRespectEuler(m_rots, m_jac);
+		if (RotationEncodeMethod == EulerAngles)
+			ik.endPositionJaccobiRespectEuler(m_rots, m_jac);
+		else
+		{
+			ik.endPositionJaccobiRespectLnQuaternion(m_rots, m_jac);
+		}
 
 		auto jacb = fjac.topRows<3>();
 		jacb = Eigen::Matrix3Xf::Map(&m_jac[0].x, 3, 3 * n);
@@ -201,7 +342,7 @@ void ChainInverseKinematics::computeJointWeights()
 	using namespace Math;
 	XMVECTOR V;
 	XMVECTOR LV = XMVectorZero();
-	for (int i = m_bones.size()-1; i >= 0; --i)
+	for (int i = m_bones.size() - 1; i >= 0; --i)
 	{
 		V = XMLoadA(m_bones[i]);
 		V = XMVector3Length(V);
@@ -213,11 +354,12 @@ void ChainInverseKinematics::computeJointWeights()
 // Jaccobbi from a rotation radius vector (r) respect to a small rotation dr = (drx,dry,drz) in global reference frame
 void ChainInverseKinematics::jacobbiRespectAxisAngle(Matrix4x4 & j, const float * r)
 {
-	j._11 = 0, j._12 = r[2], j._13 = -r[1];
-	j._21 = -r[2], j._22 = 0, j._23 = r[0];
-	j._31 = r[1], j._32 = -r[0], j._33 = 0;
+	j._11 = 0, j._12 = -r[2], j._13 = r[1];
+	j._21 = r[2], j._22 = 0, j._23 = -r[0];
+	j._31 = -r[1], j._32 = r[0], j._33 = 0;
 }
 
+// Roll-Patch-Yaw
 XMMATRIX XM_CALLCONV ChainInverseKinematics::jacobbiTransposeRespectEuler(const Vector3 & rv, const Vector3& euler, FXMVECTOR globalRot)
 {
 	using namespace DirectX;
@@ -233,35 +375,22 @@ XMMATRIX XM_CALLCONV ChainInverseKinematics::jacobbiTransposeRespectEuler(const 
 	XMVECTOR lQ;
 
 	lQ = XMQuaternionRotationRoll(euler.z);
-	Q = XMQuaternionMultiply(lQ, Q);
-	//Q = XMQuaternionRotationRollPitchYaw(euler.x, euler.y, euler.z);
-	//Q = XMQuaternionMultiply(globalRot, Q);
-	v.x = -r.y;
-	v.y = r.x;
-	v.z = 0;
-	V = XMLoadA(v);
+	Q = XMQuaternionMultiply(lQ, Q); // Q = base * roll
+	V = XMVectorSet(-r.y, r.x ,0 ,0);
 	V = XMVector3Rotate(V, Q);
 	MJ.r[2] = V;
 	r = XMVector3Rotate(r, lQ);
 
 	lQ = XMQuaternionRotationPatch(euler.x);
-	Q = XMQuaternionMultiply(lQ,Q);
-	//Q = XMQuaternionRotationRollPitchYaw(euler.x, euler.y, 0);
-	//Q = XMQuaternionMultiply(globalRot, Q);
-	v.x = 0;
-	v.y = -r.z;
-	v.z = r.y;
-	V = XMLoadA(v);
+	Q = XMQuaternionMultiply(lQ, Q); // Q = base * roll * patch
+	V = XMVectorSet(0,-r.z,r.y,0);
 	V = XMVector3Rotate(V, Q);
 	MJ.r[0] = V;
 	r = XMVector3Rotate(r, lQ);
 
 	lQ = XMQuaternionRotationYaw(euler.y);
-	Q = XMQuaternionMultiply(lQ, Q);
-	v.x = r.z;
-	v.y = 0;
-	v.z = -r.x;
-	V = XMLoadA(v);
+	Q = XMQuaternionMultiply(lQ, Q); // Q = base * roll * patch * yaw
+	V = XMVectorSet(r.z,0,-r.x,0);
 	V = XMVector3Rotate(V, Q);
 	MJ.r[1] = V;
 
@@ -269,25 +398,24 @@ XMMATRIX XM_CALLCONV ChainInverseKinematics::jacobbiTransposeRespectEuler(const 
 	return MJ;
 }
 
-XMMATRIX XM_CALLCONV Causality::ChainInverseKinematics::jacobbiTransposeRespectAxisAngle(const Vector3 & rv, const Vector3 & lnq, FXMVECTOR globalRot)
+XMMATRIX XM_CALLCONV Causality::ChainInverseKinematics::jacobbiTransposeRespectAxisAngle(const Vector3 & rv, FXMVECTOR qrot, FXMVECTOR globalRot)
 {
 	using namespace DirectX;
 
-	// Jaccobi to Euler 
-	// J = Ry*Jy + Ry*Rx*Jx + Ry*Rx*Rz*Jz
-
 	XMVECTOR V;
 	XMMATRIX MJ;
-	XM_ALIGNATTR Vector4 r = rv;
-	
 	XM_ALIGNATTR Matrix4x4 jac;
-	jacobbiRespectAxisAngle(jac, &rv.x);
+	XMVECTORF32 r;
+	r.v = XMVector3Rotate(rv, qrot);
+	XMVECTOR Q = globalRot; //XMQuaternionMultiply(qrot, globalRot);
 
-	XMVECTOR Q = globalRot;
-	XMVECTOR lQ;
-	lQ = XMQuaternionExp(lnq);
-	Q = XMQuaternionMultiply(lQ, Q);
+	//r.v = rv;
+	//XMVECTOR Q = XMQuaternionMultiply(qrot, globalRot);
 
+	jacobbiRespectAxisAngle(jac, r.f);
+
+
+	// Rotate each row of the matrix
 	V = XMLoadFloat4A(jac.m[0]);
 	V = XMVector3Rotate(V, Q);
 	MJ.r[0] = V;
@@ -334,40 +462,20 @@ void ChainInverseKinematics::endPositionJaccobiRespectEuler(array_view<const Qua
 	const auto n = m_bones.size();
 
 	// Chain Position Vectors
-	std::vector<DirectX::Vector4, DirectX::XMAllocator>	rad(n);
+	auto rad = getRadiusVectors(rotations);
 
-	XMVECTOR q, t, gt, gq;
-
-	gt = XMVectorZero();
-	t = XMVectorZero();
-
-	for (int i = n - 1; i >= 0; i--)
-	{
-		q = XMLoadA(rotations[i]);
-		t = XMLoadA(m_bones[i]);
-		gt += t;
-		rad[i] = gt;
-		gt = XMVector3Rotate(gt, q);
-	}
-
-	//XMMATRIX rot;
-	XM_ALIGNATTR Matrix4x4 jac;
-	jac._11 = jac._22 = jac._33 = 0;
-	jac._41 = jac._42 = jac._43 = jac._44 = jac._14 = jac._24 = jac._34 = 0;
-
-	gq = XMQuaternionIdentity();
+	XMVECTOR gq = XMQuaternionIdentity();
 	for (int i = 0; i < n; i++)
 	{
-		q = XMLoadA(rotations[i]);
+		XMVECTOR q = XMLoadA(rotations[i]);
 		Vector3 eular = XMQuaternionEulerAngleYawPitchRoll(q);
 
 		auto& r = reinterpret_cast<Vector3&>(rad[i]);
-		jac = jacobbiTransposeRespectEuler(r, eular, gq);
+		XMMATRIX jac = jacobbiTransposeRespectEuler(r, eular, gq);
 
-		for (int j = 0; j < 3; j++)
-			jacb[i * 3 + j] = Vector3(jac.m[j]);
+		XMStoreFloat3x3(reinterpret_cast<XMFLOAT3X3*>(&jacb[i * 3].x), jac);
 
-		gq = XMQuaternionMultiply(q,gq);
+		gq = XMQuaternionMultiply(q, gq);
 	}
 
 	//return jacb;
@@ -380,9 +488,38 @@ void ChainInverseKinematics::endPositionJaccobiRespectAxisAngle(array_view<const
 	const auto n = m_bones.size();
 
 	// Chain Position Vectors
+	auto rad = getRadiusVectors(rotations);
+
+	XMVECTOR gq = XMQuaternionIdentity();
+	for (int i = 0; i < n; i++)
+	{
+		XMVECTOR q = XMLoadA(rotations[i]);
+
+		auto& r = reinterpret_cast<Vector3&>(rad[i]);
+		XMMATRIX jac = jacobbiTransposeRespectAxisAngle(r, q, gq);
+
+		XMStoreFloat3x3(reinterpret_cast<XMFLOAT3X3*>(&jacb[i * 3].x), jac);
+
+		gq = XMQuaternionMultiply(q, gq);
+	}
+}
+
+void ChainInverseKinematics::endPositionJaccobiRespectLnQuaternion(array_view<const Quaternion> rotations, array_view<Vector3> jacb) const
+{
+	endPositionJaccobiRespectAxisAngle(rotations, jacb);
+	// d(lnQ) == 0.5 * d(axis*angle), thus we need to apply this factor back
+	for (auto& v : jacb)
+		v *= 2.0f;
+}
+
+std::vector<Vector4, DirectX::XMAllocator> ChainInverseKinematics::getRadiusVectors(array_view<const Quaternion> &rotations) const
+{
+	using namespace DirectX;
+
+	const auto n = m_bones.size();
 	std::vector<DirectX::Vector4, DirectX::XMAllocator>	rad(n);
 
-	XMVECTOR q, t, gt, gq;
+	XMVECTOR q, t, gt;
 
 	gt = XMVectorZero();
 	t = XMVectorZero();
@@ -396,25 +533,9 @@ void ChainInverseKinematics::endPositionJaccobiRespectAxisAngle(array_view<const
 		gt = XMVector3Rotate(gt, q);
 	}
 
-	//XMMATRIX rot;
-	XM_ALIGNATTR Matrix4x4 jac;
-	jac._11 = jac._22 = jac._33 = 0;
-	jac._41 = jac._42 = jac._43 = jac._44 = jac._14 = jac._24 = jac._34 = 0;
-
-	gq = XMQuaternionIdentity();
-	for (int i = 0; i < n; i++)
-	{
-		q = XMLoadA(rotations[i]);
-
-		auto& r = reinterpret_cast<Vector3&>(rad[i]);
-		jac = jacobbiTransposeRespectAxisAngle(r, q, gq);
-
-		for (int j = 0; j < 3; j++)
-			jacb[i * 3 + j] = Vector3(jac.m[j]);
-
-		gq = XMQuaternionMultiply(q, gq);
-	}
+	return rad;
 }
+
 
 bool XM_CALLCONV ChainInverseKinematics::solve(FXMVECTOR goal, array_view<Quaternion> rotations) const
 {
@@ -436,13 +557,15 @@ bool XM_CALLCONV ChainInverseKinematics::solve(FXMVECTOR goal, array_view<Quater
 	Eigen::MatrixXf nJac(functor.values(), functor.inputs());
 	Eigen::VectorXf ep(functor.values());
 
+#if defined(_DEBUG_JACCOBI) && _DEBUG_JACCOBI
 	Eigen::NumericalDiff<OptimizeFunctor> ndffunctor(functor);
 	functor(x, ep);
 	functor.df(x, aJac);
 	ndffunctor.df(x, nJac);
 
-	std::cout << "Numberic Jaccobi : " << std::endl << nJac << std::endl;
-	std::cout << "Analatic Jaccobi : " << std::endl << aJac << std::endl;
+	std::cout << "Numberic Jaccobi : " << std::endl << nJac.topRows(3) << std::endl;
+	std::cout << "Analatic Jaccobi : " << std::endl << aJac.topRows(3) << std::endl;
+#endif
 
 	Eigen::LevenbergMarquardt<DfFunctor, float> lm(functor);
 	lm.parameters.maxfev = m_maxItrs;
