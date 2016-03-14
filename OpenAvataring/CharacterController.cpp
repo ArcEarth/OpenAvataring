@@ -1114,11 +1114,11 @@ Eigen::Matrix<Scalar,-1,-1> readMatrix(const char *filename)
 	using scalar_iterator_t = std::istream_iterator<Scalar>;
 
 	// Read numbers from file into buffer.
+	string line;
 	ifstream infile;
 	infile.open(filename);
 	while (!infile.eof())
 	{
-		string line;
 		getline(infile, line);
 
 		int temp_cols = 0;
@@ -1130,12 +1130,11 @@ Eigen::Matrix<Scalar,-1,-1> readMatrix(const char *filename)
 		if (cols == 0)
 			cols = buff.size();
 
-		rows++;
+		if (buff.size() > rows * cols)
+			rows++;
 	}
 
 	infile.close();
-
-	rows--;
 
 	// Populate matrix with numbers.
 	Eigen::Matrix<Scalar, -1, -1> result(rows, cols);
