@@ -111,7 +111,7 @@ double StylizedChainIK::ikDistance(const row_vector_t & y) const
 
 	XMStoreFloat3(epf.data(), ep);
 
-	double ikdis = (epf.cast<double>() - m_goal).squaredNorm()/* * m_ikWeight / m_chainLength*/;
+	double ikdis = (epf.cast<double>() - m_goal).squaredNorm() * m_ikWeight / m_chainLength;
 
 	return ikdis;
 }
@@ -136,7 +136,7 @@ StylizedChainIK::row_vector_t StylizedChainIK::ikDistanceDerivative(const row_ve
 	m_fpDecoder->EncodeJacobi(rotations, jacb); // this should be empty function
 
 	// IK term derv
-	RowVectorXd ikderv = (2.0 /** m_ikWeight / m_chainLength*/ * (epf.cast<double>() - m_goal)).transpose() * jacb;
+	RowVectorXd ikderv = (2.0 * m_ikWeight / m_chainLength * (epf.cast<double>() - m_goal)).transpose() * jacb;
 
 	return ikderv;
 }
@@ -195,7 +195,7 @@ void StylizedChainIK::reset()
 	m_ikLimitWeight = g_IKLimitWeight;
 	m_baseRot = Quaternion::Identity;
 	m_fpDecoder.reset(new AbsoluteLnQuaternionDecoder());
-	m_maxIter = 200;
+	m_maxIter = 50;
 }
 
 // return the joints rotation vector
@@ -382,10 +382,11 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 
 double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
-	double ikdis = ikDistance(y);
+	double ikdis = 0;
+	ikdis = ikDistance(y);
 
 	double stylik = 0;
-	//stylik = m_gplvm.get_likelihood_xy(x, y);
+	stylik = m_styleWeight / (double)y.cols() * m_gplvm.get_likelihood_xy(x, y);
 
 	return ikdis + stylik;
 }
@@ -395,11 +396,9 @@ RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, con
 	RowVectorXd derv(x.size() + y.size());
 	derv.setZero();
 
-	RowVectorXd ikderv = ikDistanceDerivative(y);
-
 	// stylik gradiant
-	//derv = m_gplvm.get_likelihood_xy_derivative(x, y);
-	derv.segment(x.size(), y.size()) += ikderv;
+	derv = m_styleWeight / (double)y.cols() * m_gplvm.get_likelihood_xy_derivative(x, y);
+	derv.segment(x.size(), y.size()) += ikDistanceDerivative(y);
 
 	return derv;
 }
@@ -467,7 +466,7 @@ row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_t & go
 		result = dlib::find_min //_box_constrained
 			(
 				dlib::cg_search_strategy(),
-				dlib::objective_delta_stop_strategy(1e-4, m_maxIter),//.be_verbose(),
+				dlib::objective_delta_stop_strategy(1e-2, m_maxIter),//.be_verbose(),
 				f, df,
 				v,
 				-1e5
@@ -477,12 +476,12 @@ row_vector_t StylizedChainIK::solve(const vector3_t & goal, const vector3_t & go
 		m_cValiad = true;
 
 	}
-	catch (const std::exception&)
+	catch (const std::exception& exc)
 	{
 		// skip this frame if failed to optimze
 		result = 1.0;
 		m_cValiad = false;
-		cout << "[Error] S-IK failed." << std::endl;
+		cout << "[Error] S-IK failed : " << exc.what() << std::endl;
 	}
 
 	rotation_collection_t rotations(m_bones.size());

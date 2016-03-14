@@ -44,7 +44,7 @@
     <IKTermWeight>1</IKTermWeight>
     <IKLimitWeight>0</IKLimitWeight>
     <MarkovTermWeight>0.03</MarkovTermWeight>
-    <StyleLikelihoodTermWeight ch="horse">0.045</StyleLikelihoodTermWeight>
+    <StyleLikelihoodTermWeight ch="horse">1.0</StyleLikelihoodTermWeight>
     <!--<StyleLikelihoodTermWeight ch="spider">0.0000003</StyleLikelihoodTermWeight>-->
     <!--<IKTermWeight>1.0</IKTermWeight>
     <IKLimitWeight>200</IKLimitWeight>

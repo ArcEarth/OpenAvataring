@@ -49,6 +49,7 @@ namespace Causality
 		KernalMatrixType dKalpha;	// d(K)/d(alpha)
 		KernalMatrixType dKgamma;	// d(K)/d(gamma)
 		KernalLDLTType	 ldltK; // det(K) == ldlt.dialog().product
+		MatrixType		 YtiK;		// Y' * K^-1
 
 	public:
 		//template <class DerivedX, class DerivedY>
@@ -179,6 +180,7 @@ namespace Causality
 		// Train/learn the model with exited data Y
 		double learn_model(const ParamType& param = ParamType(1.0, 1e-3, 1.0), Scalar stop_delta = 1e-2, int max_iter = 100);
 
+		double learn_model(int max_iter = 100);
 	protected:
 		template <typename DerivedX>
 		void update_kernal(_In_ const Eigen::MatrixBase<DerivedX>& x, const ParamType& param);

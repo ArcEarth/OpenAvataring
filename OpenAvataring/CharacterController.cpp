@@ -17,6 +17,7 @@
 #include <random>
 #include <tinyxml2.h>
 #include <ppl.h>
+#include <iterator>
 
 using namespace Causality;
 using namespace std;
@@ -41,7 +42,7 @@ path g_CharacterAnalyzeDir = current_path() / "..\\Assets\\CharacterAnalayze";
 #endif
 
 bool ReadGprParamXML(tinyxml2::XMLElement * blockSetting, Eigen::Vector3d &param);
-void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, gaussian_process_regression& gpr);
+void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, gaussian_process_regression& gpr, gaussian_process_lvm& gplvm);
 
 inline std::ostream& operator<<(std::ostream& os, const Joint& joint)
 {
@@ -1033,8 +1034,7 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		auto X = rcFacade.GetPartSequence(pid);
 		gpr.initialize(Pv, X);
 		gplvm.initialize(X.cast<double>(), 3);
-		gplvm.learn_model({ 1.0, 0.001, 1.0 }, 0.01, 100);
-		InitGprXML(settings, partName, gpr);
+		InitGprXML(settings, partName, gpr, gplvm);
 
 		auto &pca = rcFacade.GetPartPca(pid);
 		auto d = rcFacade.GetPartPcaDim(pid);
@@ -1102,10 +1102,64 @@ void CharacterController::InitializeSubacvtivePart(ArmaturePart & part, const Ei
 		// paramter caching 
 		const auto&	partName = part.Joints[0]->Name;
 
-		InitGprXML(settings, partName, gpr);
+		InitGprXML(settings, partName, gpr, sik.Gplvm());
 	}
 }
 
+template<typename Scalar = double>
+Eigen::Matrix<Scalar,-1,-1> readMatrix(const char *filename)
+{
+	int cols = 0, rows = 0;
+	std::vector<Scalar> buff;
+	using scalar_iterator_t = std::istream_iterator<Scalar>;
+
+	// Read numbers from file into buffer.
+	ifstream infile;
+	infile.open(filename);
+	while (!infile.eof())
+	{
+		string line;
+		getline(infile, line);
+
+		int temp_cols = 0;
+		stringstream stream(line);
+		
+		scalar_iterator_t sitr(stream);
+		std::copy(sitr, scalar_iterator_t(), std::back_inserter(buff));
+
+		if (cols == 0)
+			cols = buff.size();
+
+		rows++;
+	}
+
+	infile.close();
+
+	rows--;
+
+	// Populate matrix with numbers.
+	Eigen::Matrix<Scalar, -1, -1> result(rows, cols);
+	result = Eigen::Map<Matrix<Scalar,-1,-1,Eigen::RowMajor>>(buff.data(), rows, cols);
+
+	return result;
+};
+
+bool ReadGplvmParamXML(tinyxml2::XMLElement * blockSetting, Eigen::Vector3d &param, Eigen::MatrixXd& X)
+{
+	if (blockSetting && blockSetting->Attribute("lvm_alpha") && blockSetting->Attribute("lvm_beta") && blockSetting->Attribute("lvm_gamma"))
+	{
+		param(0) = blockSetting->DoubleAttribute("lvm_alpha");
+		param(1) = blockSetting->DoubleAttribute("lvm_beta");
+		param(2) = blockSetting->DoubleAttribute("lvm_gamma");
+
+		auto xsrc = blockSetting->Attribute("lvm_X_src");
+		auto path = g_CharacterAnalyzeDir / xsrc;
+		X = readMatrix<double>(path.u8string().c_str());
+
+		return true;
+	}
+	return false;
+}
 
 bool ReadGprParamXML(tinyxml2::XMLElement * blockSetting, Eigen::Vector3d &param)
 {
@@ -1119,10 +1173,11 @@ bool ReadGprParamXML(tinyxml2::XMLElement * blockSetting, Eigen::Vector3d &param
 	return false;
 }
 
-void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, gaussian_process_regression& gpr)
+void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, gaussian_process_regression& gpr, gaussian_process_lvm& gplvm)
 {
 	gaussian_process_regression::ParamType param;
-	bool	paramSetted = false;
+	gplvm::MatrixType _x;
+	bool	paramSetted = false, lvmSetted = false;
 	if (g_LoadCharacterModelParameter)
 	{
 		auto blockSetting = settings->FirstChildElement(blockName.c_str());
@@ -1131,12 +1186,23 @@ void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, 
 		{
 			gpr.set_parameters(param);
 		}
+
+		if (lvmSetted = ReadGplvmParamXML(blockSetting, param, _x))
+		{
+			gplvm.load_model(_x,param);
+		}
 	}
 
-	if (!paramSetted)
+	if (!paramSetted || !lvmSetted)
 	{
-		gpr.optimze_parameters();
-		param = gpr.get_parameters();
+		if (!paramSetted)
+		{
+			gpr.optimze_parameters();
+		}
+		if (!lvmSetted)
+		{
+			gplvm.learn_model(100);
+		}
 
 		if (g_LoadCharacterModelParameter)
 		{
@@ -1147,10 +1213,28 @@ void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, 
 				blockSetting = settings->GetDocument()->NewElement(blockName.c_str());
 				settings->InsertEndChild(blockSetting);
 			}
+			if (!paramSetted)
+			{
+				param = gpr.get_parameters();
+				blockSetting->SetAttribute("alpha", param[0]);
+				blockSetting->SetAttribute("beta", param[1]);
+				blockSetting->SetAttribute("gamma", param[2]);
+			}
+			if (!lvmSetted)
+			{
+				param = gplvm.get_parameters();
+				_x = gplvm.latent_coords();
 
-			blockSetting->SetAttribute("alpha", param[0]);
-			blockSetting->SetAttribute("beta", param[1]);
-			blockSetting->SetAttribute("gamma", param[2]);
+				blockSetting->SetAttribute("lvm_alpha", param[0]);
+				blockSetting->SetAttribute("lvm_beta", param[1]);
+				blockSetting->SetAttribute("lvm_gamma", param[2]);
+
+				path xcsvsrc = g_CharacterAnalyzeDir / path(blockName + ".csv");
+				blockSetting->SetAttribute("lvm_X_src", xcsvsrc.filename().u8string().c_str());
+				ofstream of(xcsvsrc);
+				of << _x;
+				of.close();
+			}
 		}
 	}
 

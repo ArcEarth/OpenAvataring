@@ -276,7 +276,8 @@ gaussian_process_regression::RowVectorType gaussian_process_regression::get_like
 	auto dKx = (zx.replicate(N, 1) - X).eval();
 	dKx = -gamma() * Kx.asDiagonal() * dKx;
 
-	auto dfx = (Y.transpose() * iK * dKx).eval();
+	// dfx = Y' * K^-1 * dKx = (K^-1' * Y)' * dKx = (K^-1 * Y)' * dKx
+	auto dfx = (iKY.transpose() * dKx).eval();
 
 	auto dvarx = (-2 * Kx.transpose() * iK * dKx).eval();
 
@@ -518,6 +519,11 @@ double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int 
 {
 	ParamType initParam = init_param;
 
+	{
+		Eigen::Pca<MatrixType> pcaY(Y);
+		X = pcaY.coordinates(dimX);
+	}
+
 	dlib_vector xparam(X.size() + ParamSize);
 	dlib_vector param(3);
 	std::copy_n(initParam.data(), initParam.size(), param.begin());
@@ -586,7 +592,7 @@ double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int 
 			dlib::find_min_box_constrained(
 				//dlib::find_min(
 				dlib::cg_search_strategy(),
-				dlib::objective_delta_stop_strategy(stop_delta,max_iter).be_verbose(),
+				dlib::objective_delta_stop_strategy(stop_delta,max_iter),//.be_verbose(),
 				f, df,//dlib::derivative(f),//df,
 				xparam, g_paramMin, g_paramMax);
 
@@ -612,6 +618,63 @@ double gplvm::learn_model(const ParamType& init_param , Scalar stop_delta , int 
 
 	return min_likelihood;
 }
+
+
+double gplvm::learn_model(int max_iter)
+{
+	// Use adjactive difference instead of overall varience
+	auto adjvarX = sqrtf((X.bottomRows(N - 1) - X.topRows(N - 1)).cwiseAbs2().sum() / (N - 2));
+	auto varX = sqrt((X.cwiseAbs2().sum() / (N - 1)));
+	assert(!isnan(varX));
+
+	ParamType param;
+
+	std::vector<double> alphas = { 0.05, 1.0 };
+	std::vector<double> betas = { 1e-2, 1e-6 };
+	std::vector<double> gemmas(5);
+	for (size_t i = 0; i < gemmas.size(); i++)
+	{
+		double t = i / (double)(gemmas.size() - 1);
+		gemmas[i] = 1.0 / (adjvarX * (1 - t) + varX * t);
+	}
+
+	ParamType bestParam;
+	MatrixType bestX;
+	double bestLikelihood = std::numeric_limits<double>::max();
+
+	for (auto alpha : alphas)
+	{
+		param(0) = alpha;
+		for (auto beta : betas)
+		{
+			param(1) = beta;
+			for (auto gemma : gemmas)
+			{
+				param(2) = gemma;
+				double lh = learn_model(param, 1e-2, max_iter);
+				if (lh < bestLikelihood)
+				{
+					bestLikelihood = lh;
+					bestParam = lparam;
+					bestX = X;
+				}
+			}
+		}
+	}
+
+	update_kernal(bestX, bestParam);
+
+	if (bestLikelihood > 0)
+	{
+		std::cout << "***** ::::>(>_<)<:::: ***** Parameter is sub-optimal!" << std::endl;
+	}
+
+	std::cout << " Var(X) = " << varX << std::endl;
+
+
+	return bestLikelihood;
+}
+
 
 double gplvm::get_likelihood_xy(const RowVectorType & x, const RowVectorType & y) const
 {
@@ -642,7 +705,7 @@ void gplvm::initialize(const MatrixType & _Y, Eigen::DenseIndex dX)
 
 	auto pcaY = Eigen::Pca<MatrixType>(_Y);
 	uY = pcaY.mean();
-	Y -= uY.replicate(N, 1);
+	Y = _Y - uY.replicate(N, 1);
 
 	X = pcaY.coordinates(dimX);
 	uX.setZero(dimX);
@@ -679,4 +742,12 @@ void gaussian_process_lvm::set_dynamic(DynamicTypeEnum type, double timespan, co
 	Kt.diagonal().array() += 1 / tparam[1];
 	iK.setIdentity(N, N);
 	Kt.ldlt().solveInPlace(iK);
+}
+
+double gaussian_process_lvm::load_model(const MatrixType & _X, const ParamType & _param)
+{
+	update_kernal(_X, _param);
+	lp_param_on_xy_grad(); // Update YiKKtY, R, etc...
+	return learning_likelihood(_X, _param);
+	//YtiK = Y.transpose() * iK;
 }

@@ -16,10 +16,60 @@ enum RotationEncodeMethodsEnum
 
 static constexpr RotationEncodeMethodsEnum RotationEncodeMethod = LnQuaterternion;
 
+namespace DirectX
+{
+	// Matrix Representation of Cross Production
+	// =============Usage===============
+	// This matrix is for row major vectors
+	// Vector3Transform(V2,MatrixCrossProduct(V1)) == Vector3Cross(V1,V2)
+	// Vector3Transform(V2,MatrixTranspose(MatrixCrossProduct(V1))) == Vector3Cross(V2,V1)
+	// =============Internal============
+	// \mathbf{a} \times \mathbf{b} = [\mathbf{a}]_{\times} \mathbf{b} = \begin{bmatrix}\,0&\!-a_3&\,\,a_2\\ \,\,a_3&0&\!-a_1\\-a_2&\,\,a_1&\,0\end{bmatrix}\begin{bmatrix}b_1\\b_2\\b_3\end{bmatrix}
+	// \mathbf{ a } \times \mathbf{ b } = [\mathbf{ b }]_{ \times }^\mathrm T \mathbf{ a } = \begin{ bmatrix }\, 0 & \, \, b_3&\!- b_2\\ - b_3 & 0 & \, \, b_1\\\, \, b_2&\!- b_1&\, 0\end{ bmatrix }\begin{ bmatrix }a_1\\a_2\\a_3\end{ bmatrix }
+	// [\mathbf{a}]_{\times} \stackrel{\rm def}{=} \begin{bmatrix}\,\,0&\!-a_3&\,\,\,a_2\\\,\,\,a_3&0&\!-a_1\\\!-a_2&\,\,a_1&\,\,0\end{bmatrix}.
+	inline XMMATRIX XM_CALLCONV XMMatrixCrossProduct(FXMVECTOR V)
+	{
+		// negate v
+		XMVECTOR v = XMVectorSelect(g_XMSelect1110.v, V, g_XMSelect1110.v);
+		XMVECTOR nv = XMVectorNegate(v);
+		XMMATRIX m;
+		m.r[0] = _DXMEXT XMVectorPermute<3, 2, 1 + 4, 3 + 4>(v, nv); // [0, a3, -a2]
+		m.r[1] = _DXMEXT XMVectorPermute<2 + 4, 3 + 4, 0, 3>(v, nv);	 // [-a3, 0, a1]
+		m.r[2] = _DXMEXT XMVectorPermute<1, 0 + 4, 3, 3>(v, nv);		 // [a2,-a1, 0 ]
+		m.r[3] = XMVectorZero();
+		return m;
+	}
+
+	bool XMMatrixCrossProductTest()
+	{
+		XMVECTOR v1 = XMVectorSet(0, 1, 0, 0);
+		v1 = XMVector3Rotate(v1, XMQuaternionRotationRollPitchYaw(0.01, 0.01, 0.5));
+
+		XMVECTOR v2 = XMVectorSet(0, 0.01, 0, 0);
+		XMVECTOR right = XMVector3Cross(v1, v2);
+		
+		XMMATRIX m1 = XMMatrixCrossProduct(v1);
+		XMVECTOR result = XMVector3TransformNormal(v2, m1);
+
+		return XMVector3NearEqual(result, right, XMVectorReplicate(0.001f));
+	}
+}
+
 namespace Test
 {
 	using namespace DirectX;
 	using namespace std;
+
+	ostream& operator<< (ostream& os, const Matrix4x4& m)
+	{
+		os << m.m[0][0] << ',' << m.m[0][1] << ',' << m.m[0][2] << ',' << m.m[0][3] << endl;
+		os << m.m[1][0] << ',' << m.m[1][1] << ',' << m.m[1][2] << ',' << m.m[1][3] << endl;
+		os << m.m[2][0] << ',' << m.m[2][1] << ',' << m.m[2][2] << ',' << m.m[2][3] << endl;
+		os << m.m[3][0] << ',' << m.m[3][1] << ',' << m.m[3][2] << ',' << m.m[3][3] << endl;
+		return os;
+	};
+
+	void QuaternionMultiplyTest(const Quaternion &q, const Vector3 &v, const Quaternion &ldq);
 
 	float randf()
 	{
@@ -40,33 +90,115 @@ namespace Test
 
 	bool QuaternionEulerTest()
 	{
+		XMMatrixCrossProductTest();
 		// Patch Yaw Roll = (1.4,0.8,0.4)
-		Quaternion q = XMQuaternionRotationRollPitchYaw(1.4, 0.8, -1.4);
-		cout << "q = " << q << endl;
+		Vector3 v(0, 1, 0);
+		Quaternion ldq;
+		Quaternion q = XMQuaternionRotationRollPitchYaw(0.01, 0.01, 0.5);
+		//Quaternion ldq(0.001, 0.0, 0.0, 0);
+		//QuaternionMultiplyTest(q, v, ldq);
+		//cout << "=====" << endl;
 
-		Vector3 eular = XMQuaternionEulerAngleYawPitchRoll(q);
-		cout << "eular = " << eular << endl;
+		ldq = Quaternion(0.0, 0.001, 0.0, 0);
+		QuaternionMultiplyTest(q, v, ldq);
+		cout << "=====" << endl;
+
+		v = XMVector3Rotate(v, q);
+		q = XMQuaternionIdentity();
+
+		XMVECTOR v0 = XMVector3Rotate(v, XMVectorSet(-0.000244786148,0.000958836172,6.69062138e-06,0.999999464));
+		XMVECTOR v1 = XMVector3Rotate(v, XMVectorSet(0.000000000,0.000999999815,0.000000000,0.999999523));
+		v0 -= v;
+		v1 -= v;
+
+		ldq = Quaternion(0.001, 0.0, 0.0, 0);
+		QuaternionMultiplyTest(q, v, ldq);
+		cout << "=====" << endl;
+		ldq = Quaternion(0.0, 0.001, 0.0, 0);
+		QuaternionMultiplyTest(q, v, ldq);
+		cout << "=====" << endl;
+		return true;
+	}
+
+	void QuaternionMultiplyTest(const Quaternion &q, const Vector3 &v, const Quaternion &ldq)
+	{
+		XMVECTOR axis;
+		float ang;
+		XMQuaternionToAxisAngle(&axis, &ang, q);
+		axis = XMVector3Normalize(axis);
+		ang *= 0.5;
+
+		cout << "q = " << q << endl;
 
 		Quaternion lq = XMQuaternionLn(q);
 		cout << "ln(q) = " << lq << endl;
-		Quaternion ldq(0.01f, 0, 0, 0);
+
 		cout << "dlnq = d(ln(q)) = " << ldq << endl;
 		Quaternion dq = XMQuaternionExp(ldq);
 		cout << "dq = exp(d(ln(q))) = " << dq << endl;
 
-		lq = XMQuaternionExp((lq + ldq));
-		cout << "exp(ln(q)+d(ln(q))) = " << lq << endl;
+		dq = XMQuaternionExp((lq + ldq));
+		cout << "exp(ln(q)+d(ln(q))) = " << dq << endl;
+		dq = XMQuaternionMultiply(XMQuaternionConjugate(q), dq);
+		cout << "dq = q^-1 * exp(ln(q)+d(ln(q))) = " << dq << endl;
+
+		cout << "||dq|| =" << XMVectorGetX(XMVector3Length(dq)) << endl;
+
+		float sinadiva = 1.0f;
+		if (fabs(ang) > std::numeric_limits<float>::epsilon())
+			sinadiva = sin(ang) / ang;
+
+		Quaternion estimate = sinadiva * (cos(ang) * (XMVECTOR)ldq + sin(ang)*XMVector3Cross(axis, ldq));
+		Quaternion another = XMVector3Dot(ldq, axis);
+		//another *= axis;
+		//estimate += another;
+
+		cout << "estimate = " << estimate << endl;
+
+		XMVECTOR cosA = XMVectorSplatW(q);
+		XMVECTOR sinA = XMVectorSqrt(g_XMOne.v - cosA * cosA);
+
+		//Matrix4x4 jac = XMVectorGetX(sinA) * XMMatrixCrossProduct(axis) + XMMatrixScalingFromVector(cosA);
+
+		Matrix4x4 jac = sinadiva* (sin(ang)* XMMatrixCrossProduct(axis) + cos(ang) * XMMatrixIdentity());
+		cout << "jaccobi == " << endl << jac << endl;
+		Quaternion estimate2 = XMVector3TransformNormal(ldq, jac);
+		cout << "estimate2 = " << estimate2 << endl;
+
+		Vector3 qv = XMVector3Rotate(v, q);
+		cout << "qv = " << qv << endl;
+
+		Matrix4x4 derv = -XMMatrixCrossProduct(qv);
+		cout << endl << "analatic derv d(qv)/d(q) == " << endl << derv;
+
+		derv = jac * derv;
+		cout << endl << "overall derv == " << endl << derv ;
+
+		Vector3 derest = Vector3::TransformNormal(Vector3(ldq), derv);
+		derest *= XMVector3ReciprocalLength(ldq) * 2;
+		cout << "new analatic derv = " << derest << endl;
+
+
+		Vector3 dotvdq = XMVector3Dot(qv, dq);
+		Vector3 crossvdq = XMVector3Cross(qv, dq);
+		cout << "dot(qv,dq) = " << dotvdq << endl;
+		cout << "cross(qv) = " << crossvdq << endl;
+
+		Vector3 dif = XMVector3Rotate(qv, dq) - (XMVECTOR)qv;
+		dif *= XMVector3ReciprocalLength(dq);
+
+		cout << "d(rv)/dq = " << dif << endl;
 
 		lq = XMQuaternionMultiply(q, dq);
 		cout << "q * dq= " << lq << endl;
 
 		lq = XMQuaternionMultiply(dq, q);
 		cout << "dq * q= " << lq << endl;
-		return true;
 	}
 
 	bool InverseKinematicsTest()
 	{
+		QuaternionEulerTest();
 		using namespace DirectX;
 
 		ChainInverseKinematics cik(3);
@@ -83,9 +215,9 @@ namespace Test
 		vector<Quaternion> rotations(3);
 		for (size_t i = 0; i < 1; i++)
 		{
-			rotations[0] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.1);
-			rotations[1] = XMQuaternionRotationRollPitchYaw(0.5, 0, 0.5);
-			rotations[2] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.1);
+			rotations[0] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.01);
+			rotations[1] = XMQuaternionRotationRollPitchYaw(0.01, 0, 0.5);
+			rotations[2] = XMQuaternionRotationRollPitchYaw(0.5, 0.01, 0.5);
 			Vector3 goal = XMVectorSet(1.0f + randf(), randf(), randf(), 0);
 			auto code = cik.solve(goal, rotations);
 			Vector3 achieved = cik.endPosition(rotations);
@@ -352,6 +484,7 @@ void ChainInverseKinematics::computeJointWeights()
 }
 
 // Jaccobbi from a rotation radius vector (r) respect to a small rotation dr = (drx,dry,drz) in global reference frame
+// [\mathbf{a}]_{\times} \stackrel{\rm def}{=} \begin{bmatrix}\,\,0&\!-a_3&\,\,\,a_2\\\,\,\,a_3&0&\!-a_1\\\!-a_2&\,\,a_1&\,\,0\end{bmatrix}.
 void ChainInverseKinematics::jacobbiRespectAxisAngle(Matrix4x4 & j, const float * r)
 {
 	j._11 = 0, j._12 = -r[2], j._13 = r[1];
@@ -405,14 +538,15 @@ XMMATRIX XM_CALLCONV Causality::ChainInverseKinematics::jacobbiTransposeRespectA
 	XMVECTOR V;
 	XMMATRIX MJ;
 	XM_ALIGNATTR Matrix4x4 jac;
-	XMVECTORF32 r;
-	r.v = XMVector3Rotate(rv, qrot);
+	XM_ALIGNATTR Vector4 r;
+	V = XMVector3Rotate(rv, qrot);
+	XMStoreA(r, V);
 	XMVECTOR Q = globalRot; //XMQuaternionMultiply(qrot, globalRot);
 
 	//r.v = rv;
 	//XMVECTOR Q = XMQuaternionMultiply(qrot, globalRot);
 
-	jacobbiRespectAxisAngle(jac, r.f);
+	jacobbiRespectAxisAngle(jac, &r.x);
 
 
 	// Rotate each row of the matrix
@@ -426,6 +560,17 @@ XMMATRIX XM_CALLCONV Causality::ChainInverseKinematics::jacobbiTransposeRespectA
 	V = XMVector3Rotate(V, Q);
 	MJ.r[2] = V;
 	MJ.r[3] = XMVectorZero();
+
+	XMVECTOR axis = XMVector3Normalize(qrot);
+	XMVECTOR cosA = XMVectorSplatW(qrot);
+	XMVECTOR sinA = XMVectorSqrt(g_XMOne.v - cosA * cosA);
+	XMVECTOR sinc_a = g_XMOne.v - (g_XMOne.v - cosA) / 3.0; // sinc(x) ~= 1 - x^2/6 == 1 - (1-cos(x))/3
+
+	cosA *= sinc_a;
+	sinA *= sinc_a;
+	XMMATRIX jacq_lnq = XMVectorGetX(sinA) * XMMatrixCrossProduct(axis) + XMMatrixScalingFromVector(cosA);
+	//cout << "jaccobi == " << endl << jac << endl;
+	MJ = jacq_lnq * MJ;
 
 	return MJ;
 }
