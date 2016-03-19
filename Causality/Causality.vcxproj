@@ -185,6 +185,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OpenAvataring\hgplvmik.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\OpenAvataring\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -290,6 +296,7 @@
     </FxCompile>
   </ItemGroup>-->
   <ItemGroup>
+    <ClInclude Include="..\OpenAvataring\hgplvmik.h" />
     <ClInclude Include="..\OpenAvataring\Quaternion.hlsli" />
     <ClInclude Include="..\OpenAvataring\TrackerCS_cbuffer.inl" />
     <ClInclude Include="..\OpenAvataring\TrackerCS.inl" />

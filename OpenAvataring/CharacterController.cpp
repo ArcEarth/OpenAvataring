@@ -1042,8 +1042,14 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		//! PCA Decoder configration
 		auto Wjx = part.Wx.cast<double>().eval();
 
-		auto pDecoder = std::make_unique<RelativeLnQuaternionDecoder>();
-		//auto pDecoder = std::make_unique<RelativeLnQuaternionPcaDecoder>();
+		//auto pDecoder = std::make_unique<RelativeLnQuaternionDecoder>();
+
+		auto pDecoder = std::make_unique<RelativeLnQuaternionPcaDecoder>();
+		pDecoder->meanY.setZero(Wjx.size());
+		pDecoder->pcaY.setIdentity(Wjx.size(), Wjx.size());
+		pDecoder->pcaY.diagonal() = Wjx.cwiseInverse();
+		pDecoder->invPcaY = pDecoder->pcaY.cwiseInverse();
+
 		//pDecoder->meanY = pca.mean().cast<double>() * Wjx.cwiseInverse().asDiagonal();
 		//pDecoder->pcaY = pca.components(d).cast<double>();
 		//pDecoder->invPcaY = pDecoder->pcaY.transpose();

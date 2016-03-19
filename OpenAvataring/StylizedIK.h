@@ -61,6 +61,8 @@ namespace Causality
 		row_vector_t									    m_eyNorm;
 		row_vector_t									    m_wy;	//weights of y
 
+		row_vector_t										m_maxY;
+		row_vector_t										m_minY;
 		Eigen::MatrixXd										m_limy;	//weights of y
 
 		row_vector_t									    m_ey;
@@ -127,6 +129,9 @@ namespace Causality
 	protected:
 		double ikDistance(const row_vector_t & y) const;
 		row_vector_t ikDistanceDerivative(const row_vector_t & y) const;
+
+		double limitDistance(const row_vector_t & y) const;
+		row_vector_t limitDistanceDerivative(const row_vector_t & y) const;
 
 		// Decode input vector into local rotation quaternions
 		//! IMPORTANT

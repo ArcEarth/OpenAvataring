@@ -235,6 +235,9 @@
     </ClCompile>
     <ClCompile Include="..\OpenAvataring\StylizedIKCodec.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="..\OpenAvataring\hgplvmik.cpp">
+      <Filter>Avataring Control\StylizedIK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NativeWindow.h">
@@ -479,6 +482,9 @@
     </ClInclude>
     <ClInclude Include="Tests.h">
       <Filter>Platform Application Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OpenAvataring\hgplvmik.h">
+      <Filter>Avataring Control\StylizedIK</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

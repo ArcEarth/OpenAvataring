@@ -83,7 +83,11 @@ void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, Armature
 
 	m_iy = m_gpr.uY;
 
+	m_iy = m_gplvm.uY;
 	m_ix.setZero(m_gplvm.latent_dimension());
+
+	m_minY = m_gplvm.Y.colwise().minCoeff()/* * 1.2*/ + m_gplvm.uY;
+	m_maxY = m_gplvm.Y.colwise().maxCoeff()/* * 1.2*/ + m_gplvm.uY;
 
 	if (!m_cValiad)
 		m_cy = m_iy;
@@ -141,11 +145,21 @@ StylizedChainIK::row_vector_t StylizedChainIK::ikDistanceDerivative(const row_ve
 	return ikderv;
 }
 
+double StylizedChainIK::limitDistance(const row_vector_t & y) const
+{
+	return  m_ikLimitWeight * ((m_minY - y).cwiseMax(y - m_maxY)).cwiseMax(0).cwiseAbs2().sum();
+}
+
+row_vector_t StylizedChainIK::limitDistanceDerivative(const row_vector_t & y) const
+{
+	return 2.0 * m_ikLimitWeight * ((y - m_minY).cwiseMin(0) + (y - m_maxY).cwiseMax(0));
+}
+
 double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::RowVectorXd & y)
 {
 	double ikdis = ikDistance(y);
 
-	//double iklimdis = ((m_limy.row(0) - y).cwiseMax(y - m_limy.row(1))).cwiseMax(0).cwiseAbs2().sum() * m_ikLimitWeight;
+	double iklimdis = limitDistance(y);
 
 	double markovdis = ((y - m_cy).cwiseAbs2().array() / m_cyNorm.array()).sum() / (double)m_cy.size() * m_markovWeight;
 
@@ -162,7 +176,7 @@ RowVectorXd StylizedChainIK::objective_derv(const Eigen::RowVectorXd & x, const 
 	// IK term derv
 	RowVectorXd ikderv = ikDistanceDerivative(y);
 
-	//RowVectorXd iklimderv = 2.0 * m_ikLimitWeight * ((y - m_limy.row(0)).cwiseMin(0) + (y - m_limy.row(1)).cwiseMax(0));
+	RowVectorXd iklimderv = limitDistanceDerivative(y);
 
 	// Markov progation derv
 	RowVectorXd markovderv = 2.0 * m_markovWeight * ((y - m_cy).array() / m_cyNorm.array()) / (double)m_cy.size();
@@ -384,6 +398,8 @@ double StylizedChainIK::objective_xy(const Eigen::RowVectorXd & x, const Eigen::
 {
 	double ikdis = 0;
 	ikdis = ikDistance(y);
+	double limitdis = 0;
+	limitdis = limitDistance(y);
 
 	double stylik = 0;
 	stylik = m_styleWeight / (double)y.cols() * m_gplvm.get_likelihood_xy(x, y);
@@ -399,6 +415,7 @@ RowVectorXd StylizedChainIK::objective_xy_derv(const Eigen::RowVectorXd & x, con
 	// stylik gradiant
 	derv = m_styleWeight / (double)y.cols() * m_gplvm.get_likelihood_xy_derivative(x, y);
 	derv.segment(x.size(), y.size()) += ikDistanceDerivative(y);
+	derv.segment(x.size(), y.size()) += limitDistanceDerivative(y);
 
 	return derv;
 }
