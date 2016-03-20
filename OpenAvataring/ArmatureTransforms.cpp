@@ -78,10 +78,10 @@ typedef
 InputExtractorType;
 
 typedef
-Pcad <
+//Pcad <
 	Weighted <
 	RelativeDeformation <
-	AllJoints < CharacterFeature > > > >
+	AllJoints < CharacterFeature > > > //>
 	OutputExtractorType;
 
 
@@ -461,7 +461,7 @@ PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, Cha
 
 	auto& ucinfo = controller.GetUnitedClipinfo();
 
-	pOF->InitPcas(parts.size());
+	//pOF->InitPcas(parts.size());
 	pOF->SetDefaultFrame(armature.bind_frame());
 	pOF->InitializeWeights(parts);
 
@@ -474,12 +474,12 @@ PartilizedTransformer::PartilizedTransformer(const ShrinkedArmature& sParts, Cha
 		{
 			auto &pca = facade.GetPartPca(pid);
 			auto d = facade.GetPartPcaDim(pid);
-			pOF->SetPca(pid, pca.components(d), pca.mean());
+			//pOF->SetPca(pid, pca.components(d), pca.mean());
 		}
 		else
 		{
 			int odim = facade.GetPartDimension(pid);
-			pOF->SetPca(pid, MatrixXf::Identity(odim, odim), facade.GetPartMean(pid));
+			//pOF->SetPca(pid, MatrixXf::Identity(odim, odim), facade.GetPartMean(pid));
 		}
 	}
 
@@ -559,14 +559,16 @@ void PartilizedTransformer::Transform(frame_view target_frame, const_frame_view 
 		}
 	}
 
-	actPartsEnergy = /*1.0 - */actPartsEnergy.array()/g_DynamicTraderKeyEnergy;
-	actPartsEnergy = actPartsEnergy.cwiseMax(.0).cwiseMin(1.0);
+	if (m_useTracker && m_pTrackerFeature && g_EnableDependentControl)
+	{
+		actPartsEnergy = /*1.0 - */actPartsEnergy.array() / g_DynamicTraderKeyEnergy;
+		actPartsEnergy = actPartsEnergy.cwiseMax(.0).cwiseMin(1.0);
 
-	if (m_useTracker && m_pTrackerFeature)
-		BlendFrame(*m_pTrackerFeature, *m_cParts, target_frame, array_view<double>(actPartsEnergy.data(),actPartsEnergy.size()), m_ikDrivedFrame, m_trackerFrame);
+		BlendFrame(*m_pTrackerFeature, *m_cParts, target_frame, array_view<double>(actPartsEnergy.data(), actPartsEnergy.size()), m_ikDrivedFrame, m_trackerFrame);
+	}
 	else
 	{
-		target_frame = m_ikDrivedFrame;
+		std::copy(m_ikDrivedFrame.begin(), m_ikDrivedFrame.end(), target_frame.begin());
 	}
 
 	// Apply joint filter
@@ -641,7 +643,7 @@ void Causality::BlendFrame(IArmaturePartFeature& feature, const ShrinkedArmature
 
 }
 
-void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowVectorXd &Xd, ArmatureFrameView target_frame)
+void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowVectorXd &Xd, frame_view target_frame)
 {
 	auto& sik = m_controller.GetStylizedIK(cpart.Index);
 	auto& gpr = sik.Gpr();
@@ -652,7 +654,7 @@ void PartilizedTransformer::DriveAccesseryPart(ArmaturePart & cpart, Eigen::RowV
 	m_pDrivenF->Set(cpart, target_frame, Y.cast<float>());
 }
 
-void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFrameView target_frame, Eigen::RowVectorXf &xf, bool computeVelocity)
+void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, frame_view target_frame, Eigen::RowVectorXf &xf, bool computeVelocity)
 {
 	RowVectorXd Xd, Y;
 
@@ -669,7 +671,7 @@ void PartilizedTransformer::DriveActivePartSIK(ArmaturePart & cpart, ArmatureFra
 	}
 
 	//sik.SetBaseRotation(baseRot);
-	sik.setChain(cpart.Joints, target_frame);
+	//sik.setChain(cpart.Joints, target_frame);
 
 	Xd = xf.cast<double>();
 	if (!computeVelocity)
@@ -1029,7 +1031,7 @@ int GetFrameVectorSize(const IArmaturePartFeature* feature, const ShrinkedArmatu
 
 }
 
-void PartilizedTransformer::DrivePartsTrackers(TrackerVectorType &_x, float frame_time, ArmatureFrameView target_frame)
+void PartilizedTransformer::DrivePartsTrackers(TrackerVectorType &_x, float frame_time, frame_view target_frame)
 {
 	if (m_pTrackerFeature == nullptr)
 	{

@@ -110,7 +110,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 
 	ClipFacade::EnergyFilterFunctionType binded = std::bind(&CharacterClipinfo::FilterLocalRotationEnergy, *this, std::placeholders::_1);
 	RcFacade.SetEnergyFilterFunction(std::move(binded));
-	PvFacade.Prepare(parts, -1, ClipFacade::ComputeAll);
+	PvFacade.Prepare(parts, -1, ClipFacade::ComputePcaQr | ClipFacade::ComputeNormalize | ClipFacade::ComputePairDif);
 }
 
 void CharacterClipinfo::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime, bool cyclic)
@@ -491,7 +491,7 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 	m_flag = flag;
 
 	m_Edim.resize(parts.size());
-	m_Eb.resize(parts.size());
+	m_Eb.setOnes(parts.size());
 	m_partDim.resize(parts.size());
 	m_partSt.resize(parts.size());
 
@@ -609,7 +609,10 @@ void ClipFacade::CaculatePartsMetric()
 		m_Xnor = m_X;
 
 	m_Edim.resize(parts.size());
-	m_Eb.setZero(parts.size());
+
+	if (m_flag & ComputeEnergy)
+		m_Eb.setZero(parts.size());
+
 	m_partDim.resize(parts.size());
 	m_partSt.resize(parts.size());
 	m_Pcas.resize(parts.size());

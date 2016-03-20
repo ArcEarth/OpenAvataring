@@ -40,7 +40,13 @@ namespace Causality
 			inline static void Get(_Out_ Eigen::DenseBase<Derived>& fv, _In_ const Bone& bone)
 			{
 				XM_ALIGNATTR Vector3 qs;
-				DirectX::XMVECTOR q = XMLoadA(bone.LclRotation);
+				using namespace DirectX;
+				DirectX::XMVECTOR q;
+				q = XMLoadA(bone.LclRotation);
+
+				if (bone.LclRotation.w < .0f)
+					q = XMVectorNegate(q);
+
 				q = DirectX::XMQuaternionLn(q);
 				//q *= bone.GblLength;
 				XMStoreA(qs,q);

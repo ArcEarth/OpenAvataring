@@ -1,0 +1,9 @@
+<param_store>
+    <cr_75_vel0_wj0_walk_run_attack>
+        <Bone26 alpha="0.044203701875270479" beta="1.048425330772204e-07" gamma="0.021100555601376317" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Bone26.csv"/>
+        <Bone16 alpha="0.94879415424624791" beta="5.7844263538164883e-06" gamma="0.0029231608967003847" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Bone16.csv"/>
+        <Bone08 alpha="0.24220647244484994" beta="6.571541474540732e-08" gamma="0.0026311743738688404" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Bone08.csv"/>
+        <Bone12 alpha="0.027231604521312562" beta="1e-10" gamma="0.012948372338274974" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Bone12.csv"/>
+        <Bone21 alpha="0.95477352775027635" beta="1.3907915497027165e-05" gamma="0.0014561938218634407" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Bone21.csv"/>
+    </cr_75_vel0_wj0_walk_run_attack>
+</param_store>

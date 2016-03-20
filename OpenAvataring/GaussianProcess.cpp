@@ -12,8 +12,8 @@
 using namespace Causality;
 
 static constexpr double almost_zero = 1e-6;
-static constexpr double g_paramMin = 1e-7;
-static constexpr double g_paramMax = 1e7;
+static constexpr double g_paramMin = 1e-10;
+static constexpr double g_paramMax = 1e10;
 static constexpr double g_paramWeight = 1;
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
@@ -413,8 +413,8 @@ double gaussian_process_regression::optimze_parameters()
 
 	ParamType param;
 
-	std::vector<double> alphas = { 0.05 };
-	std::vector<double> betas = { 1e-2, 1e-6};
+	std::vector<double> alphas = { 0.05,0.5, 1.0 };
+	std::vector<double> betas = { 1.0, 1e-2 };
 	std::vector<double> gemmas(5);
 	for (size_t i = 0; i < gemmas.size(); i++)
 	{
@@ -629,8 +629,8 @@ double gplvm::learn_model(int max_iter)
 
 	ParamType param;
 
-	std::vector<double> alphas = { 0.05, 1.0 };
-	std::vector<double> betas = { 1e-2, 1e-6 };
+	std::vector<double> alphas = { 0.05,0.5, 1.0 };
+	std::vector<double> betas = { 1.0, 1e-2, 1e-4 };
 	std::vector<double> gemmas(5);
 	for (size_t i = 0; i < gemmas.size(); i++)
 	{

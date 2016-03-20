@@ -280,11 +280,11 @@ public:
 
 				//block->PdStyleIk.SetHint();
 				//sik.setHint(yf.cast<double>());
-				Y = sik.solve(X.transpose(), X.transpose(), baseRot);
-				//if (!g_UseVelocity)
-				//	Y = sik.apply(X.transpose(), baseRot).cast<double>();
-				//else
-				//	Y = sik.apply(X.segment(0, pvDim).transpose(), Vector3d(X.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
+				//Y = sik.solve(X.transpose(), X.transpose(), baseRot);
+				if (!g_UseVelocity)
+					Y = sik.apply(X.transpose(), baseRot).cast<double>();
+				else
+					Y = sik.apply(X.segment(0, pvDim).transpose(), Vector3d(X.segment(pvDim, pvDim).transpose()), baseRot).cast<double>();
 
 				//block->PdStyleIk.SetGoal(X.leftCols<3>());
 
@@ -308,7 +308,7 @@ public:
 		}
 
 		// Fill Xabpv
-		if (g_EnableDependentControl)
+		if (g_EnableDependentControl && false)
 		{
 			RowVectorXd Xabpv;
 			Xabpv.resize(pController->uXabpv.size());
@@ -725,7 +725,10 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 
 	for (auto& anim : clips)
 	{
-		if (anim.Name == "idle" || anim.Name == "die")
+		string name = anim.Name;
+		std::transform(BEGIN_TO_END(name), name.begin(), std::tolower);
+
+		if (name == "idle" || name == "die" || name == "dead" || name == "death")
 			anim.IsCyclic = false;
 		else
 			anim.IsCyclic = true;
@@ -840,8 +843,10 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		for (auto& clipinfo : m_Clipinfos)
 		{
 			assert(clipinfo.IsReady());
-
-			auto& Eb = clipinfo.PvFacade.GetAllPartsEnergy();
+			auto& Epv = clipinfo.PvFacade.GetAllPartsEnergy();
+			auto& Erc = clipinfo.RcFacade.GetAllPartsEnergy();
+			//auto Eb = Erc.array() * Epv.array();
+			auto& Eb = Erc;
 			globalEnergyMax = std::max(Eb.maxCoeff(), globalEnergyMax);
 
 			//DEBUGOUT(Eb);
@@ -852,9 +857,13 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		for (auto& clipinfo : m_Clipinfos)
 		{
 			auto& key = clipinfo.ClipName();
-			const auto& pvfacade = clipinfo.PvFacade;
-			auto& Eb = clipinfo.PvFacade.GetAllPartsEnergy();
+			const auto& pvfacade = clipinfo.RcFacade;
 
+			auto& Epv = clipinfo.PvFacade.GetAllPartsEnergy();
+			auto& Erc = clipinfo.RcFacade.GetAllPartsEnergy();
+
+			//auto Eb = (Erc.array() * Epv.array()).eval();
+			auto& Eb = Erc;
 			for (int i = 0; i < Eb.size(); i++)
 			{
 				if (std::binary_search(BEGIN_TO_END(pvfacade.ActiveParts()),i))
@@ -886,6 +895,12 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 		m_SubactiveParts.assign(BEGIN_TO_END(subactSet));
 		vector<int>& activeParts = m_ActiveParts;
 		vector<int>& subactParts = m_SubactiveParts;
+
+		for (auto& clipinfo : m_Clipinfos)
+		{
+			auto& Erc = clipinfo.RcFacade.GetAllPartsEnergy();
+		}
+
 
 		cout << "== Active parts ==" << endl;
 		for (auto& ap : activeParts)
@@ -1048,7 +1063,8 @@ void CharacterController::InitializeAcvtivePart(ArmaturePart & part, tinyxml2::X
 		pDecoder->meanY.setZero(Wjx.size());
 		pDecoder->pcaY.setIdentity(Wjx.size(), Wjx.size());
 		pDecoder->pcaY.diagonal() = Wjx.cwiseInverse();
-		pDecoder->invPcaY = pDecoder->pcaY.cwiseInverse();
+		pDecoder->invPcaY.setZero(Wjx.size(), Wjx.size());
+		pDecoder->invPcaY.diagonal() = Wjx;
 
 		//pDecoder->meanY = pca.mean().cast<double>() * Wjx.cwiseInverse().asDiagonal();
 		//pDecoder->pcaY = pca.components(d).cast<double>();
@@ -1108,7 +1124,7 @@ void CharacterController::InitializeSubacvtivePart(ArmaturePart & part, const Ei
 		// paramter caching 
 		const auto&	partName = part.Joints[0]->Name;
 
-		InitGprXML(settings, partName, gpr, sik.Gplvm());
+		//InitGprXML(settings, partName, gpr, sik.Gplvm());
 	}
 }
 
@@ -1206,7 +1222,7 @@ void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, 
 		}
 		if (!lvmSetted)
 		{
-			gplvm.learn_model(100);
+			//gplvm.learn_model(100);
 		}
 
 		if (g_LoadCharacterModelParameter)

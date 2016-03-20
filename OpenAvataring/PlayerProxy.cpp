@@ -914,8 +914,10 @@ void PlayerProxy::UpdateSelfMotionBinder(const Causality::time_seconds & time_de
 		//}
 
 		// Add motion to non-active joints that visualize more about errors for active joints
-		target_frame = frame;
+		//target_frame = m_charaFrame;
 		//AddNoise(frame, .1f);
+
+		target_frame = frame;
 		controller.SelfBinding().Transform(target_frame, frame, last_frame, time_delta.count());
 	}
 }

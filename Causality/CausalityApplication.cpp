@@ -163,7 +163,9 @@ bool App::OnStartup(const std::vector<std::string>& args)
 		pConsole->Move(x, y);
 	}
 
-	if (!TestManager::RunTest())
+	bool runTest = false;
+	GetParam(appSettings, "run_test", runTest);
+	if (runTest && !TestManager::RunTest())
 	{
 		std::cout << "[Error] Test Failed! Press any key to exit" << std::endl;
 		return false;

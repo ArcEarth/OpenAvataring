@@ -1,56 +1,8 @@
 <param_store>
-    <cr_75_vel0_wj0_walk_run_jump>
-        <Tail1 alpha="0.0061177059343982612" beta="100000" gamma="29.186555690399832"/>
-        <LeftUpLeg alpha="1.1435081780284593" beta="29384.966923986456" gamma="0.25146482350971922"/>
-        <LeftShoulder alpha="0.12267741489944935" beta="100000" gamma="4.0186034377425228"/>
-        <RightShoulder alpha="0.30462899003351751" beta="100000" gamma="7.7706489775633765"/>
-        <RightEar1 alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <RightEye alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <RightHeadVolume alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <LeftHeadVolume alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <LeftEye alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <RightEyeUpperLid alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <ChestVolume alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <Jaw alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <BellyVolume alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <RightCheek alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <Tontue alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <Spine alpha="0.12182945314899721" beta="29628.905415601403" gamma="0.014820516791778766"/>
-        <TopHeadVolume alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <LeftEyeBottomLid alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <RightEyeBottomLid alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <LeftCheek alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <Neck alpha="0.25060708791902719" beta="100000" gamma="0.0097438817669648677"/>
-        <LeftEar1 alpha="1.0000000000000001e-05" beta="1.0000000000000001e-05" gamma="1.0000000000000001e-05"/>
-        <LeftEyeUpperLid alpha="1.0000000000000001e-05" beta="100000" gamma="1.0000000000000001e-05"/>
-        <Spine1 alpha="0.0098614088247803433" beta="100000" gamma="0.005223075859346513"/>
-    </cr_75_vel0_wj0_walk_run_jump>
     <cr_75_vel0_wj0_walk>
-        <LeftShoulder alpha="582.25161765967528" beta="631738.37572322879" gamma="0.029034458340038719"/>
-        <RightShoulder alpha="0.14172207153704072" beta="1463542.3109725807" gamma="0.42956900396012182"/>
-        <LeftUpLeg alpha="5.0771998624095307" beta="246362.91980094448" gamma="0.10769688665087379"/>
-        <RightUpLeg alpha="0.61372619825436714" beta="2068383.0835686848" gamma="1.5643851876244785"/>
-        <LeftEye alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <RightHeadVolume alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <RightEye alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <Spine1 alpha="893237.63669490477" beta="10000000" gamma="1.1068078630129034e-07"/>
-        <RightCheek alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <ChestVolume alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <RightEyeBottomLid alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <TopHeadVolume alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <LeftCheek alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <BellyVolume alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <RightEyeUpperLid alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <Jaw alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <LeftEyeUpperLid alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <LeftHeadVolume alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <Neck alpha="2484652.4396482455" beta="687483.93515412917" gamma="1.8306563996437437e-05"/>
-        <LeftEyeBottomLid alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <Tontue alpha="9.9999999999999995e-08" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <LeftEar1 alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <RightEar1 alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <Tail1 alpha="9.9999999999999995e-08" beta="1430.5967330115493" gamma="9.9999999999999995e-08"/>
-        <Spine3 alpha="57.349585174604115" beta="10000000" gamma="9.9999999999999995e-08"/>
-        <Spine alpha="45.789041121291952" beta="10000000" gamma="9.9999999999999995e-08"/>
+        <LeftUpLeg alpha="0.90998941602314665" beta="1.818786937809009e-06" gamma="0.22489291106635378" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
+        <LeftShoulder alpha="0.049757288576524228" beta="5.4133405508055701e-08" gamma="0.73310885346160948" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftShoulder.csv"/>
+        <RightUpLeg alpha="0.0499999473804843" beta="1.7382417403295213e-08" gamma="0.51232937141190094" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightUpLeg.csv"/>
+        <RightShoulder alpha="0.049572395630320766" beta="2.811043138076191e-08" gamma="1.2815639929949909" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightShoulder.csv"/>
     </cr_75_vel0_wj0_walk>
 </param_store>
