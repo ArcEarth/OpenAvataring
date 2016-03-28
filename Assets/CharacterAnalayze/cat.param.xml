@@ -1,8 +1,9 @@
 <param_store>
     <cr_75_vel0_wj0_walk>
-        <LeftUpLeg alpha="0.90998941602314665" beta="1.818786937809009e-06" gamma="0.22489291106635378" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
-        <LeftShoulder alpha="0.049757288576524228" beta="5.4133405508055701e-08" gamma="0.73310885346160948" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftShoulder.csv"/>
-        <RightUpLeg alpha="0.0499999473804843" beta="1.7382417403295213e-08" gamma="0.51232937141190094" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightUpLeg.csv"/>
-        <RightShoulder alpha="0.049572395630320766" beta="2.811043138076191e-08" gamma="1.2815639929949909" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightShoulder.csv"/>
+        <RightUpLeg alpha="0.079135823193787994" beta="0.001" gamma="0.090332156786531281" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightUpLeg.csv"/>
+        <LeftUpLeg alpha="0.060985182483155466" beta="0.001" gamma="0.15200547453697927" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
+        <RightShoulder alpha="0.01850886133759317" beta="0.001" gamma="0.14255729070143536" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightShoulder.csv"/>
+        <LeftShoulder alpha="0.021048177405648905" beta="0.001" gamma="0.15940540162021941" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftShoulder.csv"/>
+        <Tail1 alpha="0.001" beta="0.001" gamma="0.018518748170382661" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Tail1.csv"/>
     </cr_75_vel0_wj0_walk>
 </param_store>

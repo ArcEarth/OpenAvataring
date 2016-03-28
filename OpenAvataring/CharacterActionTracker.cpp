@@ -435,8 +435,16 @@ void CharacterActionTracker::SetupGpuImplParameters()
 		constants.thrVt = m_thrVt;
 
 		assert((m_LikCov.size() % 6 == 0) && "Tracking vector dimension have changed!!!");
-		constants.poseSigma = *reinterpret_cast<concurrency::graphics::float_3*>(m_LikCov.data());
-		constants.velSigma = *reinterpret_cast<concurrency::graphics::float_3*>(m_LikCov.data() + 3);
+		if (m_LikCov.data() == nullptr || m_LikCov.size() == 0)
+		{
+			constants.poseSigma = 1.0f;
+			constants.velSigma = 1.0f;
+		}
+		else
+		{
+			constants.poseSigma = *reinterpret_cast<concurrency::graphics::float_3*>(m_LikCov.data());
+			constants.velSigma = *reinterpret_cast<concurrency::graphics::float_3*>(m_LikCov.data() + 3);
+		}
 	}
 }
 

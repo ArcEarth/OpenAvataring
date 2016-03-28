@@ -519,7 +519,7 @@ void ClipFacade::Prepare(const ShrinkedArmature & parts, int clipLength, int fla
 			m_partSt[i] = m_partSt[i - 1] + m_partDim[i - 1];
 		}
 
-		m_Edim[i].resize(m_partDim[i]);
+		m_Edim[i].setOnes(m_partDim[i]);
 	}
 	m_dimP = m_pdFix ? m_partDim[0] : -1;
 
@@ -609,6 +609,8 @@ void ClipFacade::CaculatePartsMetric()
 		m_Xnor = m_X;
 
 	m_Edim.resize(parts.size());
+	for (int i = 0; i < parts.size(); i++)
+		m_Edim[i].setOnes(m_partDim[i]);
 
 	if (m_flag & ComputeEnergy)
 		m_Eb.setZero(parts.size());
@@ -693,13 +695,17 @@ void ClipFacade::CaculatePartsMetric()
 
 	for (int i = 0; i < parts.size(); i++)
 	{
-		if (m_Eb[i] > m_ActiveEnergyThreshold * maxEnergy)
+		// Prevent root part become an active part
+		if (i > 0)
 		{
-			m_ActiveParts.push_back(i);
-		}
-		else if (m_Eb[i] > m_SubactiveEnergyThreshold * maxEnergy)
-		{
-			m_SubactiveParts.push_back(i);
+			if (m_Eb[i] > m_ActiveEnergyThreshold * maxEnergy)
+			{
+				m_ActiveParts.push_back(i);
+			}
+			else if (m_Eb[i] > m_SubactiveEnergyThreshold * maxEnergy)
+			{
+				m_SubactiveParts.push_back(i);
+			}
 		}
 
 		// Compute Pca for all active and sub-active parts

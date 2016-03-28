@@ -1,23 +1,9 @@
 <param_store>
     <cr_75_vel0_wj0_walk_run>
-        <LeftArm alpha="0.049221220978331433" beta="3.4545363108260336e-06" gamma="0.031731053331550817" lvm_alpha="0.99820144726263449" lvm_beta="0.00012445224827508389" lvm_gamma="18.713605484083104" lvm_X_src="LeftArm.csv"/>
-        <Tail1 alpha="0.025533890161814173" beta="2.4125656593928162e-07" gamma="0.29759509608868778" lvm_alpha="0.049897738705791728" lvm_beta="0.00067350262822966846" lvm_gamma="17.652800110703602" lvm_X_src="Tail1.csv"/>
-        <RightArm alpha="0.043480010800515931" beta="1.5068239022739851e-06" gamma="0.038706624644197801" lvm_alpha="1.0101091928446642" lvm_beta="0.00038871034501158805" lvm_gamma="2.6945702417635329" lvm_X_src="RightArm.csv"/>
-        <LeftUpLeg alpha="0.03266186675940605" beta="5.9460902696202891e-07" gamma="0.022520918187505467" lvm_alpha="0.99881341712270544" lvm_beta="0.00057229963468197805" lvm_gamma="3.1267275304124844" lvm_X_src="LeftUpLeg.csv"/>
-        <RightUpLeg alpha="0.049624404200429621" beta="0.00011213903599563423" gamma="0.017834409079702102" lvm_alpha="0.1767050967149256" lvm_beta="0.00023630445452031904" lvm_gamma="13.569722431796219" lvm_X_src="RightUpLeg.csv"/>
-        <MouthTop alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <L_Eye alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <R_Eye alpha="9.9999999999999995e-08" beta="9.9999999999999995e-08" gamma="9.9999999999999995e-08"/>
-        <Main alpha="0.0066714338485369777" beta="9.9999999999999995e-08" gamma="0.25798061356451968"/>
-        <L_Ear alpha="0.05000000000602639" beta="3.3601753679218626e-07" gamma="3.185046402512167"/>
-        <Neck2 alpha="0.049999999952497258" beta="3.0651287680139649e-06" gamma="0.21373466272437391"/>
-        <R_Ear alpha="0.050000000765161895" beta="2.522427796339218e-07" gamma="3.1605712277056175"/>
+        <RightArm alpha="0.018286573633624879" beta="0.001" gamma="0.74937606676974433" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightArm.csv"/>
+        <Tail1 alpha="0.014038410088216982" beta="0.001" gamma="1.2052975794624152" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Tail1.csv"/>
+        <LeftArm alpha="0.026250938388042978" beta="0.001" gamma="0.52955054336269924" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftArm.csv"/>
+        <LeftUpLeg alpha="0.017932854567755497" beta="0.001" gamma="0.70151576637459556" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
+        <RightUpLeg alpha="0.023206934779340067" beta="0.001" gamma="1.7969283500854845" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightUpLeg.csv"/>
     </cr_75_vel0_wj0_walk_run>
-    <cr_75_vel0_wj1_walk_run>
-        <LeftArm alpha="52.900784289485905" beta="0.060839098136165018" gamma="0.010407338155010061" lvm_alpha="40.940899767190054" lvm_beta="15.045638299754593" lvm_gamma="0.0081432843630909711" lvm_X_src="LeftArm.csv"/>
-        <LeftUpLeg alpha="35.90074972792911" beta="0.0014492186612291315" gamma="0.069141485778772591" lvm_alpha="24.602729434017668" lvm_beta="7.8082795226823913" lvm_gamma="0.0093958000474861619" lvm_X_src="LeftUpLeg.csv"/>
-        <RightUpLeg alpha="84.318727257862633" beta="6.8491519207383744" gamma="0.0087801896358763835" lvm_alpha="30.76123392825119" lvm_beta="10.401144854775684" lvm_gamma="0.011483700478985009" lvm_X_src="RightUpLeg.csv"/>
-        <RightArm alpha="19.744238962694453" beta="10.029891354799563" gamma="0.0076648782037596914" lvm_alpha="25.669776077301922" lvm_beta="7.1886193224819745" lvm_gamma="0.0096498131889060802" lvm_X_src="RightArm.csv"/>
-        <Tail1 alpha="43.990697871692255" beta="0.00071947518138328927" gamma="0.43140569939394235" lvm_alpha="6.750977282744298" lvm_beta="1.8443093651023341" lvm_gamma="0.039415507815835416" lvm_X_src="Tail1.csv"/>
-    </cr_75_vel0_wj1_walk_run>
 </param_store>

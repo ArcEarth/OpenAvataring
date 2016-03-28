@@ -521,6 +521,9 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		//Cpvnm = reshape(cpvnmrow, Jck.size(), pvDim).transpose().colwise().normalized();
 		for (int i = 0; i < Jck.size(); i++)
 		{
+			int pid = 0;
+			if (charaParts[Jck[i]]->parent() != nullptr)
+				charaParts[Jck[i]]->parent()->Index;
 			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).normalized().transpose();
 		}
 

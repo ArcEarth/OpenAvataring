@@ -11,9 +11,13 @@
 
 using namespace Causality;
 
+// if there is no noticable difference, than we should discard this dimension
+static constexpr double g_input_scale_epsilon = 1e-3;
+// the anisometric scale should not be greater than this
+static constexpr double g_input_scaleup_limit = 10.0;
 static constexpr double almost_zero = 1e-6;
-static constexpr double g_paramMin = 1e-10;
-static constexpr double g_paramMax = 1e10;
+static constexpr double g_paramMin = 1e-3;
+static constexpr double g_paramMax = 1e3;
 static constexpr double g_paramWeight = 1;
 
 typedef dlib::matrix<double, 0, 1> dlib_vector;
@@ -34,6 +38,7 @@ void gaussian_process_regression::initialize(Index _N, Index _DimY, Index _DimX)
 	dimX = _DimX; N = _N; dimY = _DimY;
 	lparam.setZero(ParamSize);
 	wY.setOnes(dimY);
+	wX.setOnes(dimX);
 
 	X.resize(N, dimX);
 	Y.resize(N, dimY);
@@ -68,6 +73,17 @@ void gaussian_process_regression::initialize(const Eigen::MatrixXf & _X, const E
 	uY = Y.colwise().mean();
 	X = X - uX.replicate(N, 1);
 	Y = Y - uY.replicate(N, 1);
+
+	// Normalize X into uniform gaussian
+	int nsam = N > 1 ? N - 1 : N;
+	double stdevX = sqrt(X.cwiseAbs2().sum() / nsam);
+	// anisometric scale to stdev
+	wX = (X.cwiseAbs2().colwise().sum() / nsam).cwiseSqrt() / stdevX;
+
+	wX = (wX.array() > g_input_scale_epsilon).select(wX, 1.0)
+		.cwiseInverse().cwiseMin(g_input_scaleup_limit) / stdevX;
+
+	X = X * wX.asDiagonal();
 
 	update_Dx();
 }
@@ -184,7 +200,10 @@ double gaussian_process_regression::get_ey_on_obser_x(const RowVectorType & z, _
 
 void gpr::lp_xy_helper(const RowVectorType & x, RowVectorType & zx, ColVectorType &Kx, ColVectorType &iKkx, double &varX, RowVectorType &ey) const
 {
+	// Normalize x
 	zx = x - uX;
+	zx = zx.array() * wX.array();
+
 	Kx = (zx.replicate(N, 1) - X).cwiseAbs2().rowwise().sum();
 	Kx.array() = ((-0.5*gamma()) * Kx.array()).exp() * alpha();
 
@@ -218,6 +237,7 @@ gaussian_process_regression::ColVectorType gaussian_process_regression::get_ey_o
 	double varX = alpha() + beta();
 
 	MatrixType zx = x - uX.replicate(x.rows(), 1);
+	zx = zx * wX.asDiagonal();
 
 	MatrixType Kx(N, x.rows());
 	for (size_t i = 0; i < x.rows(); i++)
@@ -413,13 +433,13 @@ double gaussian_process_regression::optimze_parameters()
 
 	ParamType param;
 
-	std::vector<double> alphas = { 0.05,0.5, 1.0 };
-	std::vector<double> betas = { 1.0, 1e-2 };
-	std::vector<double> gemmas(5);
+	std::vector<double> alphas = { 1.0 };
+	std::vector<double> betas = { 10.0, 1.0 };
+	std::vector<double> gemmas(2);
 	for (size_t i = 0; i < gemmas.size(); i++)
 	{
 		double t = i / (double)(gemmas.size() - 1);
-		gemmas[i] = 1.0 / (adjvarX * (1 - t) + varX * t);
+		gemmas[i] = varX / (adjvarX * (1 - t) + varX * t);
 	}
 
 	ParamType bestParam;

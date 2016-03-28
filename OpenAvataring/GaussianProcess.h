@@ -35,6 +35,7 @@ namespace Causality
 		MatrixType Y;		 // [zero meaned] output variable samples
 		ParamType lparam;	 // RBF parameter
 		KernalMatrixType K;  // The covarience matrix, positive semidefined symetric matrix NxN
+		RowVectorType wX;	 // Scale weights applies to X
 		RowVectorType wY;	 // Scale weights that applies to Y
 		RowVectorType uY; 	 // mean of Y_i,:
 		RowVectorType uX;	 // mean of X, should be zero in most time

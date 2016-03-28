@@ -1210,7 +1210,7 @@ void InitGprXML(tinyxml2::XMLElement * settings, const std::string & blockName, 
 
 		if (lvmSetted = ReadGplvmParamXML(blockSetting, param, _x))
 		{
-			gplvm.load_model(_x,param);
+			//gplvm.load_model(_x,param);
 		}
 	}
 

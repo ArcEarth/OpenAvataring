@@ -11,6 +11,9 @@ using namespace std;
 using namespace Eigen;
 using namespace DirectX;
 
+static const int g_defaultMaxIter = 20;
+static const double g_MaxRotationStep = 0.1;
+
 typedef dlib::matrix<double, 0, 1> dlib_vector;
 using row_vector_t = StylizedChainIK::row_vector_t;
 
@@ -163,7 +166,7 @@ double StylizedChainIK::objective(const Eigen::RowVectorXd & x, const Eigen::Row
 
 	double markovdis = ((y - m_cy).cwiseAbs2().array() / m_cyNorm.array()).sum() / (double)m_cy.size() * m_markovWeight;
 
-	double fitlikelihood = ((y.array() /** m_wy.array()*/ - m_ey.array()).cwiseAbs2() / m_eyNorm.array()).sum() * (0.5 * m_segmaX / (double)m_ey.size());
+	double fitlikelihood = ((y.array() /** m_wy.array()*/ - m_ey.array()).cwiseAbs2() / m_eyNorm.array()).sum() * (0.5 * m_segmaX);
 	//double fitlikelihood = m_gpr.get_likelihood_xy(x, y) * g_StyleLikelihoodTermWeight;
 
 	return ikdis + fitlikelihood + markovdis;//+iklimdis;
@@ -182,7 +185,7 @@ RowVectorXd StylizedChainIK::objective_derv(const Eigen::RowVectorXd & x, const 
 	RowVectorXd markovderv = 2.0 * m_markovWeight * ((y - m_cy).array() / m_cyNorm.array()) / (double)m_cy.size();
 	//markovderv.setZero();
 
-	RowVectorXd animLkderv = (y.array()/* * m_wy.array()*/ - m_ey.array()) / m_eyNorm.array() * (m_segmaX / (double)m_ey.size()); //m_gpr.get_likelihood_xy_derivative(x, y) * g_StyleLikelihoodTermWeight;
+	RowVectorXd animLkderv = (y.array()/* * m_wy.array()*/ - m_ey.array()) / m_eyNorm.array() * (m_segmaX); //m_gpr.get_likelihood_xy_derivative(x, y) * g_StyleLikelihoodTermWeight;
 
 
 	derv.segment(x.size(), y.size()) = ikderv + markovderv;// + gplvm.likelihood_xy_derv;
@@ -209,7 +212,7 @@ void StylizedChainIK::reset()
 	m_ikLimitWeight = g_IKLimitWeight;
 	m_baseRot = Quaternion::Identity;
 	m_fpDecoder.reset(new AbsoluteLnQuaternionDecoder());
-	m_maxIter = 50;
+	m_maxIter = g_defaultMaxIter;
 }
 
 // return the joints rotation vector
@@ -249,13 +252,23 @@ RowVectorXd StylizedChainIK::apply(const Vector3d & goal, const DirectX::Quatern
 	//{
 	//	hint_y = m_iy;
 	//} else 
-	if (cydiffn < eydiffn)
+	if (cydiffn < eydiffn || (m_cy - hint_y).norm() > g_MaxRotationStep * m_ey.size())
 	{
 		//? This condition are NEVER triggered!!! HOW?????????????
 		hint_y = m_cy;
 		if (g_EnableDebugLogging >= 2)
 			std::cout << "Use cy instead of ey" << endl;
 	}
+
+	//hint_y = m_cy;
+	hint_y = hint_y.cwiseMin(m_maxY).cwiseMax(m_minY);
+	//if ((hint_y.array() > m_maxY.array()).any() || (hint_y.array() < m_minY.array()).any())
+	//{
+	//	hint_y = m_iy;
+	//	if (g_EnableDebugLogging >= 2)
+	//		std::cout << "Use iy because out of bound" << endl;
+	//}
+
 
 
 	//m_meanLk = (m_meanLk * m_counter + lk) / (m_counter + 1);
@@ -315,32 +328,45 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 {
 
 	auto v = ComposeOptimizeVector(m_cx, hint_y);
+	auto backupV = v;
+	auto xmin = m_cx; auto xmax = m_cx;
+	xmin.setConstant(-10000);
+	xmax.setConstant(-10000);
 
-	//auto vmin = ComposeOptimizeVector(m_cx * 0.9, m_limy.row(0));
-	//auto vmax = ComposeOptimizeVector(m_cx * 1.1, m_limy.row(1));
+	auto vmin = ComposeOptimizeVector(m_cx, m_minY);
+	auto vmax = ComposeOptimizeVector(m_cx, m_maxY);
 
-	m_segmaX = m_gpr.get_ey_on_x(m_cx, &m_ey);
-	m_segmaX = m_styleWeight * exp(-m_segmaX / (double)m_ey.cols() * 2.0);
+	double d2lnvarx = m_gpr.get_ey_on_x(m_cx, &m_ey);
+	double varX = exp(d2lnvarx / (double)m_ey.cols() * 2.0);
+	m_segmaX = m_styleWeight / varX;
 
 	m_cyNorm = .01 + m_cy.array().cwiseAbs2();
 	//m_eyNorm = .1 + m_ey.array().cwiseAbs2(); //
 	m_eyNorm.setOnes(m_ey.size());//
 
-	auto f = [this](const dlib_vector& v)->double {
+	bool verbose = false;
+
+	auto f = [this,&verbose](const dlib_vector& v)->double {
 		RowVectorXd x(m_cx.size()), y(v.size() - m_cx.size());
 		DecomposeOptimizeVector(v, x, y);
-		return objective(x, y);
+		double value = objective(x, y);
+		if (verbose)
+			cout << "x = " << dlib::trans(v) << " value == " << value << endl;
+		return value;
 	};
 
-	auto df = [this](const dlib_vector& v)->dlib_vector {
+	auto df = [this,&verbose](const dlib_vector& v)->dlib_vector {
 		RowVectorXd x(m_cx.size()), y(v.size() - m_cx.size());
 		DecomposeOptimizeVector(v, x, y);
 		auto derv = objective_derv(x, y);
 		dlib_vector val(derv.size());
 		std::copy_n(derv.data(), v.size(), val.begin());
+		if (verbose)
+			cout << "x = " << dlib::trans(v) << " gradiatn == " << derv << endl;
 		return val;
 	};
-
+	auto search_strategy = dlib::bfgs_search_strategy();
+	
 	//auto numberic_diff = dlib::derivative(f)(v);
 	//auto anaylatic_diff = df(v);
 
@@ -352,15 +378,16 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 
 	try
 	{
-		result = dlib::find_min //_box_constrained
+		result = dlib::find_min_box_constrained
 			(
-				dlib::lbfgs_search_strategy(v.size()),
-				dlib::objective_delta_stop_strategy(1e-6, m_maxIter),//.be_verbose(),
+				//dlib::lbfgs_search_strategy(v.size()),
+				search_strategy,
+				dlib::gradient_norm_stop_strategy(1e-3, m_maxIter),//.be_verbose(),
 				f,
 				df,
 				//dlib::derivative(f),
 				v,
-				0//vmin,vmax//,0
+				vmin,vmax
 				);
 
 		DecomposeOptimizeVector(v, m_cx, m_cy);
@@ -385,6 +412,24 @@ Eigen::RowVectorXd Causality::StylizedChainIK::apply(const Eigen::Vector3d & goa
 	decode(rotations, m_cy);
 	Vector3 ep = ep = endPosition(rotations);
 
+	if (result > 0.01)
+	{
+		if (g_EnableDebugLogging >= 2)
+		{
+			cout << "IK failed : initial x == " << dlib::trans(backupV) << endl;
+			if (g_EnableDebugLogging >= 3)
+			{
+				v = backupV;
+				verbose = true;
+				result = dlib::find_min //_box_constrained
+					(
+						search_strategy,
+						dlib::gradient_norm_stop_strategy(1e-3, m_maxIter).be_verbose(),
+						f, df, v, 0//vmin,vmax//,0
+						);
+			}
+		}
+	}
 	if (g_EnableDebugLogging >= 2)
 	{
 		cout << "pred = " << m_segmaX << " error = " << result << " | goal = (" << goal.transpose() << ") achived = (" << ep << ')' << endl;

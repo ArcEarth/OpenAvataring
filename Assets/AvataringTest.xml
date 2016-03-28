@@ -32,8 +32,8 @@
     <FrameTimeScaleFactor>5</FrameTimeScaleFactor>
 
     <CharacterPcaCutoff>0.00001</CharacterPcaCutoff>
-    <CharacterActiveEnergy>0.3</CharacterActiveEnergy>
-    <CharacterSubactiveEnergy>0.06</CharacterSubactiveEnergy>
+    <CharacterActiveEnergy>0.06</CharacterActiveEnergy>
+    <CharacterSubactiveEnergy>0.03</CharacterSubactiveEnergy>
 
     <PlayerPcaCutoff>0.04</PlayerPcaCutoff>
     <PlayerActiveEnergy>0.5</PlayerActiveEnergy>
@@ -44,7 +44,7 @@
     <IKTermWeight>1.0</IKTermWeight>
     <IKLimitWeight>100.0</IKLimitWeight>
     <MarkovTermWeight>0.05</MarkovTermWeight>
-    <StyleLikelihoodTermWeight ch="horse">0.00045</StyleLikelihoodTermWeight>
+    <StyleLikelihoodTermWeight ch="horse">0.001</StyleLikelihoodTermWeight>
     <!--<StyleLikelihoodTermWeight ch="spider">0.0000003</StyleLikelihoodTermWeight>-->
     <!--<IKTermWeight>1.0</IKTermWeight>
     <IKLimitWeight>200</IKLimitWeight>
@@ -60,14 +60,14 @@
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
     <RevampLikilyhoodTimeThreshold>1.0</RevampLikilyhoodTimeThreshold>
     <ForceRemappingAlwaysOn>false</ForceRemappingAlwaysOn>
-    <RevampActiveSupportThreshold>0.65</RevampActiveSupportThreshold>
+    <RevampActiveSupportThreshold>0.5</RevampActiveSupportThreshold>
 
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
     <HandleTransformAnisometricMin>0.2</HandleTransformAnisometricMin>
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
-    <StructrualSymtricBonus>0.7</StructrualSymtricBonus>
+    <StructrualSymtricBonus>0.75</StructrualSymtricBonus>
     <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
 
     <!--Animation Tracker-->
@@ -259,7 +259,7 @@
           <!--<leap_source mode="16"/>-->
         </player_controller.selector>
         
-       <creature name="allosaurus" position="2.5,0.0,-0.5" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
+       <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
         <creature.behavier>
           <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
             <behavier.actions>
@@ -272,14 +272,14 @@
         </creature.behavier>
       </creature> 
         
-        <!--<creature name="insect" position="0.5,0.0,-0.5" scale="0.5" action="Walk" mesh="{insect_mesh}">
+        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
-        </creature> -->
+        </creature> 
 
         <!--<action name="idle" src="Horse_Idle.fbx"/>-->
-        <!--<creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
                 <behavier.actions>
@@ -288,17 +288,17 @@
                 </behavier.actions>
                 </behavier>
             </creature.behavier>
-        </creature>-->
             <!--subordinates-->
-            <!--<creature name="sub_horse_1" translation="-100.0,0,-100.0" scale="0.8" mesh="{horse_mesh}"></creature>
-            <creature name="sub_horse_2" translation="70,0,-30" scale="0.6" mesh="{horse_mesh}"></creature>-->
+            <creature name="sub_horse_1" translation="-100.0,0,-100.0" scale="0.8" mesh="{horse_mesh}"></creature>
+            <creature name="sub_horse_2" translation="70,0,-30" scale="0.6" mesh="{horse_mesh}"></creature>
+        </creature>
 
-<!--
+
         <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
-        </creature>-->
+        </creature>
 
 
         <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
