@@ -78,6 +78,7 @@ namespace Causality
 		int							ID;
 		ArmatureFrame				PotientialFrame;
 
+		bool						IsSelected;
 		float						CharacterScore;
 		Vector3						MapRefPos;
 		Vector3						CMapRefPos;

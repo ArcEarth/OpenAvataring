@@ -404,18 +404,21 @@ void CharacterActionTracker::Reset()
 
 	m_fvectors.resize(m_sample.rows(), m_CurrentInput.cols());
 
-	if (m_gpu == nullptr)
+	if (m_accelerator == GPU)
 	{
-		m_gpu.reset(new GpuImpl(m_pDevice, m_Animation, m_sample, m_liks));
-		m_gpu->functor.setup_effectors(m_parts, m_effectors);
-	}
-	else if (resized)
-	{
-		// Update the GPU view as the CPU data pointer are not valiad anymore
-		m_gpu->reset_samples(m_sample, m_liks);
-	}
+		if (m_gpu == nullptr)
+		{
+			m_gpu.reset(new GpuImpl(m_pDevice, m_Animation, m_sample, m_liks));
+			m_gpu->functor.setup_effectors(m_parts, m_effectors);
+		}
+		else if (resized)
+		{
+			// Update the GPU view as the CPU data pointer are not valiad anymore
+			m_gpu->reset_samples(m_sample, m_liks);
+		}
 
-	SetupGpuImplParameters();
+		SetupGpuImplParameters();
+	}
 
 	m_currentValiad = false;
 }

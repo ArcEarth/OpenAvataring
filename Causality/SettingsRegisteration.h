@@ -27,6 +27,10 @@ SETTING_REGISTERATION(float, PlayerSubactiveEnergy, 0.03f)
 SETTING_REGISTERATION(float, BlendWeight, 0.8f)
 
 SETTING_REGISTERATION(float, AssignWeight, 1.0f)
+SETTING_REGISTERATION(double, CharacterSelectionLikilihoodThreshold, 0.6f)
+
+SETTING_REGISTERATION(double, PlayerGesturePeriodMin, 0.5)
+SETTING_REGISTERATION(double, PlayerGesturePeriodMax, 3)
 
 SETTING_REGISTERATION(float, MatchAccepetanceThreshold, 0.2f)
 

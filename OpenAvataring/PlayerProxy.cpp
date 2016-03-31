@@ -119,7 +119,7 @@ float BoneRadius[JointType_Count] = {
 #define BEGIN_TO_END(range) range.begin(), range.end()
 
 
-void SetGlowBoneColor(CharacterGlowParts* glow, const ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller);
+void SetGlowBoneColor(CharacterGlowParts* glow, const ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller, float transparency = 1.0f);
 
 // Player Proxy methods
 void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const IArmatureStreamAnimation::FrameType& frame)
@@ -136,21 +136,38 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 	}
 
 	bool newMetric = m_CyclicInfo.StreamFrame(m_pushFrame);
-	if (newMetric && !m_mapTaskOnGoing/* && (m_mapTask.empty() || m_mapTask.is_done())*/)
+	if (newMetric/* && (m_mapTask.empty() || m_mapTask.is_done())*/)
+		SelectCharacterAsync();
+}
+
+bool PlayerProxy::SelectCharacterAsync(CharacteSelectionSource source, bool analyzeAction)
+{
+	if (!m_mapTaskOnGoing || m_mapTask.is_done())
 	{
 		m_mapTaskOnGoing = true;
-		m_mapTask = concurrency::create_task([this]() {
-			auto idx = MapCharacterByLatestMotion();
+		m_mapTask = concurrency::create_task([this, source, analyzeAction]() {
+			try
+			{
+				if (analyzeAction)
+					this->m_CyclicInfo.AnaylzeRecentStream(analyzeAction);
+				auto idx = SelectCharacter(source);
+			}
+			catch (const std::exception&)
+			{
+				std::cout << "Exception in Selecting Characters" << endl;
+			}
 			m_mapTaskOnGoing = false;
 		});
+		return true;
 	}
-
+	return false;
 }
 
 void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAnimation * pNew)
 {
 	StopUpdateThread();
-	SetActiveController(-1);
+	SelectAll(false);
+	//SetActiveController(-1);
 
 	if (!pOld || (pNew && &pNew->GetArmature() != &pOld->GetArmature()))
 	{
@@ -181,7 +198,7 @@ void PlayerProxy::ResetPlayerArmature(const IArmature* playerArmature)
 		}
 	}
 	cout << "Initializing Cyclic Info..." << endl;
-	m_CyclicInfo.Initialize(*m_pParts, time_seconds(0.5), time_seconds(3), 30, 0);
+	m_CyclicInfo.Initialize(*m_pParts, time_seconds(g_PlayerGesturePeriodMin), time_seconds(g_PlayerGesturePeriodMax), 30, 0);
 	cout << "Cyclic Info Initited!" << endl;
 }
 
@@ -222,7 +239,8 @@ PlayerProxy::PlayerProxy()
 	m_updateCounter(0),
 	m_updateTime(0),
 	m_pParts(new ShrinkedArmature()),
-	m_pPlayerArmature(nullptr)
+	m_pPlayerArmature(nullptr),
+	m_selectionMode(SelectionMode_Filtering)
 {
 	//ResetPlayerArmature(TrackedBody::BodyArmature.get());
 	Register();
@@ -376,9 +394,9 @@ void PlayerProxy::Parse(const ParamArchive * store)
 		SetPlayerSelector(pSelector);
 }
 
-void SetGlowBoneColorPartPair(CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
+void SetGlowBoneColorPartPair(CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors,float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
 
-void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller)
+void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller, float transparency)
 {
 	auto pTrans = &controller.Binding();
 	auto pCcaTrans = dynamic_cast<const BlockizedCcaArmatureTransform*>(pTrans);
@@ -400,7 +418,7 @@ void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmatur
 		for (auto& tp : pCcaTrans->Maps)
 		{
 			auto Jx = tp.Jx, Jy = tp.Jy;
-			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, sparts, cparts);
+			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, transparency, sparts, cparts);
 		}
 	}
 	else if (pPartTrans)
@@ -408,23 +426,23 @@ void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmatur
 		for (auto& tp : pPartTrans->ActiveParts)
 		{
 			auto Jx = tp.SrcIdx, Jy = tp.DstIdx;
-			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, sparts, cparts);
+			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, transparency, sparts, cparts);
 		}
 		for (auto& tp : pPartTrans->DrivenParts)
 		{
 			auto Jx = tp.SrcIdx, Jy = tp.DstIdx;
-			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, sparts, cparts);
+			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, transparency, sparts, cparts);
 		}
 		for (auto& tp : pPartTrans->AccesseryParts)
 		{
 			auto Jx = tp.SrcIdx, Jy = tp.DstIdx;
-			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, sparts, cparts);
+			SetGlowBoneColorPartPair(glow, Jx, Jy, colors, transparency, sparts, cparts);
 		}
 	}
 
 }
 
-void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
+void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors,float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
 {
 	using namespace Math;
 	XMVECTOR color;
@@ -438,22 +456,43 @@ void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int 
 		color = colors[sparts[Jx]->Joints.front()->ID];
 
 	using namespace DirectX;
-	color = XMVectorSetW(color, 0.5f);
+	color = XMVectorSetW(color, 0.5f * transparency);
 	for (auto joint : cparts[Jy]->Joints)
 	{
 		glow->SetBoneColor(joint->ID, color);
 	}
 }
 
+void PlayerProxy::SelectAll(bool enableGlow)
+{
+	{
+		std::lock_guard<std::mutex> guard(m_controlMutex);
+		for (auto& ctrl : m_Controllers)
+		{
+			ctrl.IsSelected = true;
+			ctrl.CharacterScore = enableGlow ? 1.0f : .0f;
+			ResetChracterGlow(ctrl);
+		}
+	}
+	SetActiveController(-1);
+}
+
 void PlayerProxy::SetActiveController(int idx)
 {
-	std::lock_guard<std::mutex> guard(m_controlMutex);
+	//if (!std::lock(m_controlMutex))
+	//	return;
 
 	if (idx >= 0)
 		idx = idx % m_Controllers.size();
 
 	if (idx == -1)
 		ResetPrimaryCameraPoseToDefault();
+
+	if (idx == m_CurrentIdx) 
+		return;
+
+	StopUpdateThread();
+	std::lock_guard<std::mutex> guard(m_controlMutex);
 
 	for (auto& c : m_Controllers)
 	{
@@ -468,16 +507,14 @@ void PlayerProxy::SetActiveController(int idx)
 				g_DebugLocalMotionAction[chara.Name] = "";
 			}
 
-			chara.SetOpticity(0.5f);
-			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
-			glow->SetEnabled(false);
-
 			if (c.ID == m_CurrentIdx && m_CurrentIdx != idx)
 			{
 				chara.SetPosition(c.CMapRefPos);
 				chara.SetOrientation(c.CMapRefRot);
 				chara.EnabeAutoDisplacement(false);
 			}
+
+			ResetChracterGlow(c);
 
 			auto matvis = chara.FirstChildOfType<MatrixVisualizer>();
 			if (matvis)
@@ -499,21 +536,22 @@ void PlayerProxy::SetActiveController(int idx)
 				chara.StopAction();
 			}
 
-			chara.SetOpticity(1.0f);
+			if (!(m_pSelector && m_pSelector->Get()))
+				return;
 
-			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
-			if (glow)
-			{
-				glow->SetEnabled(true);
-				std::lock_guard<std::mutex> guard(controller.GetBindingMutex());
-				SetGlowBoneColor(glow, *m_pParts, m_boneColors, controller);
-			}
-
-			assert(m_pSelector && m_pSelector->Get());
 			auto &player = *m_pSelector->Get();
 			auto& frame = player.PeekFrame();
 			auto pose = frame[m_pPlayerArmature->root()->ID];
 			controller.SetReferenceSourcePose(pose);
+
+			auto selected = controller.IsSelected;
+			controller.IsSelected = true;
+			auto temp = controller.CharacterScore;
+			controller.CharacterScore = 1.0f;
+
+			ResetChracterGlow(controller);
+			controller.IsSelected = selected;
+			controller.CharacterScore = temp;
 
 			chara.EnabeAutoDisplacement(g_UsePersudoPhysicsWalk);
 		}
@@ -535,41 +573,110 @@ void PlayerProxy::SetActiveController(int idx)
 		}
 	}
 
-	//if (m_CurrentIdx >= 0)
-	//	StartUpdateThread();
+	StartUpdateThread();
 	//else
 	//	StopUpdateThread();
+	
 }
 
-int PlayerProxy::MapCharacterByLatestMotion()
+namespace std
+{
+	template <typename T>
+	static inline T clamp(T value, T min_val, T max_val)
+	{
+		return std::min(std::max(value, min_val), max_val);
+	}
+}
+
+int PlayerProxy::SelectCharacter(CharacteSelectionSource source)
 {
 	if (!m_pSelector || !m_pSelector->Get())
 		return -1;
 
 	auto& player = *m_pSelector->Get();
 
+	if (std::all_of(BEGIN_TO_END(m_Controllers), [](const auto& ctr)->bool 
+		{ return !ctr.IsReady; }))
+	{
+		return -1;
+	}
+
 	CharacterController* pControl = nullptr;
 	{
 		std::lock_guard<std::mutex> guard(m_CyclicInfo.AqucireFacadeMutex());
-		cout << "FacadeLock Aquired" << endl;
+		std::cout << "FacadeLock Aquired" << endl;
 
 		//std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::vector<float> scores(m_Controllers.size());
+
+		std::vector<std::reference_wrapper<CharacterController>>
+			activeControllers;
 
 		for (auto& controller : m_Controllers)			//? <= 5 character
+														//concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](CharacterController& controller)
 		{
-			if (!controller.IsReady)
+			auto& chara = controller.Character();
+			;
+			if (!controller.IsReady || !controller.IsSelected ||!chara.CurrentAction() || !chara.CurrentAction()->IsCyclic)
+			{
+				controller.CharacterScore = -10000.0f;
 				continue;
-			controller.CreateControlBinding(m_CyclicInfo.AsFacade());
-
-			if (!pControl || controller.CharacterScore > pControl->CharacterScore)
-				pControl = &controller;
+			}
+	
+			activeControllers.push_back(controller);
 		}
 
-		if (pControl)
-			// Disable re-matching when the controller has not request
-			m_CyclicInfo.EnableCyclicMotionDetection(false);
+		if (g_EnableDebugLogging >= 1)
+		{
+			for (auto ctrref : activeControllers)			//? <= 5 character
+			//concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](CharacterController& controller)
+			{
+				auto& controller = ctrref.get();
+				controller.CreateControlBinding(m_CyclicInfo.AsFacade());
+			}
+		}
+		else
+		{
+			concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](std::reference_wrapper<CharacterController> ctrref)
+			{
+				auto& controller = ctrref.get();
+				controller.CreateControlBinding(m_CyclicInfo.AsFacade());
+			});
+		}
+		//);
 
-		cout << "FacadeLock Releasing" << endl;
+		auto ctritr = std::max_element(BEGIN_TO_END(m_Controllers), [](const auto& c0, const auto& c1)
+		{
+			return c0.CharacterScore < c1.CharacterScore;
+		});
+
+		std::cout << "FacadeLock Releasing" << endl;
+
+		auto maxScore = ctritr->CharacterScore;
+		if (ctritr->IsReady && ctritr->CharacterScore > .0f)
+		{
+			int selectionCount = 0;
+			for (auto& ctr : m_Controllers)
+			{
+				auto& chara = ctr.Character();
+				auto score = ctr.CharacterScore / maxScore;
+				score = std::clamp(score, 0.0f, 1.0f);
+				ctr.CharacterScore = score;
+				ctritr->IsSelected = score > g_CharacterSelectionLikilihoodThreshold;
+
+				selectionCount += ctritr->IsSelected;
+
+				ResetChracterGlow(ctr);
+			}
+
+			if (selectionCount == 1 || m_selectionMode == SelectionMode_MostLikilily)
+			{
+				pControl = &(*ctritr);
+
+				// Disable re-matching when the controller has not request
+				m_CyclicInfo.EnableCyclicMotionDetection(false);
+			}
+		}
 	}
 
 	if (!pControl) return -1;
@@ -577,6 +684,29 @@ int PlayerProxy::MapCharacterByLatestMotion()
 	SetActiveController(pControl->ID);
 
 	return pControl->ID;
+}
+
+void PlayerProxy::ResetChracterGlow(CharacterController & ctr)
+{
+	auto& chara = ctr.Character();
+	auto glow = chara.FirstChildOfType<CharacterGlowParts>();
+
+	auto score = ctr.CharacterScore;
+	chara.SetOpticity(score);
+
+	if (score > g_CharacterSelectionLikilihoodThreshold)
+	{
+		if (glow)
+		{
+			glow->SetEnabled(true);
+			SetGlowBoneColor(glow, *m_pParts, m_boneColors, ctr, score);
+		}
+	}
+	else
+	{
+		if (glow)
+			glow->SetEnabled(false);
+	}
 }
 
 
@@ -682,7 +812,7 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 				chara.StartAction(clips[idx].Name);
 		}
 	}
-	else if (e.Key == 'P')
+	else if (e.Key == 'O')
 	{
 		g_EnableDependentControl = !g_EnableDependentControl;
 		cout << "Enable Dependency Control = " << g_EnableDependentControl << endl;
@@ -703,17 +833,29 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 			controller.Character().EnabeAutoDisplacement(g_UsePersudoPhysicsWalk && controller.ID == m_CurrentIdx);
 		}
 	}
+	else if (e.Key == 'Z')
+	{
+		m_selectionMode = m_selectionMode == SelectionMode_Filtering ? SelectionMode_MostLikilily : SelectionMode_Filtering;
+	}
+	else if (e.Key == 'E')
+	{
+		m_CyclicInfo.EnableCyclicMotionDetection();
+	}
+	else if (e.Key == 'R')
+	{
+		m_CyclicInfo.EnableCyclicMotionDetection(false);
+	}
 	//else if (e.Key == 'M')
 	//{
 	//	g_MirrowInputX = !g_MirrowInputX;
 	//	cout << "Kinect Input Mirrowing = " << g_MirrowInputX << endl;
 	//	m_pKinect->EnableMirrowing(g_MirrowInputX);
 	//}
-	else if (e.Key == VK_BACK)
-	{
-		m_CyclicInfo.ResetStream();
-		m_DefaultCameraFlag = true;
-	}
+	//else if (e.Key == VK_BACK)
+	//{
+	//	m_CyclicInfo.ResetStream();
+	//	m_DefaultCameraFlag = true;
+	//}
 	else if (e.Key == VK_NUMPAD1)
 	{
 		g_NoiseInterpolation[0] -= 0.1f;
@@ -759,10 +901,27 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 		g_NoiseInterpolation[2] = 1.0f;
 		cout << "Local Motion Sythesis Jaming = " << g_NoiseInterpolation << endl;
 	}
-	else if (e.Key == 'R')
+	else if (e.Key == 'P')
 	{
 		ResetPrimaryCameraPoseToDefault();
+	}
+	else if (e.Key == VK_RETURN)
+	{
+		auto source = e.Modifier & KeyModifiers::Mod_Control ?
+			CharacteSelectionSource_LatestPoseFrame :
+			CharacteSelectionSource_RecentPeriodAction;
 
+		if (!SelectCharacterAsync(source, true))
+		{
+			cout << "Selection is already going on..." << endl;
+		}
+	}
+	else if (e.Key == VK_BACK)
+	{
+		m_DefaultCameraFlag = true;
+		SelectAll(false);
+		m_CyclicInfo.ResetStream();
+		m_CyclicInfo.EnableCyclicMotionDetection();
 	}
 }
 
@@ -1196,27 +1355,36 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 	}
 
 	// IsMapped() && 
-	if (IsMapped() && g_DebugView)
+	if (IsMapped())
 	{
-		//auto& controller = this->CurrentController().Character();
 		for (auto& controller : m_Controllers)
 		{
 			if (!controller.IsReady)
 				continue;
-
 			auto& chara = controller.Character();
 			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
 
-			std::vector<Color> colors(controller.ArmatureParts().size());
 
-			for (auto& part : controller.ArmatureParts())
-			{
-				colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
-			}
+		}
+	}
 
-			DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
+	if (IsMapped() && g_DebugView && m_CurrentIdx != -1)
+	{
+		//auto& controller = this->CurrentController().Character();
+
+		auto & controller = CurrentController();
+
+		auto& chara = controller.Character();
+		auto glow = chara.FirstChildOfType<CharacterGlowParts>();
+
+		std::vector<Color> colors(controller.ArmatureParts().size());
+
+		for (auto& part : controller.ArmatureParts())
+		{
+			colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
 		}
 
+		DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
 	}
 
 }

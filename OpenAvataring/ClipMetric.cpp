@@ -189,7 +189,7 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_sampleRate = sampleRateHz;
 
 	// find closest 2^k window size, ceil work more robust, but usually it result in 512 frames, which is too long
-	m_windowSize = 1 << static_cast<int>(floor(log2(maxT.count() * sampleRateHz * 4)));
+	m_windowSize = 1 << static_cast<int>(floor(log2(maxT.count() * sampleRateHz * 3)));
 
 	m_minFr = m_windowSize / (maxT.count() * sampleRateHz);
 	m_maxFr = m_windowSize / (minT.count() * sampleRateHz);
@@ -302,7 +302,7 @@ std::mutex & CyclicStreamClipinfo::AqucireFacadeMutex()
 	return m_facadeMutex;
 }
 
-bool CyclicStreamClipinfo::AnaylzeRecentStream()
+bool CyclicStreamClipinfo::AnaylzeRecentStream(bool forceAnaylze)
 {
 	// Anaylze starting
 	size_t head = m_bufferHead;
@@ -312,7 +312,7 @@ bool CyclicStreamClipinfo::AnaylzeRecentStream()
 
 	auto fr = CaculatePeekFrequency(m_Spectrum);
 
-	if (fr.Support > m_cyclicDtcThr)
+	if (forceAnaylze || fr.Support > m_cyclicDtcThr)
 	{
 		if (m_facadeMutex.try_lock()) {
 			lock_guard<mutex> guard(m_facadeMutex, std::adopt_lock);
@@ -682,6 +682,11 @@ void ClipFacade::CaculatePartsMetric()
 		if (m_energyFilter != nullptr)
 		{
 			m_energyFilter(m_Eb);
+
+			for (int i = 0; i < parts.size(); i++)
+			{
+				m_Edim[i].setConstant(m_Eb[i]);
+			}
 		}
 	}
 

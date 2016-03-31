@@ -4,7 +4,7 @@
     <ClipRasterizeFrame>75</ClipRasterizeFrame>
 
     <DebugArmatureThinkness>0.01</DebugArmatureThinkness>
-    <EnableDebugLogging>1</EnableDebugLogging>
+    <EnableDebugLogging>0</EnableDebugLogging>
     <EnableRecordLogging>0</EnableRecordLogging>
     <RecordLogRootDir>Log</RecordLogRootDir>
 
@@ -65,10 +65,14 @@
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
+
+    <CharacterSelectionLikilihoodThreshold>0.65</CharacterSelectionLikilihoodThreshold>
+    <PlayerGesturePeriodMin>0.5</PlayerGesturePeriodMin>
+    <PlayerGesturePeriodMax>2</PlayerGesturePeriodMax>
     <HandleTransformAnisometricMin>0.2</HandleTransformAnisometricMin>
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
-    <StructrualSymtricBonus>0.75</StructrualSymtricBonus>
-    <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
+    <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
+    <StructrualDisSymtricPenalty>-0.25</StructrualDisSymtricPenalty>
 
     <!--Animation Tracker-->
     <TrackerGpuAcceleration>0</TrackerGpuAcceleration>
@@ -77,7 +81,7 @@
     <TrackerTopK>30</TrackerTopK>
     <TrackerRestConfident>1e-7</TrackerRestConfident>
     <TrackerSubStep>1</TrackerSubStep>
-    <TrackerTimeSubdivide>10.0</TrackerTimeSubdivide>
+    <TrackerTimeSubdivide>5.0</TrackerTimeSubdivide>
     <TrackerVtSubdivide>2</TrackerVtSubdivide>
     <TrackerSclSubdivide>3</TrackerSclSubdivide>
     
@@ -88,8 +92,8 @@
     <TrackerStDevScale>0.15</TrackerStDevScale>
     
     <!--This is expect progation PER SECOND-->
-    <TrackerVtProgationStep>0.75</TrackerVtProgationStep>
-    <TrackerScaleProgationStep>0.75</TrackerScaleProgationStep>
+    <TrackerVtProgationStep>0.5</TrackerVtProgationStep>
+    <TrackerScaleProgationStep>0.15</TrackerScaleProgationStep>
 
     <TrackerSwitchCondifidentThreshold>0.0</TrackerSwitchCondifidentThreshold>
     <TrackerSwitchTimeThreshold>1.0</TrackerSwitchTimeThreshold>
@@ -98,7 +102,7 @@
 
     <!--Blender-->
     <MaxiumTimeDelta>100</MaxiumTimeDelta>
-    <DynamicTraderKeyEnergy>5.0</DynamicTraderKeyEnergy>
+    <DynamicTraderKeyEnergy>10.0</DynamicTraderKeyEnergy>
     <DynamicTraderCurvePower>1.0</DynamicTraderCurvePower>
     <DynamicTraderSpeedFilterCutoffFrequency>2.0</DynamicTraderSpeedFilterCutoffFrequency>
     <CharacterJointFilterCutoffFrequency>2.0</CharacterJointFilterCutoffFrequency>
@@ -272,13 +276,14 @@
         </creature.behavier>
       </creature> 
         
-        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
+        <!--<creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
-        </creature> 
+        </creature> -->
 
         <!--<action name="idle" src="Horse_Idle.fbx"/>-->
+            <!--subordinates-->
         <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
@@ -288,11 +293,9 @@
                 </behavier.actions>
                 </behavier>
             </creature.behavier>
-            <!--subordinates-->
             <creature name="sub_horse_1" translation="-100.0,0,-100.0" scale="0.8" mesh="{horse_mesh}"></creature>
             <creature name="sub_horse_2" translation="70,0,-30" scale="0.6" mesh="{horse_mesh}"></creature>
         </creature>
-
 
         <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
@@ -312,12 +315,6 @@
         </creature>
         <!--<action name="run" src="kitten_Run.fbx"/>
        <action name="jump" src="kitten_Jump.fbx"/>-->
-
-        <!--<creature name="insect" position="0.5,0.0,-0.5" scale="0.5" action="walk" mesh="{insect_mesh}">
-          <creature.behavier>
-            <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
-          </creature.behavier>
-        </creature>-->
 
 
       </player_controller>

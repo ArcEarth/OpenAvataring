@@ -95,9 +95,16 @@ namespace Causality
 	public:
 		typedef Causality::ArmatureFrame		FrameType;
 
-		typedef LowPassDynamicFilter<Vector3, float>	Vector3DynamicFilter;
-		typedef LowPassDynamicFilter<Quaternion, float> QuaternionDynamicFilter;
+		typedef LowPassFilter<Vector3, float>	Vector3DynamicFilter;
+		typedef LowPassFilter<Quaternion, float> QuaternionDynamicFilter;
 
+		enum FilterLevel
+		{
+			FilterLevel_None = 0,
+			FilterLevel_NotTracked = 1,
+			FilterLevel_Infered = 2,
+			FilterLevel_Tracked = 3,
+		};
 		// Allows KinectSensor to modify
 	private:
 		friend Devices::KinectSensor;
@@ -108,6 +115,11 @@ namespace Causality
 		// Hand States
 		std::array<HandState, 2> m_HandStates;
 
+		float					 m_UpdateFrequency;
+
+		int						 m_FilterLevel;
+		std::vector<Vector3DynamicFilter> 
+								 m_JointsFilters;
 	public:
 		TrackedBody(size_t bufferSize = 32U);
 		TrackedBody(const TrackedBody &) = delete;
@@ -119,6 +131,7 @@ namespace Causality
 		HandState GetHandState(HandType hand) const { return m_HandStates[hand]; }
 		float	  DistanceToSensor() const { return m_Distance; }
 
+		void	  SetFilterLevel(FilterLevel level) { m_FilterLevel = level; }
 	public:
 		// Skeleton Structure and basic body parameter
 		// Shared through all players since they have same structure

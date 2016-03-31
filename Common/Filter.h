@@ -56,23 +56,23 @@ namespace Causality
 		typedef _Ty Ty;
 		typedef _TScalar TScalar;
 
-		_Ty lerp(const _Ty& lhs, const _Ty&rhs, _TScalar t)
+		static _Ty lerp(const _Ty& lhs, const _Ty&rhs, _TScalar t)
 		{
 			return lhs + (rhs - lhs) * t;
 		}
 
-		_Ty scale(const _Ty& lhs, _TScalar s)
+		static _Ty scale(const _Ty& lhs, _TScalar s)
 		{
 			return lhs * s;
 		}
 
 		// difference From lhs To rhs
-		_Ty difference(const _Ty& lhs, const _Ty&rhs)
+		static _Ty difference(const _Ty& lhs, const _Ty&rhs)
 		{
 			return rhs - lhs;
 		}
 
-		_TScalar norm(const _Ty& lhs)
+		static _TScalar norm(const _Ty& lhs)
 		{
 			return static_cast<_TScalar>(lhs);
 		}
@@ -90,13 +90,13 @@ namespace Causality
 	{
 		using _Ty = DirectX::Quaternion;
 		using _TScaler = float;
-		_Ty lerp(const _Ty& lhs, const _Ty&rhs, _TScaler t)
+		static _Ty lerp(const _Ty& lhs, const _Ty&rhs, _TScaler t)
 		{
 			return DirectX::Quaternion::Slerp(lhs, rhs, t);
 		}
 
 		// Maybe using Axis-Angle rep are better?
-		_Ty scale(const _Ty& lhs, _TScaler s)
+		static _Ty scale(const _Ty& lhs, _TScaler s)
 		{
 			using namespace DirectX;
 			XMVECTOR lq = XMQuaternionLn(lhs);
@@ -105,7 +105,7 @@ namespace Causality
 			return lq;
 		}
 
-		_Ty difference(const _Ty& lhs, const _Ty&rhs)
+		static _Ty difference(const _Ty& lhs, const _Ty&rhs)
 		{
 			using namespace DirectX;
 			XMVECTOR lq = XMLoad(lhs);
@@ -115,7 +115,7 @@ namespace Causality
 			return lq;
 		}
 
-		_TScaler norm(const _Ty& lhs)
+		static _TScaler norm(const _Ty& lhs)
 		{
 			using namespace DirectX;
 			XMVECTOR lq = XMQuaternionLn(lhs);
@@ -126,7 +126,7 @@ namespace Causality
 	template <>
 	struct filter_operators<DirectX::Vector2, float> : default_filter_operators<DirectX::Vector2, float>
 	{
-		float norm(const Ty& lhs)
+		static float norm(const Ty& lhs)
 		{
 			return lhs.Length();
 		}
@@ -134,7 +134,7 @@ namespace Causality
 	template <>
 	struct filter_operators<DirectX::Vector3, float> : default_filter_operators<DirectX::Vector3, float>
 	{
-		float norm(const Ty& lhs)
+		static float norm(const Ty& lhs)
 		{
 			return lhs.Length();
 		}
@@ -142,7 +142,7 @@ namespace Causality
 	template <>
 	struct filter_operators<DirectX::Vector4, float> : default_filter_operators<DirectX::Vector4, float>
 	{
-		float norm(const Ty& lhs)
+		static float norm(const Ty& lhs)
 		{
 			return lhs.Length();
 		}
@@ -185,7 +185,9 @@ namespace Causality
 			if (m_FirstTime)
 			{
 				m_PrevValue = value;
+				m_Delta = TFilterOperator::difference(m_PrevValue, m_PrevValue);
 				m_FirstTime = false;
+				return m_PrevValue;
 			}
 
 			const TScaler one = TScaler(1), zero = TScaler(0), twopi = TScaler(2 * 3.14159265);
@@ -200,9 +202,9 @@ namespace Causality
 			//m_Delta = t * (value - m_PrevValue);
 
 			//m_PrevValue += m_Delta;
-			m_Delta = mf_Operators.lerp(m_PrevValue, value, t);
+			m_Delta = TFilterOperator::lerp(m_PrevValue, value, t);
 
-			m_PrevValue = mf_Operators.difference(m_PrevValue, m_Delta);
+			m_PrevValue = TFilterOperator::difference(m_PrevValue, m_Delta);
 
 			std::swap(m_Delta, m_PrevValue);
 
@@ -215,7 +217,6 @@ namespace Causality
 
 	protected:
 		TScaler					m_CutoffFrequency;
-		TFilterOperator			mf_Operators;
 	};
 
 	//////////////////////////////////////////////////////////////////////
@@ -234,10 +235,9 @@ namespace Causality
 	class LowPassDynamicFilter : public LowPassFilter<TValue, TScaler>
 	{
 	protected:
-		LowPassFilter<TValue>	m_VelocityFilter;
+		LowPassFilter<TValue,TScaler>	m_VelocityFilter;
 		TValue					m_LastPositionForVelocity;
 		TScaler					m_CutoffFrequencyHigh, m_VelocityLow, m_VelocityHigh;
-		TFilterOperator			mf_Operators;
 
 	public:
 		LowPassDynamicFilter(TScaler* updateFrequency) : LowPassFilter<TValue, TScaler>(updateFrequency), m_VelocityFilter(updateFrequency) {  };
@@ -259,8 +259,8 @@ namespace Causality
 
 			// first get an estimate of velocity (with filter)
 			TValue positionForVelocity = m_VelocityFilter.Apply(value);
-			TValue vel = mf_Operators.difference(m_LastPositionForVelocity, positionForVelocity);
-			TScaler velNorm = mf_Operators.norm(vel) * updateFrequency;
+			TValue vel = TFilterOperator::difference(m_LastPositionForVelocity, positionForVelocity);
+			TScaler velNorm = TFilterOperator::norm(vel) * updateFrequency;
 
 			m_LastPositionForVelocity = positionForVelocity;
 
@@ -276,9 +276,9 @@ namespace Causality
 
 			t = one / (one + (Tau / Te));
 
-			m_Delta = mf_Operators.lerp(m_PrevValue, value, t);
+			m_Delta = TFilterOperator::lerp(m_PrevValue, value, t);
 
-			m_PrevValue = mf_Operators.difference(m_PrevValue, m_Delta);
+			m_PrevValue = TFilterOperator::difference(m_PrevValue, m_Delta);
 
 			std::swap(m_Delta, m_PrevValue);
 

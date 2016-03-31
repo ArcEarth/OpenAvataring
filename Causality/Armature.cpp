@@ -653,13 +653,31 @@ bool is_similar(_In_ const stdx::tree_node<Derived, ownnersip> *p, _In_ const st
 	return pc == nullptr && qc == nullptr;
 }
 
+bool is_mirror(const Joint* j0, const Joint* j1)
+{
+}
+
+template <class Derived, bool ownnersip>
+int child_index(_In_ const stdx::tree_node<Derived, ownnersip> *child)
+{
+	auto parent = child->parent();
+	auto p = parent->first_child();
+	int idx = 0;
+	while (p != nullptr && p != child)
+	{
+		++idx;
+		p = p->next_sibling();
+	}
+	return idx;
+}
+
 void Causality::BuildJointMirrorRelation(IArmature& armature)
 {
 	Joint* root = armature.root();
 	ArmatureFrameConstView frame = armature.bind_frame();
 
 	float epsilon = 1.00f;
-	auto _children = root->descendants();
+	auto _children = root->descendants_breadth_first();
 	std::vector<std::reference_wrapper<Joint>> children(_children.begin(), _children.end());
 	std::vector<Joint*> &joints = reinterpret_cast<std::vector<Joint*> &>(children);
 
@@ -667,18 +685,38 @@ void Causality::BuildJointMirrorRelation(IArmature& armature)
 	{
 		auto& bonei = frame[joints[i]->ID];
 		auto& ti = bonei.GblTranslation;
+		auto ji = joints[i];
+
 		for (int j = i + 1; j < children.size(); j++)
 		{
 			auto& bonej = frame[joints[j]->ID];
 			auto& tj = bonej.GblTranslation;
 
-			if (joints[i]->parent() == joints[j]->parent() && is_similar(joints[i], joints[j]))
+			auto jj = joints[j];
+			
+			auto pi = joints[i]->parent();
+			auto pj = joints[j]->parent();
+
+			if (((pi == pj && pi->MirrorJoint == nullptr) || pi->MirrorJoint == pj || pj->MirrorJoint == pi) && is_similar(ji, jj))
 			{
-				joints[i]->MirrorJoint = joints[j];
-				joints[j]->MirrorJoint = joints[i];
+				if (pi != pj && child_index(ji) != child_index(jj))
+					continue;
+
+				ji->MirrorJoint = jj;
+				jj->MirrorJoint = ji;
 			}
 		}
 	}
+
+#ifdef _DEBUG
+	for (int i = 0; i < children.size(); i++)
+	{
+		std::cout << joints[i]->Name;
+		if (joints[i]->MirrorJoint)
+			std::cout << " <==> " <<  joints[i]->MirrorJoint->Name;
+		std::cout << std::endl;
+	}
+#endif
 }
 
 DynamicArmature::DynamicArmature(DynamicArmature && rhs) = default;

@@ -223,14 +223,17 @@ namespace Causality
 			}
 		}
 
-		if (bestPiv == -1)
+		if (g_EnableDebugLogging >= 1)
 		{
-			cout << "[!] Error , Failed to find isometric transform about control handle" << endl;
-		}
-		else
-		{
-			static char xyz[] = "XYZ";
-			cout << "Isometric transform found : Scale [" << BestScale << "] , Rotation along axis [" << xyz[bestPiv] << "] for " << bestAng / DirectX::XM_PI << "pi , Error = " << bestErr << endl;
+			if (bestPiv == -1)
+			{
+				cout << "[!] Error , Failed to find isometric transform about control handle" << endl;
+			}
+			else
+			{
+				static char xyz[] = "XYZ";
+				cout << "Isometric transform found : Scale [" << BestScale << "] , Rotation along axis [" << xyz[bestPiv] << "] for " << bestAng / DirectX::XM_PI << "pi , Error = " << bestErr << endl;
+			}
 		}
 
 		if (pError != nullptr)
@@ -418,6 +421,13 @@ namespace Causality
 
 }
 
+void ConvertCovToPca(Matrix3f& cov, float norm)
+{
+	cov /= norm;
+	auto svd = cov.jacobiSvd(Eigen::ComputeFullV);
+	cov = svd.singularValues().asDiagonal() * svd.matrixV();
+}
+
 CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
 {
 	assert(controller.IsReady && iclip.IsReady());
@@ -436,7 +446,6 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 	//if (character.CurrentAction() == nullptr)
 	//	return 0.0f;
-	_ASSERTE(_CrtCheckMemory());
 
 	auto panim = character.CurrentAction();
 	if (panim == nullptr)
@@ -454,13 +463,13 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	int Ti = g_PhaseMatchingInterval;
 	int Ts = T / Ti + 1;
 
-	_ASSERTE(_CrtCheckMemory());
 
 	RowVectorXf Eub(Juk.size());
 	selectCols(iclip.GetAllPartsEnergy(), Juk, &Eub);
 
 	// Player Perceptive vector mean normalized
 	MatrixXf Xpvnm(pvDim, Juk.size());
+	std::vector<Matrix3f> Xpvcov(pvDim);
 
 	MatrixXf Xpvseq(iclip.ClipFrames(), Juk.size() * pvDim);
 	selectCols(iclip.GetAllPartsSequence(), Juk3, &Xpvseq);
@@ -469,12 +478,18 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	//selectCols(reshape(iclip.GetAllPartsMean(), pvDim, -1), Juk, &Xpvnm);
 	for (int i = 0; i < Juk.size(); i++)
 	{
-		Xpvnm.col(i) = iclip.GetPartsDifferenceMean(Juk[i], userParts[Juk[i]]->parent()->Index).normalized().transpose();
+		int pid = userParts[Juk[i]]->parent()->Index;
+		Xpvnm.col(i) = iclip.GetPartsDifferenceMean(Juk[i], pid).transpose();
+		auto norm = Xpvnm.col(i).norm();
+		Xpvnm.col(i) /= norm;
+
+		//Xpvcov[i] = iclip.GetPartsDifferenceCovarience(Juk[i], pid);
+		//ConvertCovToPca(Xpvcov[i],norm);
+
 	}
 	//Xpvnm = reshape(xpvrow, Juk.size(), pvDim).transpose().colwise().normalized();
 	//Xpvnm.colwise().normalize();
 
-	_ASSERTE(_CrtCheckMemory());
 	std::vector<unique_ptr<PartilizedTransformer>> clipTransforms;
 	clipTransforms.reserve(clips.size());
 	Eigen::VectorXf clipTransformScores(clips.size());
@@ -516,15 +531,52 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 		// Character Perceptive vector mean normalized
 		MatrixXf Cpvnm(pvDim, Jck.size());
+		std::vector<Matrix3f> Cpvcov(Jck.size());
+		VectorXi Cpvdim(Jck.size());
 		//RowVectorXf cpvnmrow(pvDim* Jck.size());
 		//selectCols(cpv.GetAllPartsMean(), Jck3, &cpvnmrow);
 		//Cpvnm = reshape(cpvnmrow, Jck.size(), pvDim).transpose().colwise().normalized();
 		for (int i = 0; i < Jck.size(); i++)
 		{
 			int pid = 0;
+			int jid = Jck[i];
 			if (charaParts[Jck[i]]->parent() != nullptr)
 				charaParts[Jck[i]]->parent()->Index;
-			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).normalized().transpose();
+			Cpvnm.col(i) = cpv.GetPartsDifferenceMean(Jck[i], charaParts[Jck[i]]->parent()->Index).transpose();
+			auto norm = Cpvnm.col(i).norm();
+			Cpvnm.col(i) /= norm;
+
+			//Cpvcov[i] = cpv.GetPartsDifferenceCovarience(Jck[i], pid);
+			//ConvertCovToPca(Xpvcov[i], norm);
+
+			//Cpvdim[i] = svals[0] / svals.norm() > 0.95f ? 1 : // 1-D Trajectory
+			//			svals[2] / svals.norm() < 0.05 ? 2 :  // 2-D Trajectory
+			//			3; // 3-D Spherical Trajectory
+
+			//Cpvcov[i] = svd.singularValues().asDiagonal() * svd.matrixV();
+		}
+
+		if (g_EnableDebugLogging >= 1)
+		{
+			cout << "=============================================" << endl;
+			cout << "Bodypart assignment for " << character.Name << " : " << anim.Name << endl;
+			cout << "*********************************************" << endl;
+			cout << "Human Skeleton ArmatureParts : " << endl;
+			for (auto i : Juk)
+			{
+				const auto& blX = *userParts[i];
+				cout << "Part[" << i << "]= " << blX.Joints << endl;
+			}
+
+			cout << "*********************************************" << endl;
+			cout << "Character " << character.Name << "'s Skeleton ArmatureParts : " << endl;
+
+			for (auto& i : Jck)
+			{
+				const auto& blY = *charaParts[i];
+				cout << "Part[" << i << "] = " << blY.Joints << endl;
+			}
+			cout << "Caculating Quadratic Assignment Problem ... " << endl;
 		}
 
 		//Cpvnm.colwise().normalize();
@@ -550,6 +602,13 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 		// Anisometric Gaussian kernal here
 		A.array() = (-(A.array() / (DirectX::XM_PI / 6)).cwiseAbs2()).exp();
+
+		if (g_EnableDebugLogging >= 1)
+		{
+			cout << " A = " << endl;
+			cout << A << endl;
+		}
+
 		//A.noalias() = Xsp.transpose() * Csp;
 
 		//_ASSERTE( _CrtCheckMemory( ) );
@@ -574,6 +633,10 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		//	score += A.col(i).maxCoeff(&idx);
 		//	matching[i] = idx;
 		//}
+
+		auto naiveMatching = max_weight_bipartite_matching(A);
+		auto naiveScore = matching_cost(A, naiveMatching);
+
 		float score = max_quadratic_assignment(A, array4_const_view(C), gsl::span<index_type>(matching));
 
 		float maxScore = score;
@@ -583,37 +646,21 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 
 #pragma region Display Debug Armature Parts Info
-		cout << "=============================================" << endl;
-		cout << "Best assignment for " << character.Name << " : " << anim.Name << endl;
-		cout << "Scores : " << maxScore << endl;
-
-		cout << "*********************************************" << endl;
-		cout << "Human Skeleton ArmatureParts : " << endl;
-		for (auto i : Juk)
+		if (g_EnableDebugLogging >= 1)
 		{
-			const auto& blX = *userParts[i];
-			cout << "Part[" << i << "]= " << blX.Joints << endl;
-		}
-
-		cout << "*********************************************" << endl;
-		cout << "Character " << character.Name << "'s Skeleton ArmatureParts : " << endl;
-
-		for (auto& i : Jck)
-		{
-			const auto& blY = *charaParts[i];
-			cout << "Part[" << i << "] = " << blY.Joints << endl;
-		}
-		cout << "__________ Parts Assignment __________" << endl;
-		for (int i = 0; i < matching.size(); i++)
-		{
-			if (matching[i] < 0) continue;
-			int ju = Juk[i], jc = Jck[matching[i]];
-			if (ju >= 0 && jc >= 0)
+			cout << "__________ Parts Assignment __________" << endl;
+			cout << "Scores : " << maxScore << endl;
+			for (int i = 0; i < matching.size(); i++)
 			{
-				cout << userParts[ju]->Joints << " ==> " << charaParts[jc]->Joints << endl;
+				if (matching[i] < 0) continue;
+				int ju = Juk[i], jc = Jck[matching[i]];
+				if (ju >= 0 && jc >= 0)
+				{
+					cout << userParts[ju]->Joints << " ==> " << charaParts[jc]->Joints << endl;
+				}
 			}
+			cout << "__________ Fin __________" << endl;
 		}
-		cout << "__________ Fin __________" << endl;
 #pragma endregion
 
 		Cca<float> cca;

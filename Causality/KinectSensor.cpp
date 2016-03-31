@@ -16,6 +16,18 @@ using namespace Microsoft::WRL;
 extern ShrinkedArmature g_PlayeerBlocks;
 extern bool			 g_EnableInputFeatureLocalization;
 
+static float g_KinectFilterCutoff = 1.0f;
+static float g_KinectFilterInferedCutoff = 0.3f;
+static float g_KinectFilterCutoffHigh = 1.0f;
+static float g_KinectFilterCutoffLow = 0.01f;
+static float g_KinectFilterCutoffVelocityHigh = 3.0f;
+static float g_KinectFilterCutoffVelocityLow = .0f;
+//FcLow = 0.01f;
+//VcLow = 0.0f;
+//VcHigh = 3.0f;
+//FcTracked = 3.0f;
+//FcInferred = 1.0f;
+//FcInc = 0.1f;
 
 template <class T>
 inline void SafeRelease(T*& pCom)
@@ -524,7 +536,7 @@ public:
 
 		player->m_isTracked = true;
 		player->ResetLostFrameCount();
-
+		
 		pBody->GetJoints(ARRAYSIZE(joints), joints);
 		pBody->GetJointOrientations(ARRAYSIZE(oris), oris);
 		player->m_Distance = joints[0].Position.Z;
@@ -549,19 +561,37 @@ public:
 			//auto& filter = player->JointFilters[j];
 			DirectX::XMVECTOR ep = DirectX::XMLoadFloat3(reinterpret_cast<DirectX::Vector3*>(&joints[j].Position));
 			ep = DirectX::XMVector3TransformCoord(ep, transform);
+
 			DirectX::XMVECTOR bp = DirectX::XMLoadFloat3(reinterpret_cast<DirectX::Vector3*>(&joints[JointsParent[j]].Position));
 			//frame[j].GblLength = DirectX::XMVectorGetX(DirectX::XMVector3Length(ep - bp));
 			//frame[j].LclLength = frame[j];
+			DirectX::XMVECTOR rot = DirectX::XMLoadFloat4(reinterpret_cast<DirectX::Quaternion*>(&oris[j].Orientation));
+
+
+			if (joints[j].TrackingState + 1 <= player->m_FilterLevel)
+			{
+				auto& filter = player->m_JointsFilters[j];
+				if (joints[j].TrackingState == TrackingState_Inferred)
+					filter.SetCutoffFrequency(g_KinectFilterInferedCutoff);
+				else
+					filter.SetCutoffFrequency(g_KinectFilterCutoff);
+				//ep = Vector3(.0f);
+				ep = filter.Apply(ep); // Prevent the jittering in inferred state
+			}
+			else
+			{
+				player->m_JointsFilters[j].Reset();
+				player->m_JointsFilters[j].Apply(ep); // This should be 'accurate'
+			}
 
 			//? Why not filtering?
 			//! We are tracking gestures here, keep the raw data is better!
 			frame[j].GblTranslation = ep; // filter.Apply(ep);
-			ep = DirectX::XMLoadFloat4(reinterpret_cast<DirectX::Quaternion*>(&oris[j].Orientation));
 
-			ep *= DirectX::g_XMNegateX;
+			//rot *= DirectX::g_XMNegateX;
 			//ep *= g_XMNegateXZ.v;
 
-			frame[j].GblRotation = DirectX::XMQuaternionMultiply(ep, rotation);
+			frame[j].GblRotation = DirectX::XMQuaternionMultiply(rot, rotation);
 		}
 
 		auto& armature = *TrackedBody::BodyArmature;
@@ -758,8 +788,18 @@ KinectSensor::KinectSensor()
 }
 
 TrackedBody::TrackedBody(size_t bufferSize)
-	: TrackedArmature(*BodyArmature, bufferSize)
+	: TrackedArmature(*BodyArmature, bufferSize), m_UpdateFrequency(30.0), m_FilterLevel(FilterLevel_Infered)
 {
+	m_JointsFilters.resize(BodyArmature->size());
+	for (auto& filter : m_JointsFilters)
+	{
+		filter.SetUpdateFrequency(&m_UpdateFrequency);
+		filter.SetCutoffFrequency(g_KinectFilterCutoff);
+		//filter.SetCutoffFrequencyHigh(g_KinectFilterCutoffHigh);
+		//filter.SetCutoffFrequencyLow(g_KinectFilterCutoffLow);
+		//filter.SetVelocityHigh(g_KinectFilterCutoffVelocityHigh);
+		//filter.SetVelocityLow(g_KinectFilterCutoffVelocityLow);
+	}
 }
 
 //void TrackedBody::PushFrame(FrameType && frame)

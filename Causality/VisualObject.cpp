@@ -98,7 +98,9 @@ void VisualObject::Render(IRenderContext * pContext, IEffect* pEffect)
 	if (g_ShowCharacterMesh && g_DebugView && m_pRenderModel)
 	{
 		BoundingGeometry geo(m_pRenderModel->GetBoundingBox());
-		geo.Transform(geo, GlobalTransformMatrix());
+		auto world = this->GlobalTransformMatrix();
+		//geo.Transform(geo, GlobalTransformMatrix());
+		drawer.SetWorld(world);
 		drawer.Begin();
 		DrawGeometryOutline(geo, Colors::Orange);
 		drawer.End();

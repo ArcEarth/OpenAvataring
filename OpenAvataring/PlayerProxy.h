@@ -21,6 +21,18 @@ namespace Causality
 		static const size_t	ScaledMotionTime = ANIM_STANDARD::MAX_CLIP_DURATION; // second
 #pragma endregion
 
+		enum SelectionMode
+		{
+			SelectionMode_Filtering = 1,
+			SelectionMode_MostLikilily = 2,
+		};
+
+		enum CharacteSelectionSource
+		{
+			CharacteSelectionSource_RecentPeriodAction = 0,
+			CharacteSelectionSource_LatestPoseFrame = 1,
+		};
+
 		// Character Map State
 		bool							IsMapped() const;
 
@@ -67,8 +79,11 @@ namespace Causality
 		// Helper methods
 		//bool	UpdateByFrame(ArmatureFrameConstView frame);
 
+		void	SelectAll(bool enableGlow);
 		void	SetActiveController(int idx);
-		int		MapCharacterByLatestMotion();
+		void	ResetChracterGlow(CharacterController & ctr);
+		int		SelectCharacter(CharacteSelectionSource source = CharacteSelectionSource_RecentPeriodAction);
+		bool	SelectCharacterAsync(CharacteSelectionSource source = CharacteSelectionSource_RecentPeriodAction, bool analyzeAction = false);
 
 		// plyaer streaming thread
 		friend	IPlayerSelector;
@@ -115,6 +130,7 @@ namespace Causality
 
 		int									m_CurrentIdx;
 		std::list<CharacterController>		m_Controllers;
+		SelectionMode						m_selectionMode;
 
 		bool								m_DefaultCameraFlag;
 		RigidTransform						m_DefaultCameraPose;

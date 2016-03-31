@@ -340,11 +340,10 @@ namespace Causality
 
 		void EnableCyclicMotionDetection(bool is_enable = true, float cyclicSupportThrehold = 0.65f);
 
+		bool AnaylzeRecentStream(bool forceAnaylze = false);
 	protected:
 		void InitializePvFacade(ShrinkedArmature& parts);
 		void InitializeStreamView(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames);
-
-		bool AnaylzeRecentStream();
 
 		// Result stored in this->m_Spectrum
 		void CaculateSpecturum(size_t head, size_t windowSize);

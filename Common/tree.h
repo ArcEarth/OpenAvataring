@@ -1427,33 +1427,25 @@ namespace stdx
 			{}
 
 			// When ignore_root_sibling is set to True, the BFS-travel will ingore the siblings of current
-			explicit breadth_first_iterator(const pointer ptr, bool ignore_root_sibling = false)
-				: base_type(ptr), root(ptr)
+			explicit breadth_first_iterator(const pointer _current, const pointer _logic_root)
+				: base_type(_current), root(_logic_root)
 			{
-				node_queue.push(nullptr);
+			}
+
+			explicit breadth_first_iterator(const pointer _current)
+				: breadth_first_iterator(_current, _current)
+			{
 			}
 
 			// Copy and bfs-iterator is expensive!
-			breadth_first_iterator(const self_type& rhs)
-				: base_type(ptr), node_queue(rhs), root(rhs.root)
-			{}
+			breadth_first_iterator(const self_type& rhs) = default;
 
-			breadth_first_iterator(self_type&& rhs)
-				: base_type(ptr), node_queue(std::move(rhs)), root(rhs.root)
-			{}
+			breadth_first_iterator(self_type&& rhs) = default;
 
 			// Copy and bfs-iterator is expensive!
-			self_type& operator=(const self_type& rhs)
-			{
-				node_queue = rhs;
-				current = rhs.current;
-			}
+			self_type& operator=(const self_type& rhs) = default;
 
-			self_type& operator=(self_type&& rhs)
-			{
-				node_queue = std::move(rhs);
-				current = rhs.current;
-			}
+			self_type& operator=(self_type&& rhs) = default;
 
 			// Copy and bfs-iterator is expensive!
 			self_type operator ++(int) {
@@ -1475,10 +1467,11 @@ namespace stdx
 				}
 				else
 				{
+					if (current->_first_child)
+						node_queue.push(current->_first_child);
+
 					if (current->_next_sibling)
 					{
-						if (current->_first_child)
-							node_queue.push(current->_first_child);
 						current = current->_next_sibling;
 					}
 					else if (!node_queue.empty())
@@ -1620,11 +1613,11 @@ namespace stdx
 		}
 		// breadth_first_iterator can self determine if it has meet the end
 		const_breadth_first_iterator descendants_breadth_first_begin() const {
-			return const_breadth_first_iterator(static_cast<const_pointer>(this)->_first_child);
+			return const_breadth_first_iterator(static_cast<const_pointer>(this)->_first_child, static_cast<const_pointer>(this));
 		}
 		// just an null-iterator
-		const_sibling_iterator descendants_breadth_first_end() const {
-			return const_sibling_iterator(nullptr);
+		const_breadth_first_iterator descendants_breadth_first_end() const {
+			return const_breadth_first_iterator(nullptr);
 		}
 		// Depth first begin iterator to all nodes inside this sub-tree
 		const_depth_first_iterator nodes_begin() const {
@@ -1636,11 +1629,11 @@ namespace stdx
 		}
 		// breadth_first_iterator can self determine if it has meet the end, iterate through sub-tree
 		const_breadth_first_iterator nodes_breadth_first_begin() const {
-			return const_breadth_first_iterator(static_cast<const_pointer>(this), true);
+			return const_breadth_first_iterator(static_cast<const_pointer>(this), static_cast<const_pointer>(this));
 		}
 		// just an null-iterator
-		const_sibling_iterator nodes_breadth_first_end() const {
-			return const_sibling_iterator(nullptr);
+		const_breadth_first_iterator nodes_breadth_first_end() const {
+			return const_breadth_first_iterator(nullptr);
 		}
 
 		// Mutable ranges
@@ -1671,11 +1664,11 @@ namespace stdx
 		}
 		// Breadth first descendants iterator can self determine if it has meet the end
 		mutable_breadth_first_iterator descendants_breadth_first_begin() {
-			return mutable_breadth_first_iterator(static_cast<pointer>(this)->_first_child);
+			return mutable_breadth_first_iterator(static_cast<pointer>(this)->_first_child, static_cast<pointer>(this));
 		}
 		// just an null-iterator
-		mutable_sibling_iterator descendants_breadth_first_end() {
-			return mutable_sibling_iterator(nullptr);
+		mutable_breadth_first_iterator descendants_breadth_first_end() {
+			return mutable_breadth_first_iterator(nullptr);
 		}
 		// begin iterator to all nodes inside this sub-tree
 		mutable_depth_first_iterator nodes_begin() {
@@ -1687,11 +1680,11 @@ namespace stdx
 		}
 		// breadth_first_iterator can self determine if it has meet the end
 		mutable_breadth_first_iterator nodes_breadth_first_begin() {
-			return const_breadth_first_iterator(static_cast<pointer>(this), true);
+			return mutable_breadth_first_iterator(static_cast<pointer>(this), static_cast<pointer>(this));
 		}
 		// just an null-iterator
-		mutable_sibling_iterator nodes_breadth_first_end() {
-			return mutable_sibling_iterator(nullptr);
+		mutable_breadth_first_iterator nodes_breadth_first_end() {
+			return mutable_breadth_first_iterator(nullptr);
 		}
 
 		// Ranges
@@ -1711,15 +1704,15 @@ namespace stdx
 		{
 			return iterator_range<const_depth_first_iterator>(descendants_begin(), descendants_end());
 		}
-		iterator_range<const_depth_first_iterator>
+		iterator_range<const_breadth_first_iterator>
 			nodes_breadth_first() const
 		{
-			return iterator_range<const_depth_first_iterator>(nodes_breadth_first_begin(), nodes_breadth_first_end());
+			return iterator_range<const_breadth_first_iterator>(nodes_breadth_first_begin(), nodes_breadth_first_end());
 		}
-		iterator_range<const_depth_first_iterator>
+		iterator_range<const_breadth_first_iterator>
 			descendants_breadth_first() const
 		{
-			return iterator_range<const_depth_first_iterator>(descendants_breadth_first_begin(), descendants_breadth_first_end());
+			return iterator_range<const_breadth_first_iterator>(descendants_breadth_first_begin(), descendants_breadth_first_end());
 		}
 		iterator_range<mutable_sibling_iterator>
 			children()
@@ -1736,15 +1729,15 @@ namespace stdx
 		{
 			return iterator_range<mutable_depth_first_iterator>(descendants_begin(), descendants_end());
 		}
-		iterator_range<mutable_depth_first_iterator>
+		iterator_range<mutable_breadth_first_iterator>
 			nodes_breadth_first()
 		{
-			return iterator_range<mutable_depth_first_iterator>(nodes_breadth_first_begin(), nodes_breadth_first_end());
+			return iterator_range<mutable_breadth_first_iterator>(nodes_breadth_first_begin(), nodes_breadth_first_end());
 		}
-		iterator_range<mutable_depth_first_iterator>
+		iterator_range<mutable_breadth_first_iterator>
 			descendants_breadth_first()
 		{
-			return iterator_range<mutable_depth_first_iterator>(descendants_breadth_first_begin(), descendants_breadth_first_end());
+			return iterator_range<mutable_breadth_first_iterator>(descendants_breadth_first_begin(), descendants_breadth_first_end());
 		}
 	};
 
