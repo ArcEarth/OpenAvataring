@@ -248,7 +248,6 @@ namespace Causality
 	{
 		int ju = transform.SrcIdx;
 		int jc = transform.DstIdx;
-		int T = CLIP_FRAME_COUNT;
 
 		// Up-rotate X to phi
 		auto up = iclip.ArmatureParts()[ju]->parent();
@@ -256,13 +255,35 @@ namespace Causality
 		auto cp = cclip.ArmatureParts()[jc]->parent();
 		int jcp = cp ? cp->Index : -1;
 
+		bool isSinglePose = iclip.ClipFrames() == 1;
+		//std::cout << isSinglePose << endl;
 
-		auto rotX = upRotatePermutation(T, phi);
-		auto rawX = (rotX * (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup))).eval();
+
+		MatrixXf rawX;
+
+		int nx = iclip.ClipFrames();
+		int ny = cclip.ClipFrames();
+
+		auto rotX = upRotatePermutation(nx, phi);
+
 
 		auto rawY = (cclip.GetPartSequence(jc) - cclip.GetPartSequence(jcp)).eval();
 
-		assert(rawX.rows() == rawY.rows() && rawY.rows() == T);
+		if (isSinglePose)
+		{
+			assert(isSinglePose);
+			if (g_EnableDebugLogging > 1)
+				std::cout <<"signle frame binding : " << isSinglePose << endl;
+			rawX = (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup)).replicate(rawY.rows(), 1);
+		}
+		else {
+			assert(!isSinglePose);
+			if (g_EnableDebugLogging > 1)
+				std::cout << "periodic motion binding : " << isSinglePose << endl;
+			rawX = (rotX * (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup))).eval();
+		}
+
+		//assert(rawX.rows() == rawY.rows() && rawY.rows() == T);
 
 		float err = 0;
 		if (g_PartAssignmentTransform == PAT_CCA)
@@ -300,14 +321,26 @@ namespace Causality
 			MatrixXf _Y = rawY - uY.replicate(rawY.rows(), 1);
 
 			//float unis = sqrtf(uY.stableNorm() / uY.stableNorm());
-			float unis = sqrtf(rawY.cwiseAbs2().sum() / rawX.cwiseAbs2().sum());
-			
-			RowVectorXf alpha = (_Y.cwiseAbs2().colwise().sum().array() / _X.cwiseAbs2().colwise().sum().array()).cwiseSqrt();
+			float unis = 1.0f;
+			RowVectorXf alpha;
 
-			std::cout << "Global scale = " << unis << "Anisometric scale = " << alpha << std::endl;
-			alpha = alpha.cwiseMax(g_HandleTransformAnisometricMin * unis).cwiseMin(g_HandleTransformAnisometricMax * unis);
+			if (isSinglePose) {
+				if (g_EnableDebugLogging > 1)
+					std::cout << "signle frame binding : " << isSinglePose << endl;
+				unis = uY.norm() / uX.norm();
+				alpha = uY.array() / uX.array();
+			}
+			else
+			{
+				if (g_EnableDebugLogging > 1)
+					std::cout << "signle frame binding : " << isSinglePose << endl;
+				unis = sqrtf(rawY.cwiseAbs2().sum() / rawX.cwiseAbs2().sum());
+				alpha = (_Y.cwiseAbs2().colwise().sum().array() / _X.cwiseAbs2().colwise().sum().array()).cwiseSqrt();
+			}
 
 			err = (_Y - _X * alpha.asDiagonal()).cwiseAbs2().sum();
+			alpha = alpha.cwiseMax(g_HandleTransformAnisometricMin * unis).cwiseMin(g_HandleTransformAnisometricMax * unis);
+			std::cout << "Global scale = " << unis << " Anisometric scale = " << alpha << std::endl;
 
 			//alpha[2] = -alpha[2];
 			//float flipErr = (_Y - _X * alpha.asDiagonal()).cwiseAbs2().sum();
@@ -341,7 +374,7 @@ namespace Causality
 	}
 
 	// helper functions
-	void CaculateQuadraticDistanceMatrix(array4_view &C, const ClipFacade& iclip, const ClipFacade& cclip)
+	void CaculateQuadraticDistanceMatrix(array4_view &C, _In_ const MatrixXf& A, const ClipFacade& iclip, const ClipFacade& cclip)
 	{
 		auto& Juk = iclip.ActiveParts();
 		auto& Jck = cclip.ActiveParts();
@@ -377,13 +410,14 @@ namespace Causality
 							RowVector3f _x = xu.array() * xc.array();
 							_x /= xu.norm() * xc.norm();
 							val = (_x.array() /** edim.transpose()*/).sum();
+							val *= g_PartAssignmentQuadraticTermWeight;
 
 							float extra = .0f;
 							// structrual bounus
 							if (is_symetric(cparti, cpartj))
 							{
 								if (is_symetric(sparti, spartj))
-									extra += g_StructrualSymtricBonus;
+									extra += g_StructrualSymtricBonus * sqrt(A(i,si) * A(j,sj));
 								else
 									extra -= g_StructrualDisSymtricPenalty;
 							}
@@ -397,7 +431,7 @@ namespace Causality
 						} // one of them is zero
 						else if (xu.norm() + xc.norm() > 0.01f)
 						{
-							val = -1.0f;
+							val = -g_PartAssignmentQuadraticTermWeight;
 							C(i, j, si, sj) = val;
 							C(j, i, sj, si) = val;
 							C(i, j, sj, si) = val;
@@ -440,6 +474,9 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	size_t Jc = charaParts.size();
 	auto& clips = character.Behavier().Clips();
 	auto& clipinfos = controller.GetClipInfos();
+
+	int framesCount = iclip.ClipFrames();
+	bool isSingleFrame = framesCount == 1;
 
 	//controller.CharacterScore = numeric_limits<float>::min();
 	//auto& anim = character.Behavier()["walk"];
@@ -560,6 +597,8 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		{
 			cout << "=============================================" << endl;
 			cout << "Bodypart assignment for " << character.Name << " : " << anim.Name << endl;
+			if (isSingleFrame)
+				cout << "!!!!!!!!Single-frame-binding!!!!!!!!!!!" << endl;
 			cout << "*********************************************" << endl;
 			cout << "Human Skeleton ArmatureParts : " << endl;
 			for (auto i : Juk)
@@ -619,7 +658,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		array4_view C(Cdata.data(), array4_view::bounds_type({ cu, cu, cc, cc }));
 
 		//_ASSERTE(_CrtCheckMemory());
-		CaculateQuadraticDistanceMatrix(C, iclip, cpv);
+		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv);
 
 		//cout << C << endl;
 
@@ -663,64 +702,66 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		}
 #pragma endregion
 
-		Cca<float> cca;
+		VectorXi maxPhi(matching.size());
+		maxPhi.setZero();
 
 		//_ASSERTE( _CrtCheckMemory( ) );
-
-		MatrixXf corrlations(Ts, matching.size());
-		corrlations.setZero();
-
-		for (int i = 0; i < matching.size(); i++)
+		if (!isSingleFrame)
 		{
-			if (matching[i] < 0) continue;
-			int ju = Juk[i], jc = Jck[matching[i]];
-			for (int phi = 0; phi < T; phi += Ti)
+			MatrixXf corrlations(Ts, matching.size());
+			corrlations.setZero();
+			Cca<float> cca;
+
+			for (int i = 0; i < matching.size(); i++)
 			{
-				if (ju >= 0 && jc >= 0)
+				if (matching[i] < 0) continue;
+				int ju = Juk[i], jc = Jck[matching[i]];
+				for (int phi = 0; phi < T; phi += Ti)
 				{
-					cca.computeFromQr(iclip.GetPartPcadQrView(ju), cpv.GetPartPcadQrView(jc), false, phi);
-					corrlations(phi / Ti, i) = cca.correlaltions().minCoeff();
-				}
-				else
-					corrlations(phi / Ti, i) = 0;
-			}
-		}
-
-		VectorXi maxPhi(matching.size());
-
-		//float sumCor = corrlations.rowwise().sum().maxCoeff(&maxPhi);
-
-		int misAlign = Ts / 5;
-		//? maybe other reduce function like min?
-		//! We should allowed a window of range for phi matching among different parts
-		corrlations.conservativeResize(Ts + misAlign, corrlations.cols());
-		corrlations.bottomRows(misAlign) = corrlations.topRows(misAlign);
-		{
-			int mPhis = 0;
-			float scorePhase = numeric_limits<float>::min();;
-			for (int i = 0; i < Ts; i++)
-			{
-				float score = corrlations.middleRows(i, misAlign).colwise().maxCoeff().sum();
-				if (score > scorePhase)
-				{
-					mPhis = i;
-					scorePhase = score;
+					if (ju >= 0 && jc >= 0)
+					{
+						cca.computeFromQr(iclip.GetPartPcadQrView(ju), cpv.GetPartPcadQrView(jc), false, phi);
+						corrlations(phi / Ti, i) = cca.correlaltions().minCoeff();
+					}
+					else
+						corrlations(phi / Ti, i) = 0;
 				}
 			}
 
-			for (int i = 0; i < corrlations.cols(); i++)
+			//float sumCor = corrlations.rowwise().sum().maxCoeff(&maxPhi);
+
+			int misAlign = Ts / 5;
+			//? maybe other reduce function like min?
+			//! We should allowed a window of range for phi matching among different parts
+			corrlations.conservativeResize(Ts + misAlign, corrlations.cols());
+			corrlations.bottomRows(misAlign) = corrlations.topRows(misAlign);
 			{
-				corrlations.middleRows(mPhis, misAlign).col(i).maxCoeff(&maxPhi[i]);
-				maxPhi[i] += mPhis;
-				if (maxPhi[i] >= Ts) maxPhi[i] -= Ts;
-				maxPhi[i] *= Ti;
+				int mPhis = 0;
+				float scorePhase = numeric_limits<float>::min();;
+				for (int i = 0; i < Ts; i++)
+				{
+					float score = corrlations.middleRows(i, misAlign).colwise().maxCoeff().sum();
+					if (score > scorePhase)
+					{
+						mPhis = i;
+						scorePhase = score;
+					}
+				}
+
+				for (int i = 0; i < corrlations.cols(); i++)
+				{
+					corrlations.middleRows(mPhis, misAlign).col(i).maxCoeff(&maxPhi[i]);
+					maxPhi[i] += mPhis;
+					if (maxPhi[i] >= Ts) maxPhi[i] -= Ts;
+					maxPhi[i] *= Ti;
+				}
+
+				// Combine the score from qudratic assignment with phase matching
+				maxScore = maxScore /** scorePhase*/;
+
+				//_ASSERTE( _CrtCheckMemory( ) );
+
 			}
-
-			// Combine the score from qudratic assignment with phase matching
-			maxScore = maxScore /** scorePhase*/;
-
-			//_ASSERTE( _CrtCheckMemory( ) );
-
 		}
 
 

@@ -309,9 +309,39 @@ namespace Causality
 		bool					m_isReady;
 	};
 
+	enum RecentAcrtionBehavier
+	{
+		RecentActionBehavier_Auto = 0,
+		RecentActionBehavier_FreezedPose = 1,
+		RecentActionBehavier_PeriodMotion = 2,
+	};
+
 	class CyclicStreamClipinfo : protected ClipFacade
 	{
 	public:
+		struct FrequencyResolveResult
+		{
+			float Frequency;
+			float Support;
+			float Energy;
+			int	  PeriodInFrame;
+		};
+
+		struct RecentFrameResolveResult : public FrequencyResolveResult
+		{
+			RecentFrameResolveResult();
+
+			void SetFrequencyResolveResult(const FrequencyResolveResult& fr);
+
+			RecentAcrtionBehavier Behavier;
+			float PeriodicConfidence;
+			float StaticConfidence;
+			float BufferingProgress;
+			bool  MetricReady;
+			bool  ConfidenceReady;
+			bool  BufferingReady;
+		};
+
 		typedef IArmatureStreamAnimation::frame_type FrameType;
 		~CyclicStreamClipinfo();
 		// set interval_frames == 0 to automaticly estimate based on windows size and sample rate
@@ -322,7 +352,7 @@ namespace Causality
 
 		// Important, input frame use this method
 		// return true if a new metric of ClipFacade is avaiable
-		bool StreamFrame(const FrameType& frame);
+		RecentFrameResolveResult StreamFrame(const FrameType& frame);
 
 		void ResetStream();
 
@@ -338,9 +368,16 @@ namespace Causality
 			return *this;
 		}
 
-		void EnableCyclicMotionDetection(bool is_enable = true, float cyclicSupportThrehold = 0.65f);
+		void EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold, float staticEnergyThreshold);
+		void EnableCyclicMotionDetection(bool is_enable = true);
 
-		bool AnaylzeRecentStream(bool forceAnaylze = false);
+		RecentFrameResolveResult AnaylzeRecentAction(RecentAcrtionBehavier forceBehavier = RecentActionBehavier_Auto);
+		bool AnaylzeRecentPose();
+
+		auto GetLatestPoseFeatureFrame() {
+			return m_buffer.col(m_bufferHead + m_bufferSize - 1).transpose();
+		}
+
 	protected:
 		void InitializePvFacade(ShrinkedArmature& parts);
 		void InitializeStreamView(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames);
@@ -353,19 +390,14 @@ namespace Causality
 		// Result is stored in this->X
 		void CropResampleInput(_Out_ Eigen::MatrixXf& X, size_t head, size_t inputPeriod, size_t framePerCycle, float smoothStrength);
 
-		struct FrequencyResolveResult
-		{
-			float Frequency;
-			float Support;
-			int	  PeriodInFrame;
-		};
-
 		FrequencyResolveResult CaculatePeekFrequency(const Eigen::MatrixXcf& spectrum);
 
 	private:
 		double		m_minT, m_maxT;
 		double		m_sampleRate;
 		int			m_cropMargin;
+		bool		m_isStaticPose;
+		bool		m_fillWindowWithFirstFrame;
 
 		// min Frequency, in Frames unit
 		int			m_minFr, m_maxFr, m_FrWidth;
@@ -382,6 +414,8 @@ namespace Causality
 		std::atomic_bool m_enableCyclicDtc;
 		int			m_frameCounter;
 		float		m_cyclicDtcThr; // The threshold to classify as Cyclic motion
+		float		m_staticEnergyThr;
+		float		m_whiteNoiseEnergy;
 
 		// thread sychronization
 		//boost::icl::interval_set<int> m_bufferAccess;
@@ -397,6 +431,7 @@ namespace Causality
 		//! Column major spectrum, 1 column = 1 frame in time
 		Eigen::MatrixXcf	m_Spectrum;	// wSize x fSize
 		Eigen::VectorXf		m_SpectrumEnergy;//In each frequency
+		Eigen::VectorXf		m_EnergyStatisticFilter; // An Low-Pass Gaussian Filter
 		Eigen::MatrixXf		m_SmoothedBuffer;
 
 		int					m_bufferHead;

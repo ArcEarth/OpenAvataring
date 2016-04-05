@@ -788,7 +788,7 @@ KinectSensor::KinectSensor()
 }
 
 TrackedBody::TrackedBody(size_t bufferSize)
-	: TrackedArmature(*BodyArmature, bufferSize), m_UpdateFrequency(30.0), m_FilterLevel(FilterLevel_Infered)
+	: TrackedArmature(*BodyArmature, bufferSize), m_UpdateFrequency(30.0), m_FilterLevel(FilterLevel_None)
 {
 	m_JointsFilters.resize(BodyArmature->size());
 	for (auto& filter : m_JointsFilters)

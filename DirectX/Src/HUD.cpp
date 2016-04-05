@@ -1,4 +1,5 @@
 ﻿#include "pch_directX.h"
+#include <codecvt>
 #include "HUD.h"
 #include "DirectXHelper.h"
 
@@ -8,6 +9,7 @@ using namespace D2D1;
 
 wchar_t g_defaultFontFamilayName[] = L"Segoe UI";
 wchar_t g_defaultLocaleName[] = L"en-US";
+float	g_defaultFontSize = 20.0f;
 
 namespace DirtyFlags
 {
@@ -28,10 +30,16 @@ namespace DirtyFlags
 
 TextBlock::TextBlock()
 {
+	m_textColor = DirectX::Colors::White.v;
+	m_fontSize = g_defaultFontSize;
+	ZeroMemory(&m_textMetrics, sizeof(m_textMetrics));
 }
 
 TextBlock::TextBlock(const std::wstring & text, ID2D1Factory * pD2dFactory, IDWriteFactory * pDwriteFactory)
 {
+	m_textColor = DirectX::Colors::White.v;
+	m_fontSize = g_defaultFontSize;
+	m_text = text;
 }
 
 void TextBlock::CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory * pFactory)
@@ -57,10 +65,6 @@ void TextBlock::CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory 
 		m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
 		);
 
-	DirectX::ThrowIfFailed(
-		pD2dFactory->CreateDrawingStateBlock(&m_stateBlock)
-		);
-
 	if (!m_text.empty())
 		UpdateTextLayout(pFactory);
 }
@@ -75,7 +79,16 @@ void TextBlock::ReleaseDeviceResources()
 
 const std::wstring & TextBlock::Text() const { return m_text; }
 
-void TextBlock::SetText(const std::wstring & text) { m_text = text; m_dirtyFlags |= DirtyFlags::TextContent; }
+void TextBlock::SetText(const std::wstring & text) {
+	m_text = text; 
+	m_dirtyFlags |= DirtyFlags::TextContent; 
+}
+
+void TextBlock::SetText(const std::string & text_utf8)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	this->SetText(converter.from_bytes(text_utf8));
+}
 
 const Color & TextBlock::Foreground() const { return m_textColor; }
 
@@ -163,13 +176,7 @@ void TextBlock::Render(ID2D1DeviceContext* context)
 	//if (!m_textLayout)
 	//	throw std::runtime_error("not intialized");
 
-	context->SaveDrawingState(m_stateBlock.Get());
-	context->BeginDraw();
-
-	Matrix3x2F parentTransform;
-	context->GetTransform(&parentTransform);
-
-	context->SetTransform(m_transform * parentTransform);
+	auto state = SetTransform(context);
 
 	context->DrawTextLayout(
 		D2D1::Point2F(0.f, 0.f),
@@ -179,13 +186,8 @@ void TextBlock::Render(ID2D1DeviceContext* context)
 
 	// Ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
 	// is lost. It will be handled during the next call to Present.
-	HRESULT hr = context->EndDraw();
-	if (hr != D2DERR_RECREATE_TARGET)
-	{
-		ThrowIfFailed(hr);
-	}
 
-	context->RestoreDrawingState(m_stateBlock.Get());
+	RestoreTransform(context,state);
 }
 
 TextBlock::~TextBlock()
@@ -205,11 +207,21 @@ void HUDElement::Render(ID2D1DeviceContext * context)
 {
 }
 
+bool HUDElement::IsDirety() const { return m_dirtyFlags != 0; }
+
+void HUDElement::CreateDeviceResources(ID2D1Factory * pD2dFactory, IDWriteFactory * pDwriteFactory)
+{
+}
+
+void HUDElement::ReleaseDeviceResources()
+{
+}
+
 HUDElement::HUDElement()
 	: m_parent(nullptr),
 	m_transform(D2D1::Matrix3x2F::Identity()),
 	m_hAlign(HorizentalAlignmentEnum::Left), m_vAlign(VerticalAlignmentEnum::Top),
-	m_dirtyFlags(-1),
+	m_dirtyFlags(DirtyFlags::Size | DirtyFlags::Alignment | DirtyFlags::Position),
 	m_opticity(1.0f),
 	m_wAuto(true), m_hAuto(true),
 	m_position(), m_size(),
@@ -221,9 +233,13 @@ HUDElement::~HUDElement()
 {}
 
 
-float HUDElement::Width() const { return m_size.x; }
+float HUDElement::Width() const { 
+	return Size().x;
+}
 
-float HUDElement::Height() const { return m_size.y; }
+float HUDElement::Height() const { 
+	return Size().y;
+}
 
 void HUDElement::SetWidth(float width) {
 	m_size.x = width;
@@ -235,11 +251,19 @@ void HUDElement::SetHeight(float height) {
 	m_dirtyFlags |= DirtyFlags::Size;
 }
 
-const Vector2 & HUDElement::Size() const {
+Vector2 HUDElement::Size() const {
+	if (m_dirtyFlags & DirtyFlags::Size)
+		const_cast<HUDElement*>(this)->UpdateLayout();
+
 	return m_size;
 }
 
-const Vector2 & HUDElement::Position() const { return m_position; }
+Vector2 HUDElement::Position() const {
+	if (m_dirtyFlags & DirtyFlags::Position)
+		const_cast<HUDElement*>(this)->UpdateLayout();
+
+	return m_position;
+}
 
 void HUDElement::SetSize(const Vector2 & size) {
 	m_size = size;
@@ -253,7 +277,15 @@ void HUDElement::SetPosition(const Vector2 & position) {
 
 void HUDElement::UpdateLayout()
 {
+	if (IsLayoutValiad())
+		return;
+
 	auto logicalSize = Parent()->Size();
+
+	if (m_hAlign == HorizentalAlignmentEnum::Stretch)
+		m_size.x = logicalSize.x;
+	if (m_vAlign == VerticalAlignmentEnum::Stretch)
+		m_size.y = logicalSize.y;
 
 	float tx = 0, ty = 0, sx = 1, sy = 1;
 
@@ -290,6 +322,42 @@ void HUDElement::UpdateLayout()
 		ty
 		);
 
+	m_dirtyFlags &= ~(DirtyFlags::Size | DirtyFlags::Alignment | DirtyFlags::Position);
+}
+
+ID2D1DrawingStateBlock* HUDElement::SaveDrawingState(ID2D1DeviceContext * context)
+{
+	if (m_stateBlock == nullptr)
+	{
+		ComPtr<ID2D1Factory> pD2dFactory;
+		context->GetFactory(&pD2dFactory);
+		DirectX::ThrowIfFailed(
+			pD2dFactory->CreateDrawingStateBlock(&m_stateBlock)
+			);
+	}
+
+	context->SaveDrawingState(m_stateBlock.Get());
+
+	return m_stateBlock.Get();
+}
+
+D2D1_MATRIX_3X2_F HUDElement::SetTransform(ID2D1DeviceContext * context)
+{
+	Matrix3x2F parentTransform;
+	context->GetTransform(&parentTransform);
+	context->SetTransform(m_transform * parentTransform);
+	return parentTransform;
+}
+
+void HUDElement::RestoreTransform(ID2D1DeviceContext * context, const D2D1_MATRIX_3X2_F &parentTransform)
+{
+	context->SetTransform(parentTransform);
+}
+
+void HUDElement::RestoreDrawingState(ID2D1DeviceContext * context)
+{
+	if (m_stateBlock)
+		context->RestoreDrawingState(m_stateBlock.Get());
 }
 
 void HUDElement::SetOpticity(float opticity) {
@@ -297,11 +365,24 @@ void HUDElement::SetOpticity(float opticity) {
 	m_dirtyFlags |= DirtyFlags::Opticity;
 }
 
-bool HUDElement::IsLayoutUptoDate() const { return !m_dirtyFlags; }
+void HUDElement::SetHorizentalAlignment(HorizentalAlignmentEnum align) {
+	m_dirtyFlags |= m_hAlign == align ? 0 : DirtyFlags::Alignment;
+	m_hAlign = align;
+}
 
-void HUDElement::InvaliadMeasure()
+void HUDElement::SetVerticalAlignment(VerticalAlignmentEnum align) {
+	m_dirtyFlags |= m_vAlign == align ? 0 : DirtyFlags::Alignment;
+	m_vAlign = align;
+}
+
+bool HUDElement::IsLayoutValiad() const {
+	return !(m_dirtyFlags & (DirtyFlags::Position | DirtyFlags::Alignment | DirtyFlags::Size))
+		&& (!m_parent || m_parent->IsLayoutValiad());
+}
+
+void HUDElement::InvaliadLayout()
 {
-	m_dirtyFlags = DirtyFlags::Size & DirtyFlags::Alignment & DirtyFlags::Position & DirtyFlags::Opticity;
+	m_dirtyFlags |= DirtyFlags::Size | DirtyFlags::Alignment | DirtyFlags::Position;
 }
 
 Vector2 HUDElement::Measure(const Vector2 & availableSize)
@@ -316,6 +397,11 @@ Vector2 HUDElement::Arrange(const Vector2 & actualSize)
 
 void HUDCanvas::UpdateLayout()
 {
+	m_position.x = .0f;
+	m_position.y = .0f;
+	m_size.x = m_targetTex ? m_targetTex->Width() : .0f;
+	m_size.y = m_targetTex ? m_targetTex->Height() : .0f;
+	m_dirtyFlags &= ~(DirtyFlags::Size | DirtyFlags::Alignment | DirtyFlags::Position);
 }
 
 HUDCanvas::~HUDCanvas()
@@ -326,26 +412,45 @@ void HUDCanvas::Render(ID2D1DeviceContext * context)
 {
 	if (!m_targetTex)
 		return;
+
 	context->SetTarget(m_targetTex->BitmapView());
 	if (m_clearCanvasWhenRender)
-		context->Clear(reinterpret_cast<const D2D1_COLOR_F*>(&m_background));
+		context->Clear(as_d2d(m_background));
 
-	if (!m_children.empty())
+	UpdateLayout();
+
+	if (m_children.empty())
 		return;
+
+	context->SetTransform(D2D1::Matrix3x2F::Identity());
 	context->BeginDraw();
 	Panel::Render(context);
 	context->EndDraw();
 }
 
+void HUDCanvas::SetBackground(Color color)
+{
+	m_background = color;
+	m_clearCanvasWhenRender = true;
+}
+
+std::unique_ptr<RenderableTexture2D> DirectX::Scene::HUDCanvas::CreateTarget(ID3D11Device * pDevice, ID2D1DeviceContext * pD2DContext, size_t width, size_t height)
+{
+	std::unique_ptr<RenderableTexture2D> canvas;
+	canvas.reset(new RenderableTexture2D(pDevice, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, 1, 0, true));
+	canvas->CreateD2DBitmapView(pD2DContext);
+	return canvas;
+}
+
 HUDCanvas::HUDCanvas()
-	: m_targetTex(nullptr)
+	: m_targetTex(nullptr), m_background(Colors::Transparent.v), m_clearCanvasWhenRender(false)
 {}
 
 void HUDCanvas::SetTarget(RenderableTexture2D* rtex)
 {
 	m_targetTex = rtex;
 	auto bitmapView = rtex->BitmapView();
-	assert(bitmapView != nullptr);
+	assert(bitmapView != nullptr && "The given surface does not support D2D interface");
 
 	auto size = bitmapView->GetSize();
 	m_size.x = size.width;
@@ -367,7 +472,7 @@ void HUDCanvas::GetViewport(D3D11_VIEWPORT& viewport) const
 	viewport.Height   = m_size.y;
 }
 
-void Panel::AddChild(HUDElement * elem)
+void Panel::AddChild(const std::shared_ptr<HUDElement>& elem)
 {
 	m_children.push_back(elem);
 	elem->m_parent = this;
@@ -375,15 +480,41 @@ void Panel::AddChild(HUDElement * elem)
 
 void Panel::Render(ID2D1DeviceContext * context)
 {
-	UpdateLayout();
+	auto state = SetTransform(context);
+
 	for (auto& element : m_children)
 	{
 		element->Render(context);
 	}
+
+	RestoreTransform(context, state);
 }
 
 Panel::~Panel()
 {
-	for (auto& element : m_children)
-		delete element;
+}
+
+ProgressBar::ProgressBar(int width, int height, TextIndicationOption textOpt, ElementOrientation orientation)
+{
+	m_size = Vector2(width,height);
+	m_orientaion = orientation;
+}
+
+void ProgressBar::Render(ID2D1DeviceContext * context)
+{
+	UpdateLayout();
+	auto state = SetTransform(context);
+	D2D1_RECT_F rect;
+	rect.left = rect.right = .0f;
+	rect.bottom = m_size.y;
+	rect.right = m_size.x;
+	context->FillRectangle(rect, m_backgroundBrush.Get());
+
+	if (m_orientaion == ElementOrientation::Horizental)
+		rect.right = (m_value - m_min) / (m_max - m_min) * m_size.x;
+	else
+		rect.bottom = (m_value - m_min) / (m_max - m_min) *m_size.y;
+
+	context->FillRectangle(rect, m_foregroundBrush.Get());
+	RestoreTransform(context, state);
 }

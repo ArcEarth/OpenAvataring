@@ -384,6 +384,7 @@ CharacterController::CharacterController() {
 void CharacterController::Initialize(CharacterObject & character, const ParamArchive* settings)
 {
 	IsReady = false;
+	IsSelected = true;
 	CharacterScore = 0;
 	CurrentActionIndex = 0;
 	SetTargetCharacter(character);

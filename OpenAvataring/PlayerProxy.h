@@ -27,12 +27,6 @@ namespace Causality
 			SelectionMode_MostLikilily = 2,
 		};
 
-		enum CharacteSelectionSource
-		{
-			CharacteSelectionSource_RecentPeriodAction = 0,
-			CharacteSelectionSource_LatestPoseFrame = 1,
-		};
-
 		// Character Map State
 		bool							IsMapped() const;
 
@@ -79,11 +73,11 @@ namespace Causality
 		// Helper methods
 		//bool	UpdateByFrame(ArmatureFrameConstView frame);
 
-		void	SelectAll(bool enableGlow);
+		void	ResetSelection(bool enableGlow);
 		void	SetActiveController(int idx);
 		void	ResetChracterGlow(CharacterController & ctr);
-		int		SelectCharacter(CharacteSelectionSource source = CharacteSelectionSource_RecentPeriodAction);
-		bool	SelectCharacterAsync(CharacteSelectionSource source = CharacteSelectionSource_RecentPeriodAction, bool analyzeAction = false);
+		int		SelectCharacter(RecentAcrtionBehavier source = RecentActionBehavier_Auto);
+		bool	SelectCharacterAsync(RecentAcrtionBehavier source = RecentActionBehavier_Auto, bool recaculateMetric = false);
 
 		// plyaer streaming thread
 		friend	IPlayerSelector;
@@ -99,6 +93,9 @@ namespace Causality
 		bool								m_IsInitialized;
 
 		DirectX::Texture2D*					m_trailVisual;
+
+		CyclicStreamClipinfo::RecentFrameResolveResult
+											m_recentMetric;
 
 		std::thread							m_updateThread;
 		std::atomic_bool					m_stopUpdate;
@@ -137,6 +134,11 @@ namespace Causality
 
 		time_seconds						current_time;
 
+		float								m_updateFreqency;
+		LowPassFilter<Vector3, float>		m_cameraStablizer;
+		LowPassFilter<Vector3,float>		m_pbCenterFilter;
+		LowPassFilter<float,float>			m_pbValueFilter0;
+		LowPassFilter<float,float>			m_pbValueFilter1;
 	protected:
 		// Enter the selecting phase
 		//void BeginSelectingPhase();

@@ -56,9 +56,15 @@ EndEffector <
 
 typedef PVSFeature PartsFeatureType;
 
-void CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold) {
+void CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold, float staticEnergyThreshold) {
 	m_enableCyclicDtc = is_enable;
+	m_staticEnergyThr = staticEnergyThreshold;
 	m_cyclicDtcThr = cyclicSupportThrehold;
+}
+
+void CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable)
+{
+	m_enableCyclicDtc = is_enable;
 }
 
 void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
@@ -67,7 +73,7 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	ClipFacade::SetFeature(m_pFeature);
 	ClipFacade::SetActiveEnergy(g_PlayerActiveEnergy, g_PlayerSubactiveEnergy);
 	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy);
-	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive /*| Ep_AbsGravity*/);
+	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive | Ep_AbsGravity);
 	ClipFacade::SetGravityReference(parts.Armature().bind_frame());
 	ClipFacade::SetEnergyFilterFunction([&parts](Eigen::RowVectorXf& Eb) {
 		for (int i = 0; i < parts.size(); i++)
@@ -153,12 +159,8 @@ CyclicStreamClipinfo::~CyclicStreamClipinfo()
 }
 
 CyclicStreamClipinfo::CyclicStreamClipinfo(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames)
+	: CyclicStreamClipinfo()
 {
-	m_enableCyclicDtc = false;
-	m_pParts = nullptr;
-	m_fftplan = nullptr;
-	m_minFr = m_maxFr = m_FrWidth = 0;
-	m_windowSize = 0;
 	Initialize(parts, minT, maxT, sampleRateHz, interval_frames);
 }
 
@@ -167,6 +169,7 @@ CyclicStreamClipinfo::CyclicStreamClipinfo()
 	m_enableCyclicDtc = false;
 	m_pParts = nullptr;
 	m_fftplan = nullptr;
+	m_fillWindowWithFirstFrame = true;
 	m_minFr = m_maxFr = m_FrWidth = 0;
 	m_windowSize = 0;
 }
@@ -189,16 +192,18 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_sampleRate = sampleRateHz;
 
 	// find closest 2^k window size, ceil work more robust, but usually it result in 512 frames, which is too long
-	m_windowSize = 1 << static_cast<int>(floor(log2(maxT.count() * sampleRateHz * 3)));
+	m_windowSize = 1 << static_cast<int>(ceil(log2(maxT.count() * sampleRateHz * 5)));
 
 	m_minFr = m_windowSize / (maxT.count() * sampleRateHz);
+	assert(m_minFr > 3 && "Miniumal frequency less than 3, the frequency analyze may be in accurate");
+	m_minFr = std::max(m_minFr, 3); // Prevent Min Fr be less than 3 that gerneate in invaliad result
 	m_maxFr = m_windowSize / (minT.count() * sampleRateHz);
 	m_FrWidth = m_maxFr - m_minFr + 1;
 
 	m_analyzeInterval = interval_frames;
 	// if automatic, we set 1/16 of period as analyze interval
 	if (m_analyzeInterval == 0)
-		m_analyzeInterval = std::max(m_windowSize / 16, 1);
+		m_analyzeInterval = std::max(m_windowSize / 32, 1);
 
 	m_frameWidth = 0;
 	for (int i = 0; i < parts.size(); i++)
@@ -216,8 +221,11 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_Spectrum.setZero(m_bufferWidth, m_windowSize);
 	m_SmoothedBuffer.setZero(m_windowSize, m_frameWidth);
 
-	m_cropMargin = m_sampleRate * 0.5; // 0.1s of frames as margin
+	m_cropMargin = m_sampleRate * 0.33; // 0.1s of frames as margin
+
 	m_cyclicDtcThr = g_RevampActiveSupportThreshold;
+	m_staticEnergyThr = g_RevampStaticEnergyThreshold;
+	m_whiteNoiseEnergy = g_PlayerTrackingWhiteNoiseEnergy;
 
 	int n = m_windowSize;
 
@@ -238,18 +246,24 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_bufferInit = true;
 }
 
-bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
+CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 {
 	using namespace Eigen;
 	using namespace DirectX;
+
+	RecentFrameResolveResult false_result;
+	false_result.MetricReady = false;
+
 	if (!m_bufferInit)
-		return false;
+		return false_result;
 
 	assert(
 		XMVector3InBounds(
 			frame[m_pParts->Armature().root()->ID].GblTranslation,
 			XMVectorSplatEpsilon())
 		&& "frame must be localized to root");
+
+	bool fillWindow = m_fillWindowWithFirstFrame && m_bufferHead == 0 && m_bufferSize == 0 && m_frameCounter == 0;
 
 	if (m_bufferSize < m_windowSize)
 		++m_bufferSize;
@@ -281,14 +295,25 @@ bool CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 		stIdx += dim;
 	}
 
-	++m_frameCounter;
-	if (m_enableCyclicDtc && m_frameCounter >= m_analyzeInterval && m_bufferSize >= m_windowSize)
+	if (fillWindow && m_bufferHead == 0 && m_bufferSize == 1 && m_frameCounter == 0)
 	{
-		m_frameCounter = 0;
-		return AnaylzeRecentStream();
+		m_buffer.middleCols(m_bufferHead + 1, m_windowSize - 1) = fv.replicate(1, m_windowSize - 1);
+		m_bufferSize = m_windowSize;
 	}
 
-	return false;
+	++m_frameCounter;
+	if (m_enableCyclicDtc && 
+		(m_frameCounter > m_analyzeInterval * 8) && 
+		(m_frameCounter % m_analyzeInterval == 0) && 
+		m_bufferSize >= m_windowSize)
+	{
+		return AnaylzeRecentAction();
+	}
+	
+	false_result.ConfidenceReady = false;
+	false_result.BufferingProgress = ((float)m_frameCounter / (float)(m_analyzeInterval*8));
+	false_result.BufferingReady = m_frameCounter >= m_analyzeInterval * 8;
+	return false_result;
 }
 
 void CyclicStreamClipinfo::ResetStream()
@@ -302,40 +327,84 @@ std::mutex & CyclicStreamClipinfo::AqucireFacadeMutex()
 	return m_facadeMutex;
 }
 
-bool CyclicStreamClipinfo::AnaylzeRecentStream(bool forceAnaylze)
+CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRecentAction(RecentAcrtionBehavier forceBehavier)
 {
 	// Anaylze starting
 	size_t head = m_bufferHead;
 	size_t windowSize = m_windowSize;
-
+	m_isStaticPose = false;
 	CaculateSpecturum(head, windowSize);
 
+	RecentFrameResolveResult result;
 	auto fr = CaculatePeekFrequency(m_Spectrum);
+	result.SetFrequencyResolveResult(fr);
+	float nenerg = (fr.Energy - m_whiteNoiseEnergy) / (m_staticEnergyThr);
 
-	if (forceAnaylze || fr.Support > m_cyclicDtcThr)
+	// Prevent low energy high-frequency perodic motion
+	result.PeriodicConfidence = (fr.Support / m_cyclicDtcThr) * std::min(1.0f, nenerg * 5.0f);
+	result.StaticConfidence = (1.0f - nenerg);
+	result.Behavier = 
+		forceBehavier ? forceBehavier :
+		result.PeriodicConfidence >= 1.0f ?
+		RecentActionBehavier_PeriodMotion : 
+		result.StaticConfidence >= 1.0f ?
+		RecentActionBehavier_FreezedPose :
+		RecentActionBehavier_Auto;
+	result.BufferingProgress = 1.0f;
+	result.MetricReady = false;
+	result.ConfidenceReady = true;
+	result.BufferingReady = true;
+
+	if (result.Behavier != RecentActionBehavier_Auto)
 	{
 		if (m_facadeMutex.try_lock()) {
 			lock_guard<mutex> guard(m_facadeMutex, std::adopt_lock);
 
-			auto& X = ClipFacade::SetFeatureMatrix();
-			float Tseconds = 1 / fr.Frequency;
-			CropResampleInput(X, head, fr.PeriodInFrame, CLIP_FRAME_COUNT, 0.8f);
+			if (result.Behavier == RecentActionBehavier_PeriodMotion)
+			{
+				auto& X = ClipFacade::SetFeatureMatrix();
+				float Tseconds = 1 / fr.Frequency;
 
-			ClipFacade::SetClipTime(Tseconds);
+				m_energyTerms &= ~(Ep_AbsGravity | Ep_SampleMeanLength);
+				m_energyTerms |= Ek_TimeDiveritive;
+
+				CropResampleInput(X, head, fr.PeriodInFrame, CLIP_FRAME_COUNT, 0.8f);
+				ClipFacade::SetClipTime(Tseconds);
+			}
+			else
+			{
+				m_energyTerms &= ~(Ek_SampleVarience | Ek_TimeDiveritive);
+				m_energyTerms |= Ep_AbsGravity;
+
+				ClipFacade::SetFeatureMatrix(GetLatestPoseFeatureFrame());
+				ClipFacade::SetClipTime(.0);
+			}
+
 			ClipFacade::CaculatePartsMetric();
 
-			return true;
+			result.MetricReady = true;
 		}
 		else
 		{
 			cout << "Assignment process failed due to facade busy" << fr.Support << endl;
 		}
+	}
 
+	return result;
+}
+
+bool CyclicStreamClipinfo::AnaylzeRecentPose()
+{
+	m_isStaticPose = true;
+	if (m_facadeMutex.try_lock()) {
+		lock_guard<mutex> guard(m_facadeMutex, std::adopt_lock);
+
+		ClipFacade::SetFeatureMatrix(GetLatestPoseFeatureFrame());
+
+		ClipFacade::SetClipTime(.0);
+		ClipFacade::CaculatePartsMetric();
 	}
-	else {
-		cout << "Assignment process reject, peak frequency support = " << fr.Support << endl;
-	}
-	return false;
+	return true;
 }
 
 void CyclicStreamClipinfo::CaculateSpecturum(size_t head, size_t windowSize)
@@ -405,29 +474,39 @@ CyclicStreamClipinfo::FrequencyResolveResult CyclicStreamClipinfo::CaculatePeekF
 
 	// Note Xf is (bufferWidth X windowSize)
 	// thus we crop it top frameWidth rows and intersted band in cols to caculate energy
-	Ea = Xf.block(0, m_minFr - 1, m_frameWidth, m_FrWidth + 2).cwiseAbs2().colwise().sum().transpose();
+	auto Eall = Xf.block(0, 0, m_frameWidth, m_maxFr + 1).cwiseAbs2().colwise().maxCoeff().eval();
+	Eall /= (m_sampleRate * m_windowSize);
 
-	DEBUGOUT(Ea.transpose());
+	Ea = Xf.block(0, m_minFr - 1, m_frameWidth, m_FrWidth + 2).cwiseAbs2().colwise().sum().transpose();
+	// Normalize the spectrum energy, as the fftw does not applies the term dt/N
+	Ea /= (m_sampleRate * m_windowSize);
+
+	Ea(0) = .0f;
+	Ea(Ea.size() - 1) = .0f;
+
+	DEBUGOUT(Eall);
 
 	Ea.segment(1, Ea.size() - 2).maxCoeff(&idx); // Frequency 3 - 30
 	++idx;
 
 	// get the 2 adjicant freequency as well, to perform interpolation to get better estimation
-	auto Ex = Ea.segment<3>(idx - 1);
+	auto Ex = Ea.segment<3>(idx - 1).eval();
 	idx += m_minFr;
 
 	DEBUGOUT(Ex.transpose());
 
 	Vector3f Ix = { idx - 1.0f, (float)idx, idx + 1.0f };
 	float peekFreq = Ex.dot(Ix) / Ex.sum();
-
+	
 	int T = (int)ceil(windowSize / peekFreq);
 
-	float snr = Ex.sum() / Ea.segment(1, Ea.size() - 2).sum();
+	float snr = Ex.sum() / Ea.sum();
+	assert(snr <= 1.0f);
 
 	fr.Frequency = windowSize / peekFreq / m_sampleRate;
 	fr.PeriodInFrame = T;
-	fr.Support = snr;
+	fr.Support = snr * snr;
+	fr.Energy = Eall.segment(m_minFr, m_FrWidth).sum();
 
 	return fr;
 }
@@ -474,7 +553,7 @@ void ClipFacade::SetGravityReference(ArmatureFrameConstView frame)
 	// Automatic gravity mask
 	if (GetAllPartDimension() == 3 && m_energyTerms & Ep_AbsGravity)
 	{
-		m_Gmask = Vector3f(0.0, g_Gravity, 0.0).replicate(1, m_pParts->size()).transpose();
+		m_Gmask = RowVector3f(0.0, g_Gravity, 0.0).replicate(1, m_pParts->size());
 	}
 }
 
@@ -624,25 +703,29 @@ void ClipFacade::CaculatePartsMetric()
 	double frametime = m_clipTime / (double)m_X.rows();
 	int N = m_X.rows();
 	m_dX.resizeLike(m_X);
-	m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - 2 * m_step) - m_X.bottomRows(m_dX.rows() - 2 * m_step)) / (2 * (double)m_step * frametime);
-
-	if (!m_isClose) // Open Loop case
+	if (N > 2)
 	{
-		for (int d = 1; d < m_step; d++)
+		m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - 2 * m_step) - m_X.bottomRows(m_dX.rows() - 2 * m_step)) / (2 * (double)m_step * frametime);
+		if (!m_isClose) // Open Loop case
 		{
-			int i = d;
-			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
-			i = N - d - 1;
-			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+			for (int d = 1; d < m_step; d++)
+			{
+				int i = d;
+				m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+				i = N - d - 1;
+				m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+			}
+			m_dX.row(0) = (m_X.row(0) - m_X.row(1)) / frametime;
+			m_dX.row(N - 1) = (m_X.row(N - 2) - m_X.row(N - 1)) / frametime;
 		}
-		m_dX.row(0) = (m_X.row(0) - m_X.row(1)) / frametime;
-		m_dX.row(N - 1) = (m_X.row(N - 2) - m_X.row(N - 1)) / frametime;
+		else // Close Loop case
+		{
+			m_dX.topRows(m_step) = (m_X.bottomRows(m_step) - m_X.middleRows(m_step, m_step)) / (2 * (double)m_step * frametime);;
+			m_dX.bottomRows(m_step) = (m_X.middleRows(N - m_step * 2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
+		}
 	}
-	else // Close Loop case
-	{
-		m_dX.topRows(m_step) = (m_X.bottomRows(m_step) - m_X.middleRows(m_step, m_step)) / (2 * (double)m_step * frametime);;
-		m_dX.bottomRows(m_step) = (m_X.middleRows(N-m_step*2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
-	}
+	else
+		m_dX.setZero();
 
 	if (m_flag & ComputeNormalize)
 		for (int i = 0; i < parts.size(); i++)
@@ -805,4 +888,16 @@ inline void ClipFacade::CaculatePairMetric(Eigen::MatrixXf &Xij, int i, int j, E
 	// mean is aniti-symetric, covarience is symetric
 	m_difMean.block(j*m_dimP, i, m_dimP, 1) = -uXij.transpose();
 	m_difCov.block(j*m_dimP, i*m_dimP, m_dimP, m_dimP) = covij;
+}
+
+CyclicStreamClipinfo::RecentFrameResolveResult::RecentFrameResolveResult()
+{
+	ZeroMemory(this, sizeof(RecentFrameResolveResult));
+	ConfidenceReady = false;
+	MetricReady = false;
+	BufferingReady = false;
+}
+
+void CyclicStreamClipinfo::RecentFrameResolveResult::SetFrequencyResolveResult(const FrequencyResolveResult & fr) {
+	static_cast<FrequencyResolveResult&>(*this) = fr;
 }

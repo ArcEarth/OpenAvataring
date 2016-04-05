@@ -2,6 +2,7 @@
 #include "FloatHud.h"
 #include "SmartPointers.h"
 #include "String.h"
+#include <HUD.h>
 #include <mutex>
 
 namespace Causality
@@ -60,5 +61,4 @@ namespace Causality
 		vector<PixelType>		m_pixels;
 		std::mutex				m_updateMutex;
 	};
-
 }

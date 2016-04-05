@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include <Textures.h>
 
+
 using namespace Causality;
 using namespace DirectX;
 using namespace DirectX::PackedVector;

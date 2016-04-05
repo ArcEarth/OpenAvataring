@@ -4,7 +4,7 @@
     <ClipRasterizeFrame>75</ClipRasterizeFrame>
 
     <DebugArmatureThinkness>0.01</DebugArmatureThinkness>
-    <EnableDebugLogging>0</EnableDebugLogging>
+    <EnableDebugLogging>1</EnableDebugLogging>
     <EnableRecordLogging>0</EnableRecordLogging>
     <RecordLogRootDir>Log</RecordLogRootDir>
 
@@ -60,17 +60,21 @@
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
     <RevampLikilyhoodTimeThreshold>1.0</RevampLikilyhoodTimeThreshold>
     <ForceRemappingAlwaysOn>false</ForceRemappingAlwaysOn>
-    <RevampActiveSupportThreshold>0.5</RevampActiveSupportThreshold>
+    <RevampActiveSupportThreshold>0.6</RevampActiveSupportThreshold>
+    <PlayerTrackingWhiteNoiseEnergy>0.0012</PlayerTrackingWhiteNoiseEnergy>
+    <RevampStaticEnergyThreshold>0.08</RevampStaticEnergyThreshold>
 
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
 
     <CharacterSelectionLikilihoodThreshold>0.65</CharacterSelectionLikilihoodThreshold>
-    <PlayerGesturePeriodMin>0.5</PlayerGesturePeriodMin>
-    <PlayerGesturePeriodMax>2</PlayerGesturePeriodMax>
+    <PlayerGesturePeriodMin>0.3</PlayerGesturePeriodMin>
+    <PlayerGesturePeriodMax>1.5</PlayerGesturePeriodMax>
     <HandleTransformAnisometricMin>0.2</HandleTransformAnisometricMin>
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
+    
+    <PartAssignmentQuadraticTermWeight>0.5</PartAssignmentQuadraticTermWeight>
     <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
     <StructrualDisSymtricPenalty>-0.25</StructrualDisSymtricPenalty>
 
@@ -263,7 +267,7 @@
           <!--<leap_source mode="16"/>-->
         </player_controller.selector>
         
-       <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
+      <!--<creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
         <creature.behavier>
           <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
             <behavier.actions>
@@ -275,8 +279,9 @@
           </behavier>
         </creature.behavier>
       </creature> 
-        
-        <!--<creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
+        -->
+         <!--
+        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
@@ -284,7 +289,7 @@
 
         <!--<action name="idle" src="Horse_Idle.fbx"/>-->
             <!--subordinates-->
-        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+        <!--<creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
                 <behavier.actions>
@@ -293,15 +298,13 @@
                 </behavier.actions>
                 </behavier>
             </creature.behavier>
-            <creature name="sub_horse_1" translation="-100.0,0,-100.0" scale="0.8" mesh="{horse_mesh}"></creature>
-            <creature name="sub_horse_2" translation="70,0,-30" scale="0.6" mesh="{horse_mesh}"></creature>
-        </creature>
+        </creature>-->
 
-        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
+        <!--<creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
-        </creature>
+        </creature>-->
 
 
         <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">

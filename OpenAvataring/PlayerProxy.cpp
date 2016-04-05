@@ -29,6 +29,7 @@
 #include "Causality\LeapMotion.h"
 #include "Causality\MatrixVisualizer.h"
 #include "Causality\AssetDictionary.h"
+#include "Causality\FloatHud.h"
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
 
 //float				g_NoiseInterpolation = 1.0f;
@@ -135,26 +136,42 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 		RemoveFrameRootTransform(m_pushFrame, *m_pPlayerArmature);
 	}
 
-	bool newMetric = m_CyclicInfo.StreamFrame(m_pushFrame);
-	if (newMetric/* && (m_mapTask.empty() || m_mapTask.is_done())*/)
+	auto metric = m_CyclicInfo.StreamFrame(m_pushFrame);
+
+	if (!metric.BufferingReady || metric.ConfidenceReady)
+	m_recentMetric = metric;
+
+	if (metric.MetricReady/* && (m_mapTask.empty() || m_mapTask.is_done())*/)
+	{
+		std::cout << "Start selection progress with Metric : " << endl
+			<< "Frequency = " << metric.Frequency << endl
+			<< "Periodic Support = " << metric.Support << endl
+			<< "Kinetic Energy = " << metric.Energy << endl
+			<< "Periodic Confidence = " << metric.PeriodicConfidence << endl
+			<< "Static Pose Confidence = " << metric.StaticConfidence << endl;
 		SelectCharacterAsync();
+	}
 }
 
-bool PlayerProxy::SelectCharacterAsync(CharacteSelectionSource source, bool analyzeAction)
+bool PlayerProxy::SelectCharacterAsync(RecentAcrtionBehavier source, bool recaculateMetric)
 {
 	if (!m_mapTaskOnGoing || m_mapTask.is_done())
 	{
 		m_mapTaskOnGoing = true;
-		m_mapTask = concurrency::create_task([this, source, analyzeAction]() {
+		m_mapTask = concurrency::create_task([this, source, recaculateMetric]() {
 			try
 			{
-				if (analyzeAction)
-					this->m_CyclicInfo.AnaylzeRecentStream(analyzeAction);
+				if (recaculateMetric)
+					//if (source == CharacteSelectionSource_RecentPeriodAction)
+					auto metric = this->m_CyclicInfo.AnaylzeRecentAction(source);
+					//else
+					//	this->m_CyclicInfo.AnaylzeRecentPose();
+
 				auto idx = SelectCharacter(source);
 			}
-			catch (const std::exception&)
+			catch (const std::exception& excp)
 			{
-				std::cout << "Exception in Selecting Characters" << endl;
+				std::cout << "Exception in Selecting Characters : " << excp.what() << endl;
 			}
 			m_mapTaskOnGoing = false;
 		});
@@ -166,7 +183,7 @@ bool PlayerProxy::SelectCharacterAsync(CharacteSelectionSource source, bool anal
 void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAnimation * pNew)
 {
 	StopUpdateThread();
-	SelectAll(false);
+	ResetSelection(false);
 	//SetActiveController(-1);
 
 	if (!pOld || (pNew && &pNew->GetArmature() != &pOld->GetArmature()))
@@ -178,6 +195,11 @@ void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAn
 	m_CyclicInfo.EnableCyclicMotionDetection(true);
 	m_updateTime = 0;
 	m_updateCounter = 0;
+
+	m_pbValueFilter0.Reset();
+	m_pbValueFilter1.Reset();
+	m_pbCenterFilter.Reset();
+
 
 	if (pNew)
 		StartUpdateThread();
@@ -234,7 +256,7 @@ PlayerProxy::PlayerProxy()
 	m_CurrentIdx(-1),
 	current_time(0),
 	m_mapTaskOnGoing(false),
-	m_EnableOverShoulderCam(true),
+	m_EnableOverShoulderCam(false),
 	m_DefaultCameraFlag(true),
 	m_updateCounter(0),
 	m_updateTime(0),
@@ -247,6 +269,17 @@ PlayerProxy::PlayerProxy()
 	m_stopUpdate = true;
 	m_IsInitialized = true;
 	m_charaFrame.resize(256);
+
+	m_pbCenterFilter.SetUpdateFrequency(&m_updateFreqency);
+	m_pbValueFilter0.SetUpdateFrequency(&m_updateFreqency);
+	m_pbValueFilter1.SetUpdateFrequency(&m_updateFreqency);
+	m_cameraStablizer.SetUpdateFrequency(&m_updateFreqency);
+
+	m_pbCenterFilter.SetCutoffFrequency(1.0f);
+	m_pbValueFilter0.SetCutoffFrequency(1.0f);
+	m_pbValueFilter1.SetCutoffFrequency(1.0f);
+	m_cameraStablizer.SetCutoffFrequency(3.0f);
+
 }
 
 void PlayerProxy::InitializeShrinkedPlayerArmature()
@@ -344,6 +377,25 @@ void PlayerProxy::AddChild(SceneObject* pChild)
 			lt.Translation = Vector3(0, 0.5, 0);
 			mat->SetLocalTransform(lt);
 			pChara->AddChild(mat);
+		}
+
+		auto canvas = pChara->FirstChildOfType<SpriteCanvas>();
+		if (canvas == nullptr)
+		{
+			canvas = new SpriteCanvas();
+			canvas->Scene = this->Scene;
+			canvas->SetBackground(DirectX::Colors::Red.v);
+			canvas->CreateDeviceResources(this->Scene->GetRenderDevice(), 200, 60);
+			std::shared_ptr<TextBlock> nameTag(new TextBlock());
+			nameTag->SetText(pChara->Name);
+			nameTag->CreateDeviceResources(canvas->Get2DFactory(), canvas->GetTextFactory());
+			canvas->AddChild(std::static_pointer_cast<HUDElement>(nameTag));
+			canvas->SetVisiability(true);
+			IsometricTransform lt;
+			lt.Translation = Vector3(0, 0.5, 0);
+			canvas->SetLocalTransform(lt);
+			pChara->AddChild(canvas);
+			canvas->SetScale(Vector3(1.0f));
 		}
 	}
 }
@@ -463,7 +515,7 @@ void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int 
 	}
 }
 
-void PlayerProxy::SelectAll(bool enableGlow)
+void PlayerProxy::ResetSelection(bool enableGlow)
 {
 	{
 		std::lock_guard<std::mutex> guard(m_controlMutex);
@@ -588,7 +640,7 @@ namespace std
 	}
 }
 
-int PlayerProxy::SelectCharacter(CharacteSelectionSource source)
+int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 {
 	if (!m_pSelector || !m_pSelector->Get())
 		return -1;
@@ -905,11 +957,11 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	{
 		ResetPrimaryCameraPoseToDefault();
 	}
-	else if (e.Key == VK_RETURN)
+	else if (e.Key == VK_RETURN || e.Key == VK_TAB)
 	{
-		auto source = e.Modifier & KeyModifiers::Mod_Control ?
-			CharacteSelectionSource_LatestPoseFrame :
-			CharacteSelectionSource_RecentPeriodAction;
+		auto source = e.Modifier & KeyModifiers::Mod_Control || e.Key == VK_TAB ?
+			RecentActionBehavier_FreezedPose :
+			RecentActionBehavier_PeriodMotion;
 
 		if (!SelectCharacterAsync(source, true))
 		{
@@ -919,7 +971,7 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	else if (e.Key == VK_BACK)
 	{
 		m_DefaultCameraFlag = true;
-		SelectAll(false);
+		ResetSelection(false);
 		m_CyclicInfo.ResetStream();
 		m_CyclicInfo.EnableCyclicMotionDetection();
 	}
@@ -1032,9 +1084,10 @@ void PlayerProxy::Update(time_seconds const & time_delta)
 		return;
 	}
 
-
 	if (IsMapped() && m_EnableOverShoulderCam && m_pSelector->Get() && m_pSelector->Get()->IsAvailable())
 		UpdatePrimaryCameraForTrack();
+
+	m_updateFreqency = (1.0f / time_delta.count());
 
 	// no new frame is coming
 	static long long frame_count = 0;
@@ -1097,10 +1150,13 @@ void PlayerProxy::UpdatePrimaryCameraForTrack()
 		m_DefaultCameraFlag = false;
 		m_DefaultCameraPose.Translation = cameraPos.GetPosition();
 		m_DefaultCameraPose.Rotation = cameraPos.GetOrientation();
+		m_cameraStablizer.Reset();
 	}
 
-	cameraPos.SetPosition((XMVECTOR)chara.GetPosition() + XMVector3Rotate(XMVectorMultiplyAdd(ext, XMVectorSet(-2.0f, 2.0f, -2.0f, 0.0f), XMVectorSet(-0.5f, 0.5, -0.5, 0)), chara.GetOrientation()));
-	camera.GetView()->FocusAt((XMVECTOR)chara.GetPosition() + XMVector3Rotate(XMVectorMultiplyAdd(ext, XMVectorSet(-2.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(-0.5f, 0.5, -0.5, 0)), chara.GetOrientation()), g_XMIdentityR1.v);
+	XMVECTOR pos = m_cameraStablizer.Apply(chara.GetPosition());
+
+	cameraPos.SetPosition(pos + XMVector3Rotate(XMVectorMultiplyAdd(ext, XMVectorSet(-2.0f, 2.0f, -2.0f, 0.0f), XMVectorSet(-0.5f, 0.5, -0.5, 0)), chara.GetOrientation()));
+	camera.GetView()->FocusAt(pos + XMVector3Rotate(XMVectorMultiplyAdd(ext, XMVectorSet(-2.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(-0.5f, 0.5, -0.5, 0)), chara.GetOrientation()), g_XMIdentityR1.v);
 }
 
 void PlayerProxy::ResetPrimaryCameraPoseToDefault()
@@ -1188,32 +1244,6 @@ void DrawGuidingVectors(const ShrinkedArmature & barmature, ArmatureFrameConstVi
 	//g_PrimitiveDrawer.End();
 
 
-}
-
-
-DirectX::XMVECTOR XM_CALLCONV XMParticleProjection(DirectX::FXMVECTOR V, DirectX::FXMMATRIX worldView, DirectX::CXMMATRIX proj, const D3D11_VIEWPORT& vp)
-{
-	using namespace DirectX;
-	const float HalfViewportWidth = vp.Width * 0.5f;
-	const float HalfViewportHeight = vp.Height * 0.5f;
-
-	XMVECTOR Scale = XMVectorSet(HalfViewportWidth, -HalfViewportHeight, vp.MaxDepth - vp.MinDepth, 0.0f);
-	XMVECTOR Offset = XMVectorSet(vp.TopLeftY + HalfViewportWidth, vp.TopLeftY + HalfViewportHeight, vp.MinDepth, 0.0f);
-
-	XMVECTOR R = _DXMEXT XMVectorSplatW(V); // particle radius
-	XMVECTOR P = _DXMEXT XMVectorSetW(V, 1.0f);
-	P = _DXMEXT XMVector3Transform(V, worldView);
-
-	R = _DXMEXT XMVectorPermute<0, 1, 6, 7>(R, P); // (r,r,depth,1.0)
-
-	P = _DXMEXT XMVector3TransformCoord(P, proj);
-	R = _DXMEXT XMVector3TransformCoord(R, proj);
-
-	P = _DXMEXT XMVectorMultiplyAdd(P, Scale, Offset);
-	R = XMVectorMultiply(R, Scale);
-
-	P = _DXMEXT XMVectorPermute<0, 1, 2, 4>(P, R); // (X,Y,Z,size)
-	return P;
 }
 
 void XM_CALLCONV DrawParticle(DirectX::SpriteBatch & sprites, DirectX::XMVECTOR particle, const DirectX::XMVECTOR &color, DirectX::CXMMATRIX worldView, DirectX::CXMMATRIX proj, const D3D11_VIEWPORT & vp, ID3D11ShaderResourceView * pTrajectoryVisual)
@@ -1312,6 +1342,20 @@ void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::
 	sprites.End();
 }
 
+void DrawProgressBar(Vector3 center, float width, float radius, float progress,Color foreground, Color background)
+{
+	Vector3 hext = Vector3(0.5f * width, 0, 0);
+	Vector3 left = center - hext;
+	Vector3 right = center + hext;
+	Vector3 val = Vector3::Lerp(left, right, progress);
+	auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
+
+	if (progress > 0.01f)
+		drawer.DrawCylinder(left, val, radius, foreground);
+	if (progress < 0.99f)
+		drawer.DrawCylinder(val, right, radius, background);
+}
+
 void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 {
 	//Bone charaFrame[100];
@@ -1351,7 +1395,57 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		if (IsMapped())
 			color.A(0.3f);
 
-		DrawArmature(player.GetArmature(), frame, m_boneColors.data());
+		if (frame.size() != 0)
+		{
+			DrawArmature(player.GetArmature(), frame, m_boneColors.data());
+
+			auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
+			auto highest = std::max_element(frame.begin(), frame.end(), [](const Bone& b0, const Bone& b1)
+			{
+				return b0.GblTranslation.y < b1.GblTranslation.y;
+			}
+			);
+
+			auto metric = m_recentMetric;
+
+			bool buffering = metric.BufferingProgress < 1.0f;
+
+			Color pbbc = DirectX::Colors::Gray;
+
+			Color pbfc = buffering ? DirectX::Colors::Yellow : DirectX::Colors::Green;
+
+
+			float maxalpha = 0.8f;
+			float progress = buffering ? metric.BufferingProgress : metric.PeriodicConfidence;
+			progress = std::clamp(progress, .0f, 1.0f);
+			float radius = 0.15f;
+			float width = 1.0f;
+			float alpha = maxalpha;
+			pbfc.A(alpha); pbbc.A(alpha);
+
+			Vector3 center = highest->GblTranslation + Vector3(0, 0.3f, 0);
+			center = m_pbCenterFilter.Apply(center);
+			if (!buffering)
+			{
+				progress = m_pbValueFilter0.Apply(progress);
+				float alpha = maxalpha * sqrt(progress);
+				pbfc.A(alpha); pbbc.A(alpha);
+			}
+
+			DrawProgressBar(center, width, radius, progress, pbfc, pbbc);
+
+			if (!buffering)
+			{
+				progress = std::clamp(metric.StaticConfidence, .0f, 1.0f);
+				progress = m_pbValueFilter1.Apply(progress);
+
+				float alpha = maxalpha * sqrt(progress);
+				pbfc.A(alpha); pbbc.A(alpha);
+				center += Vector3(0, 0.3f, 0);
+				DrawProgressBar(center, width, radius, progress, pbfc, pbbc);
+			}
+		}
+
 	}
 
 	// IsMapped() && 

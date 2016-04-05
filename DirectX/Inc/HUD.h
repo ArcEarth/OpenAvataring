@@ -64,11 +64,47 @@ namespace DirectX
 		return nv;
 	}
 
+	inline DirectX::XMVECTOR XM_CALLCONV XMParticleProjection(DirectX::FXMVECTOR V, DirectX::FXMMATRIX worldView, DirectX::CXMMATRIX proj, const D3D11_VIEWPORT& vp)
+	{
+		using namespace DirectX;
+		const float HalfViewportWidth = vp.Width * 0.5f;
+		const float HalfViewportHeight = vp.Height * 0.5f;
+
+		XMVECTOR Scale = XMVectorSet(HalfViewportWidth, -HalfViewportHeight, vp.MaxDepth - vp.MinDepth, 0.0f);
+		XMVECTOR Offset = XMVectorSet(vp.TopLeftY + HalfViewportWidth, vp.TopLeftY + HalfViewportHeight, vp.MinDepth, 0.0f);
+
+		XMVECTOR R = _DXMEXT XMVectorSplatW(V); // particle radius
+		XMVECTOR P = _DXMEXT XMVectorSetW(V, 1.0f);
+		P = _DXMEXT XMVector3Transform(V, worldView);
+
+		R = _DXMEXT XMVectorPermute<0, 1, 6, 7>(R, P); // (r,r,depth,1.0)
+
+		P = _DXMEXT XMVector3TransformCoord(P, proj);
+		R = _DXMEXT XMVector3TransformCoord(R, proj);
+
+		P = _DXMEXT XMVectorMultiplyAdd(P, Scale, Offset);
+		R = XMVectorMultiply(R, Scale);
+
+		P = _DXMEXT XMVectorPermute<0, 1, 2, 4>(P, R); // (X,Y,Z,size)
+		return P;
+	}
+
+	inline const D2D1_COLOR_F& as_d2d(const DirectX::Color& color)
+	{
+		return reinterpret_cast<const D2D1_COLOR_F&>(color);
+	}
+
 	namespace Scene
 	{
 		class TextBlock;
 
 		using Microsoft::WRL::ComPtr;
+
+		enum class ElementOrientation
+		{
+			Horizental,
+			Vertical,
+		};
 
 		enum class HorizentalAlignmentEnum
 		{
@@ -88,10 +124,18 @@ namespace DirectX
 
 		class Panel;
 
-		const float AutoSize = std::numeric_limits<float>::signaling_NaN();
+		constexpr float AutoSize = std::numeric_limits<float>::signaling_NaN();
+
+		class I2dDeviceResource abstract
+		{
+		public:
+			// Factory resources is actually device free
+			virtual void CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory* pDwriteFactory) = 0;
+			virtual void ReleaseDeviceResources() = 0;
+		};
 
 		XM_ALIGNATTR
-		class HUDElement : public AlignedNew<XMVECTOR>
+		class HUDElement : public AlignedNew<XMVECTOR>, public I2dDeviceResource
 		{
 		public:
 			HUDElement();
@@ -102,8 +146,8 @@ namespace DirectX
 			void  SetWidth(float width);
 			void  SetHeight(float height);
 
-			const Vector2& Size() const;
-			const Vector2& Position() const;
+			Vector2 Size() const;
+			Vector2 Position() const;
 
 			void SetSize(const Vector2& size);
 			void SetPosition(const Vector2& position);
@@ -115,21 +159,56 @@ namespace DirectX
 			void SetVisiability(bool visiable) { m_visiable = visiable; }
 
 			int	ZIndex() const { return m_zIndex; }
+			void SetZIndex(int zIndex) { m_zIndex = zIndex; }
+
+			HorizentalAlignmentEnum HorizentalAlignment() const { return m_hAlign; };
+			VerticalAlignmentEnum	VerticalAlignment() const { return m_vAlign; };
+
+			void SetHorizentalAlignment(HorizentalAlignmentEnum align);;
+			void SetVerticalAlignment(VerticalAlignmentEnum align);;
+			
+			virtual HUDElement* HitTest(Vector2 point) {
+				Vector2 lt = Position();
+				Vector2 rb = lt + Size();
+				return 
+					XMVector2LessOrEqual(lt, point)
+					&& XMVector2Less(point, rb) ?
+					this : nullptr;
+			}
+
+			const HUDElement* HitTest(Vector2 point) const
+			{
+				return const_cast<HUDElement*>(this)->HitTest(point);
+			}
 
 			const HUDElement* Parent() const { return m_parent; }
 			HUDElement* Parent() { return m_parent; }
 
 			// Layout interface
-			bool IsLayoutUptoDate() const;
-			void InvaliadMeasure();
+			bool IsLayoutValiad() const;
+			void InvaliadLayout();
+
 			Vector2 Measure(const Vector2& availableSize);
 			Vector2 Arrange(const Vector2& actualSize);
 			virtual Vector2 MeasureOverride(const Vector2& availableSize);
 			virtual Vector2 ArrangeOverride(const Vector2& actualSize);
 			virtual void UpdateLayout();
 
+			ID2D1DrawingStateBlock*
+				SaveDrawingState(ID2D1DeviceContext* context);
+			void RestoreDrawingState(ID2D1DeviceContext* context);
+
+			D2D1_MATRIX_3X2_F SetTransform(ID2D1DeviceContext* context);
+			void RestoreTransform(ID2D1DeviceContext * context, const D2D1_MATRIX_3X2_F &parentTransform);
+
 			// Rendering interface
 			virtual void Render(ID2D1DeviceContext* context);
+
+			virtual bool IsDirety() const;
+
+
+			void CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory* pDwriteFactory) override;
+			void ReleaseDeviceResources() override;
 
 			// Allows Panel to change parent property
 			friend Panel;
@@ -149,15 +228,9 @@ namespace DirectX
 			HorizentalAlignmentEnum m_hAlign;
 			VerticalAlignmentEnum	m_vAlign;
 			D2D1_MATRIX_3X2_F		m_transform; // relative transform to it's parent
+			ComPtr<ID2D1DrawingStateBlock>  
+									m_stateBlock;
 			HUDElement*				m_parent;
-		};
-
-		class I2dDeviceResource abstract
-		{
-		public:
-			// Factory resources is actually device free
-			virtual void CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory* pDwriteFactory) = 0;
-			virtual void ReleaseDeviceResources() = 0;
 		};
 
 		class Panel : public HUDElement
@@ -165,13 +238,37 @@ namespace DirectX
 		public:
 			~Panel() override;
 
-			typedef std::vector<HUDElement*> ElementListType;
+			typedef std::shared_ptr<HUDElement> ElementPtr;
+			typedef std::vector<std::shared_ptr<HUDElement>> ElementListType;
 
 			const ElementListType& Children() const { return m_children; }
 
-			virtual void AddChild(HUDElement* elem);
+			void AddChild(const std::shared_ptr<HUDElement>& elem);
 
-			virtual void Render(ID2D1DeviceContext* context);
+			void Render(ID2D1DeviceContext* context) override;
+
+			virtual bool IsDirety() const override {
+				return std::any_of(m_children.begin(), m_children.end(),
+					[](const ElementPtr& child) -> bool {
+					return child->IsDirety();
+				});
+			}
+
+			void CreateDeviceResources(ID2D1Factory* pD2dFactory, IDWriteFactory* pDwriteFactory) override
+			{
+				for (auto& child : m_children)
+				{
+					child->CreateDeviceResources(pD2dFactory, pDwriteFactory);
+				}
+			}
+			void ReleaseDeviceResources() override
+			{
+				for (auto& child : m_children)
+				{
+					child->ReleaseDeviceResources();
+				}
+			}
+
 		protected:
 			ElementListType m_children;
 		};
@@ -183,12 +280,21 @@ namespace DirectX
 			HUDCanvas();
 			~HUDCanvas() override;
 			virtual void UpdateLayout();
-			virtual void Render(ID2D1DeviceContext* context);
+			void Render(ID2D1DeviceContext* context) override;
+
+			void SetBackground(Color color);
+
+			Color Background() const { return m_background; }
+
+			static
+			std::unique_ptr<RenderableTexture2D>
+						 CreateTarget(ID3D11Device* pDevice, ID2D1DeviceContext* pD2DContext, size_t width, size_t height);
 
 			void		 SetTarget(RenderableTexture2D* bitmap);
 
 			RenderableTexture2D*
 						 GetTarget() const;
+
 			void		 GetViewport(D3D11_VIEWPORT& viewport) const;
 
 			void		 SetChildPosition(int idx, const Vector2& position) { m_children[idx]->SetPosition(position); }
@@ -201,10 +307,13 @@ namespace DirectX
 
 		class StackPanel : public Panel
 		{
+		public:
 
+		protected:
+			ElementOrientation m_orientation;
 		};
 
-		class ScatterChart : public HUDElement, public I2dDeviceResource
+		class ScatterChart : public HUDElement
 		{
 		public:
 			ScatterChart(size_t n, float* xItr, float* yItr);
@@ -240,13 +349,14 @@ namespace DirectX
 			std::vector<Vector2, AlignedAllocator<XMVECTOR>> m_rawData;
 		};
 
-		class MatrixBitmap : public HUDElement, public I2dDeviceResource
+		class MatrixBitmap : public HUDElement
 		{
 
 		};
 
-		class TextBlock : public HUDElement, public I2dDeviceResource
+		class TextBlock : public HUDElement
 		{
+		public:
 			TextBlock();
 			TextBlock(const std::wstring& text, ID2D1Factory* pD2dFactory = nullptr, IDWriteFactory* pDwriteFactory = nullptr);
 
@@ -257,6 +367,7 @@ namespace DirectX
 
 			const std::wstring& Text() const;
 			void SetText(const std::wstring& text);
+			void SetText(const std::string& text_utf8);
 
 			const Color& Foreground() const;
 			void SetForeground(const Color& color);
@@ -271,7 +382,7 @@ namespace DirectX
 			// Create New text layout when text is changed
 			void UpdateTextLayout(IDWriteFactory* pFactory = nullptr);
 
-		private:
+		protected:
 			std::wstring                    m_text;
 			Color							m_textColor;
 			float							m_fontSize;
@@ -280,9 +391,47 @@ namespace DirectX
 
 			ComPtr<IDWriteFactory>			m_dwFactory;
 			ComPtr<ID2D1SolidColorBrush>    m_Brush;
-			ComPtr<ID2D1DrawingStateBlock>  m_stateBlock;
 			ComPtr<IDWriteTextLayout>       m_textLayout;
 			ComPtr<IDWriteTextFormat>		m_textFormat;
+		};
+
+		class ProgressBar : public HUDElement
+		{
+		public:
+			enum TextIndicationOption
+			{
+				TextIndication_None,
+				TextIndication_Percentage,
+				TextIndication_ValueSlashMaxMinusMin,
+			};
+
+			ProgressBar(int width = AutoSize, int height = AutoSize, TextIndicationOption textOpt = TextIndication_None, ElementOrientation orientation = ElementOrientation::Horizental);
+
+			double Value() const { return m_value; }
+			void SetValue(double val) { m_value = val; }
+
+			double Min() const { return m_min; }
+			void SetMin(double val) { m_min = val; }
+
+			double Max() const { return m_max; }
+			void SetMax(double val) { m_max = val; }
+
+			void Render(ID2D1DeviceContext* context) override;
+
+			ElementOrientation m_orientaion;
+
+			bool   m_showValueText;
+
+			double m_max, m_min, m_value;
+
+			Color  m_foreground;
+			Color  m_background;
+
+			ComPtr<ID2D1SolidColorBrush>    m_foregroundBrush;
+			ComPtr<ID2D1SolidColorBrush>    m_backgroundBrush;
+
+			TextIndicationOption			m_textOption;
+			std::shared_ptr<TextBlock>		m_textBlock;
 		};
 	}
 }
