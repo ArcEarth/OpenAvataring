@@ -338,7 +338,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 
 	RecentFrameResolveResult result;
 	auto fr = CaculatePeekFrequency(m_Spectrum);
-	fr.Energy = CaulateKinectEnergy(head, windowSize / 2);
+	//fr.Energy = CaulateKinectEnergy(head, std::min((int)windowSize / 2, m_pendingFrames));
 	result.SetFrequencyResolveResult(fr);
 	float nenerg = (fr.Energy - m_whiteNoiseEnergy) / (m_staticEnergyThr);
 

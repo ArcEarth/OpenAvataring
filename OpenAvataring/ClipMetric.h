@@ -416,7 +416,7 @@ namespace Causality
 		float		m_cyclicDtcThr; // The threshold to classify as Cyclic motion
 		float		m_staticEnergyThr;
 		float		m_whiteNoiseEnergy;
-		float		m_pendingFrames;
+		int			m_pendingFrames;
 
 		// thread sychronization
 		//boost::icl::interval_set<int> m_bufferAccess;
