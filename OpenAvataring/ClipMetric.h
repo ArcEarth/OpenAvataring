@@ -391,7 +391,7 @@ namespace Causality
 		void CropResampleInput(_Out_ Eigen::MatrixXf& X, size_t head, size_t inputPeriod, size_t framePerCycle, float smoothStrength);
 
 		FrequencyResolveResult CaculatePeekFrequency(const Eigen::MatrixXcf& spectrum);
-
+		float CaulateKinectEnergy(size_t head, size_t windowSize, EnergyTermEnum term = Ek_SampleVarience);
 	private:
 		double		m_minT, m_maxT;
 		double		m_sampleRate;
@@ -416,6 +416,7 @@ namespace Causality
 		float		m_cyclicDtcThr; // The threshold to classify as Cyclic motion
 		float		m_staticEnergyThr;
 		float		m_whiteNoiseEnergy;
+		float		m_pendingFrames;
 
 		// thread sychronization
 		//boost::icl::interval_set<int> m_bufferAccess;

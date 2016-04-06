@@ -226,6 +226,7 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_cyclicDtcThr = g_RevampActiveSupportThreshold;
 	m_staticEnergyThr = g_RevampStaticEnergyThreshold;
 	m_whiteNoiseEnergy = g_PlayerTrackingWhiteNoiseEnergy;
+	m_pendingFrames = m_sampleRate * g_RevampPendingTime;
 
 	int n = m_windowSize;
 
@@ -303,7 +304,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame
 
 	++m_frameCounter;
 	if (m_enableCyclicDtc && 
-		(m_frameCounter > m_analyzeInterval * 8) && 
+		(m_frameCounter > m_pendingFrames) &&
 		(m_frameCounter % m_analyzeInterval == 0) && 
 		m_bufferSize >= m_windowSize)
 	{
@@ -311,8 +312,8 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame
 	}
 	
 	false_result.ConfidenceReady = false;
-	false_result.BufferingProgress = ((float)m_frameCounter / (float)(m_analyzeInterval*8));
-	false_result.BufferingReady = m_frameCounter >= m_analyzeInterval * 8;
+	false_result.BufferingProgress = ((float)m_frameCounter / m_pendingFrames);
+	false_result.BufferingReady = m_frameCounter >= m_pendingFrames;
 	return false_result;
 }
 
@@ -337,6 +338,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 
 	RecentFrameResolveResult result;
 	auto fr = CaculatePeekFrequency(m_Spectrum);
+	fr.Energy = CaulateKinectEnergy(head, windowSize / 2);
 	result.SetFrequencyResolveResult(fr);
 	float nenerg = (fr.Energy - m_whiteNoiseEnergy) / (m_staticEnergyThr);
 
@@ -477,7 +479,12 @@ CyclicStreamClipinfo::FrequencyResolveResult CyclicStreamClipinfo::CaculatePeekF
 	auto Eall = Xf.block(0, 0, m_frameWidth, m_maxFr + 1).cwiseAbs2().colwise().maxCoeff().eval();
 	Eall /= (m_sampleRate * m_windowSize);
 
-	Ea = Xf.block(0, m_minFr - 1, m_frameWidth, m_FrWidth + 2).cwiseAbs2().colwise().sum().transpose();
+	if (g_PeriodAnalyzeAggreateWithMax)
+		Ea = Xf.block(0, m_minFr - 1, m_frameWidth, m_FrWidth + 2)
+		.cwiseAbs2().colwise().maxCoeff().transpose();
+	else
+		Ea = Xf.block(0, m_minFr - 1, m_frameWidth, m_FrWidth + 2)
+		.cwiseAbs2().colwise().sum().transpose() / m_frameWidth;
 	// Normalize the spectrum energy, as the fftw does not applies the term dt/N
 	Ea /= (m_sampleRate * m_windowSize);
 
@@ -505,10 +512,23 @@ CyclicStreamClipinfo::FrequencyResolveResult CyclicStreamClipinfo::CaculatePeekF
 
 	fr.Frequency = windowSize / peekFreq / m_sampleRate;
 	fr.PeriodInFrame = T;
-	fr.Support = snr * snr;
+	fr.Support = snr /** snr*/;
 	fr.Energy = Eall.segment(m_minFr, m_FrWidth).sum();
 
 	return fr;
+}
+
+float CyclicStreamClipinfo::CaulateKinectEnergy(size_t head, size_t windowSize, EnergyTermEnum term)
+{
+	float Ek = .0f;
+	if (windowSize > 1)
+	{
+		auto raw = m_buffer.block(0, head, m_frameWidth, windowSize);
+		auto mean = raw.rowwise().mean();
+		Ek = (raw - mean.replicate(1, windowSize)).squaredNorm()
+			/(m_frameWidth * (windowSize - 1));
+	}
+	return Ek;
 }
 
 ClipFacade::ClipFacade()

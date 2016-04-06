@@ -57,26 +57,19 @@ const static Eigen::IOFormat CSVFormat(StreamPrecision, DontAlignCols, ", ", "\n
 std::map<string, string> g_DebugLocalMotionAction;
 bool					 g_DebugLocalMotion = false;
 
-#define RGB0(R,G,B) {R,G,B,1.0f}
+#define rgb(R,G,B) {(R##.0f / 255.0f), (G##.0f / 255.0f),(B##.0f / 255.0f), 1.0f}
+
 static const DirectX::Color PartColorList[] = {
-	RGB0(.0f,0.675f,0.627f),
-	RGB0(1.f,0.933f,.0f),
-	RGB0(0.545f,0.008f,0.714f),
-	RGB0(1.f,0.435f,.0f),
-	RGB0(.0f,0.976f,0.902f),
-	RGB0(0.894f,0.835f,.0f),
-	RGB0(0.745f,0.012f,0.976f),
-	RGB0(0.894f,0.388f,.0f),
-	RGB0(.0f,0.863f,0.8f),
-	RGB0(0.749f,0.698f,.0f),
-	RGB0(0.451f,0.012f,0.592f),
-	RGB0(0.749f,0.325f,.0f),
-	RGB0(.0f,0.549f,0.51f),
-	RGB0(0.671f,0.008f,0.882f),
-	RGB0(0.38f,0.016f,0.494f),
-	RGB0(.0f,0.459f,0.427f),
+	rgb(26, 188, 156),
+	rgb(46, 204, 113),
+	rgb(52, 152, 219),
+	rgb(155, 89, 182),
+	rgb(52, 73, 94),
+	rgb(241, 196, 15),
+	rgb(230, 126, 34),
+	rgb(231, 76, 60)
 };
-#undef RGB0
+#undef rgb
 
 /*
 pair<JointType, JointType> XFeaturePairs[] = {
@@ -190,6 +183,10 @@ void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAn
 	{
 		ResetPlayerArmature(&pNew->GetArmature());
 	}
+	else if (!pNew)
+	{
+		ResetPlayerArmature(nullptr);
+	}
 
 	m_CyclicInfo.ResetStream();
 	m_CyclicInfo.EnableCyclicMotionDetection(true);
@@ -205,23 +202,60 @@ void PlayerProxy::ResetPlayer(IArmatureStreamAnimation * pOld, IArmatureStreamAn
 		StartUpdateThread();
 }
 
+namespace Causality
+{
+
+
+	static void ColorCodeArmature(const ShrinkedArmature& parts, std::vector<Color, DirectX::XMAllocator>& boneColors)
+	{
+		const auto& palette = PartColorList;
+		auto & armature = parts.Armature();
+
+		boneColors.resize(armature.size());
+		std::vector<int> partColorIdx(parts.size(),-1);
+
+		int cdx = 0;
+		for (auto part : parts)
+		{
+			int pid = part->Index;
+			auto sp = part->SymetricPair;
+			int spid = part->SymetricPair ? part->SymetricPair->Index : -1;
+
+			if (partColorIdx[pid] == -1)
+				partColorIdx[pid] = cdx++;
+			
+			if (sp)
+				partColorIdx[spid] = partColorIdx[pid];
+
+		}
+
+		for (auto part : parts)
+		{
+			auto pcolor = palette[partColorIdx[part->Index] % std::size(palette)];
+			for (auto& joint : part->Joints)
+				boneColors[joint->ID] = pcolor;
+		}
+	}
+}
+
 void PlayerProxy::ResetPlayerArmature(const IArmature* playerArmature)
 {
 	m_pPlayerArmature = playerArmature;
-	InitializeShrinkedPlayerArmature();
-	m_boneColors.resize(m_pPlayerArmature->size());
-	for (auto& part : *m_pParts)
-	{
-		auto pcolor = PartColorList[part->Index % std::size(PartColorList)];
+	if (m_pPlayerArmature)
+		InitializeShrinkedPlayerArmature();
 
-		for (auto& joint : part->Joints)
-		{
-			m_boneColors[joint->ID] = pcolor;
-		}
-	}
 	cout << "Initializing Cyclic Info..." << endl;
 	m_CyclicInfo.Initialize(*m_pParts, time_seconds(g_PlayerGesturePeriodMin), time_seconds(g_PlayerGesturePeriodMax), 30, 0);
 	cout << "Cyclic Info Initited!" << endl;
+
+	{
+		ResetSelection(false);
+		std::lock_guard<std::mutex> guad(m_controlMutex);
+		for (auto& controller : m_Controllers)
+		{
+			controller.SetBinding(uptr<ArmatureTransform>());
+		}
+	}
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Joint& joint)
@@ -284,6 +318,21 @@ PlayerProxy::PlayerProxy()
 
 void PlayerProxy::InitializeShrinkedPlayerArmature()
 {
+	{
+		cout << "Player Armature: " << endl;
+		int i = 0;
+		auto& armature = *m_pPlayerArmature;
+		for (auto& j : armature.joints())
+		{
+			cout << "Joint [" << j.ID << "] = " << j.Name;
+			if (j.MirrorJoint != nullptr)
+			{
+				cout << " <--> " << j.MirrorJoint->Name << endl;
+			} else
+				cout << endl;
+		}
+	}
+
 	m_pParts->SetArmature(*m_pPlayerArmature);
 
 	{
@@ -309,6 +358,9 @@ void PlayerProxy::InitializeShrinkedPlayerArmature()
 		cout << "Part " << part.Joints << " = ";
 		cout << part.ChainLength << '|' << part.LengthToRoot << endl;
 	}
+
+	ColorCodeArmature(*m_pParts, m_boneColors);
+
 }
 
 void PlayerProxy::StartUpdateThread()
@@ -327,6 +379,11 @@ void PlayerProxy::StopUpdateThread()
 	{
 		m_updateThread.join();
 	}
+	m_recentMetric = CyclicStreamClipinfo::RecentFrameResolveResult();
+	m_recentMetric.BufferingReady = true;
+	m_recentMetric.BufferingProgress = 0.0f;
+	m_recentMetric.StaticConfidence = 0.0f;
+	m_recentMetric.PeriodicConfidence = 0.0f;
 }
 
 
@@ -501,9 +558,9 @@ void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int 
 	if (Jx == NoInputParts)
 		color = Colors::Transparent;
 	else if (Jx == ActiveAndDrivenParts)
-		color = Colors::LightBlue;
+		color = Colors::DarkGray;
 	else if (Jx == ActiveParts)
-		color = Colors::ForestGreen;
+		color = Colors::Gray;
 	else if (Jx >= 0)
 		color = colors[sparts[Jx]->Joints.front()->ID];
 
@@ -529,6 +586,20 @@ void PlayerProxy::ResetSelection(bool enableGlow)
 	SetActiveController(-1);
 }
 
+template <typename Func>
+auto at_scope_exit(Func func)
+{
+	struct scope_guard {
+		Func func;
+		~scope_guard()
+		{
+			func();
+		}
+	};
+
+	return scope_guard { func };
+};
+
 void PlayerProxy::SetActiveController(int idx)
 {
 	//if (!std::lock(m_controlMutex))
@@ -545,6 +616,10 @@ void PlayerProxy::SetActiveController(int idx)
 
 	StopUpdateThread();
 	std::lock_guard<std::mutex> guard(m_controlMutex);
+
+	auto sguard = at_scope_exit([this]() {
+		this->StartUpdateThread();
+	});
 
 	for (auto& c : m_Controllers)
 	{
@@ -625,7 +700,7 @@ void PlayerProxy::SetActiveController(int idx)
 		}
 	}
 
-	StartUpdateThread();
+	
 	//else
 	//	StopUpdateThread();
 	
@@ -727,6 +802,10 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 
 				// Disable re-matching when the controller has not request
 				m_CyclicInfo.EnableCyclicMotionDetection(false);
+			}
+			else
+			{
+				m_CyclicInfo.ResetStream();
 			}
 		}
 	}
@@ -1330,7 +1409,7 @@ void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::
 			{
 
 				XMVECTOR particle = XMLoad(p);
-				particle = XMVectorSetW(particle, particleRadius * (4.0f - 3.7 * transparency * transparency));
+				particle = XMVectorSetW(particle, particleRadius * (2.0f - 1.7 * transparency * transparency));
 				color = XMVectorSetW(color, transparency);
 				DrawParticle(sprites, particle, color, world, proj, vp, pTrajectoryVisual);
 				transparency -= transparencyDecay;
@@ -1388,7 +1467,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 	Color color = DirectX::Colors::Yellow.v;
 
-	if (player.IsAvailable())
+	if (player.IsAvailable() /*&& (!IsMapped() || g_ForceRemappingAlwaysOn)*/)
 	{
 		const auto& frame = player.PeekFrame();
 
@@ -1397,7 +1476,9 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 		if (frame.size() != 0)
 		{
-			DrawArmature(player.GetArmature(), frame, m_boneColors.data());
+			XMMATRIX world = DirectX::XMMatrixScaling(1.0, 1.0, 1.0);
+			float thinkness = g_DebugArmatureThinkness;
+			DrawArmature(player.GetArmature(), frame, m_boneColors.data(), world, thinkness * 3);
 
 			auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
 			auto highest = std::max_element(frame.begin(), frame.end(), [](const Bone& b0, const Bone& b1)
@@ -1408,7 +1489,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 			auto metric = m_recentMetric;
 
-			bool buffering = metric.BufferingProgress < 1.0f;
+			bool buffering = !metric.BufferingReady;
 
 			Color pbbc = DirectX::Colors::Gray;
 
@@ -1423,7 +1504,9 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 			float alpha = maxalpha;
 			pbfc.A(alpha); pbbc.A(alpha);
 
-			Vector3 center = highest->GblTranslation + Vector3(0, 0.3f, 0);
+			Vector3 center = frame[0].GblTranslation;
+			center.y = highest->GblTranslation.y + 0.3f;
+
 			center = m_pbCenterFilter.Apply(center);
 			if (!buffering)
 			{
@@ -1439,6 +1522,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				progress = std::clamp(metric.StaticConfidence, .0f, 1.0f);
 				progress = m_pbValueFilter1.Apply(progress);
 
+				pbfc = DirectX::Colors::Blue.v;
 				float alpha = maxalpha * sqrt(progress);
 				pbfc.A(alpha); pbbc.A(alpha);
 				center += Vector3(0, 0.3f, 0);

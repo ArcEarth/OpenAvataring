@@ -60,9 +60,11 @@
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
     <RevampLikilyhoodTimeThreshold>1.0</RevampLikilyhoodTimeThreshold>
     <ForceRemappingAlwaysOn>false</ForceRemappingAlwaysOn>
-    <RevampActiveSupportThreshold>0.6</RevampActiveSupportThreshold>
-    <PlayerTrackingWhiteNoiseEnergy>0.0012</PlayerTrackingWhiteNoiseEnergy>
-    <RevampStaticEnergyThreshold>0.08</RevampStaticEnergyThreshold>
+    <RevampActiveSupportThreshold>0.65</RevampActiveSupportThreshold>
+    <RevampPendingTime>3.0</RevampPendingTime>
+    <PlayerTrackingWhiteNoiseEnergy>0.0022</PlayerTrackingWhiteNoiseEnergy>
+    <RevampStaticEnergyThreshold>0.04</RevampStaticEnergyThreshold>
+    <PeriodAnalyzeAggreateWithMax>1</PeriodAnalyzeAggreateWithMax>
 
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
@@ -267,7 +269,7 @@
           <!--<leap_source mode="16"/>-->
         </player_controller.selector>
         
-      <!--<creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
+      <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
         <creature.behavier>
           <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
             <behavier.actions>
@@ -279,17 +281,17 @@
           </behavier>
         </creature.behavier>
       </creature> 
-        -->
-         <!--
+        
+         
         <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
-        </creature> -->
+        </creature> 
 
         <!--<action name="idle" src="Horse_Idle.fbx"/>-->
             <!--subordinates-->
-        <!--<creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
                 <behavier.actions>
@@ -298,13 +300,13 @@
                 </behavier.actions>
                 </behavier>
             </creature.behavier>
-        </creature>-->
+        </creature>
 
-        <!--<creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
+        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
-        </creature>-->
+        </creature>
 
 
         <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">

@@ -136,6 +136,7 @@ namespace Causality
 
 		float								m_updateFreqency;
 		LowPassFilter<Vector3, float>		m_cameraStablizer;
+		LowPassFilter<Vector3, float>		m_cameraFocusStablizer;
 		LowPassFilter<Vector3,float>		m_pbCenterFilter;
 		LowPassFilter<float,float>			m_pbValueFilter0;
 		LowPassFilter<float,float>			m_pbValueFilter1;

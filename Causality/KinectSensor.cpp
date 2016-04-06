@@ -247,6 +247,8 @@ public:
 					armature[i]->MirrorJoint = armature[JointsMirrows[i]];
 				}
 			}
+			BuildJointMirrorRelation(armature);
+
 		}
 	}
 

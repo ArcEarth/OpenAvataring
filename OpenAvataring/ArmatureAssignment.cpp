@@ -462,6 +462,24 @@ void ConvertCovToPca(Matrix3f& cov, float norm)
 	cov = svd.singularValues().asDiagonal() * svd.matrixV();
 }
 
+VectorXi CaculateConditionalSymetricVector(const ShrinkedArmature& parts, const std::vector<int> &activeParts)
+{
+	VectorXi symType(activeParts.size());
+	symType.setConstant(0);
+	for (int i = 0; i < activeParts.size(); i++)
+	{
+		auto part = parts[activeParts[i]];
+		auto mid = part->SymetricPair ? part->SymetricPair->Index : -1;
+		if (mid != -1)
+		{
+			symType[i] = std::find(activeParts.begin(), activeParts.end(), mid) != activeParts.end();
+		}
+		else
+			symType[i] = 0;
+	}
+	return symType;
+}
+
 CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
 {
 	assert(controller.IsReady && iclip.IsReady());
@@ -512,6 +530,8 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	selectCols(iclip.GetAllPartsSequence(), Juk3, &Xpvseq);
 	RowVectorXf xpvrow = Xpvseq.colwise().sum();
 
+	VectorXi XsymType = CaculateConditionalSymetricVector(userParts, Juk);
+
 	//selectCols(reshape(iclip.GetAllPartsMean(), pvDim, -1), Juk, &Xpvnm);
 	for (int i = 0; i < Juk.size(); i++)
 	{
@@ -547,6 +567,10 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		//	}
 		//}
 		const auto &Jck = cpv.ActiveParts();
+
+		VectorXi CsymType = CaculateConditionalSymetricVector(charaParts, Jck);
+
+
 		//const auto &Jck = controller.ActiveParts();
 
 		//std::vector<int> Jck3(Jck.size() * pvDim);
@@ -601,19 +625,22 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 				cout << "!!!!!!!!Single-frame-binding!!!!!!!!!!!" << endl;
 			cout << "*********************************************" << endl;
 			cout << "Human Skeleton ArmatureParts : " << endl;
+
+			int iid = 0; // For enumeration over SymTypes
 			for (auto i : Juk)
 			{
 				const auto& blX = *userParts[i];
-				cout << "Part[" << i << "]= " << blX.Joints << endl;
+				cout << "Part[" << i << "] (" << (XsymType[iid++]?'E':'S') << ") = " << blX.Joints << endl;
 			}
 
 			cout << "*********************************************" << endl;
 			cout << "Character " << character.Name << "'s Skeleton ArmatureParts : " << endl;
-
+			
+			iid = 0;
 			for (auto& i : Jck)
 			{
 				const auto& blY = *charaParts[i];
-				cout << "Part[" << i << "] = " << blY.Joints << endl;
+				cout << "Part[" << i << "] (" << (CsymType[iid++] ? 'E' : 'S') <<") = " << blY.Joints << endl;
 			}
 			cout << "Caculating Quadratic Assignment Problem ... " << endl;
 		}
@@ -659,6 +686,16 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 		//_ASSERTE(_CrtCheckMemory());
 		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv);
+
+		for (int i = 0; i < Juk.size(); i++)
+		{
+			for (int j = 0; j < Jck.size(); j++)
+			{
+				// Bounus for Singular to Singular Assignment
+				if (!(XsymType[i] || CsymType[j]))
+					A(i, j) *= (1.0f + g_StructrualSymtricBonus);
+			}
+		}
 
 		//cout << C << endl;
 

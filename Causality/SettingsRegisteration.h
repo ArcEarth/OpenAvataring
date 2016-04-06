@@ -63,11 +63,14 @@ SETTING_REGISTERATION(float, VelocityNormalizeThreshold, 0.01)
 
 
 SETTING_REGISTERATION(bool, ForceRemappingAlwaysOn, false)
+
+SETTING_REGISTERATION(float, RevampPendingTime, 3.0f)
 SETTING_REGISTERATION(float, RevampLikilyhoodThreshold, 0.05f)
 SETTING_REGISTERATION(float, RevampLikilyhoodTimeThreshold, 1.0f)
 SETTING_REGISTERATION(float, RevampActiveSupportThreshold, 0.65f)
 SETTING_REGISTERATION(float, RevampStaticEnergyThreshold, .0f)
 SETTING_REGISTERATION(float, PlayerTrackingWhiteNoiseEnergy, .0f)
+SETTING_REGISTERATION(bool, PeriodAnalyzeAggreateWithMax, false)
 
 SETTING_REGISTERATION(float, PartAssignmentQuadraticTermWeight, 0.5f)
 SETTING_REGISTERATION(float, StructrualSymtricBonus, 0.2f)

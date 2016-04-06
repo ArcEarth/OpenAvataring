@@ -32,11 +32,14 @@ void ShrinkedArmature::SetArmature(const IArmature & armature)
 
 	for (auto part : m_Parts)
 	{
+		auto pJ = part->Joints[0];
+		auto jid = pJ->ID;
 		auto pMj = part->Joints[0]->MirrorJoint;
-		if (pMj != nullptr && pMj->MirrorJoint == part->Joints[0])
+		if (pMj != nullptr && pMj->MirrorJoint->ID == jid)
 		{
-			auto itr = std::find_if(m_Parts.begin(), m_Parts.end(), [pMj](auto part)->bool {
-				return part->Joints[0] == pMj;
+			int mjid = pMj->ID;
+			auto itr = std::find_if(m_Parts.begin(), m_Parts.end(), [mjid](auto part)->bool {
+				return part->Joints[0]->ID == mjid;
 			});
 			if (itr != m_Parts.end())
 			{

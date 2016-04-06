@@ -38,6 +38,13 @@ namespace Causality
 		virtual void							FocusAt(FXMVECTOR focusPoint, FXMVECTOR upDir) = 0;
 		virtual const BoundingGeometry&			GetViewFrustum() const = 0;
 
+		//XMVECTOR								GetFowardDir() const {}
+		//XMVECTOR								GetUpDir() const {}
+		//XMVECTOR								GetRightDir() const {}
+		//XMVECTOR								GetFocusDir() const { return GetFowardDir(); }
+		//virtual XMVECTOR						GetFocusPosition() const { return GetFocusDir(); };
+		//XMVECTOR								GetViewCenter() const {}
+
 		inline XMMATRIX				GetViewProjectionMatrix() const
 		{
 			XMMATRIX mat = GetViewMatrix();
