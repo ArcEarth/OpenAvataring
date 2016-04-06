@@ -66,6 +66,8 @@ void XM_CALLCONV Causality::DrawGeometryOutline(const BoundingGeometry& geometry
 }
 
 
+void VisualObject::ShowBoundingGeometry(bool show) { m_showBoundingBox = show; /*m_boundingBoxColor = color;*/ }
+
 IModelNode * VisualObject::RenderModel(int LoD)
 {
 	return m_pRenderModel;
@@ -95,11 +97,15 @@ void VisualObject::Render(IRenderContext * pContext, IEffect* pEffect)
 		m_pRenderModel->Render(pContext, GlobalTransformMatrix(), pEffect);
 	}
 
-	if (g_ShowCharacterMesh && g_DebugView && m_pRenderModel)
+	if ((g_ShowCharacterMesh && g_DebugView || m_showBoundingBox) && m_pRenderModel)
 	{
 		BoundingGeometry geo(m_pRenderModel->GetBoundingBox());
 		auto world = this->GlobalTransformMatrix();
 		//geo.Transform(geo, GlobalTransformMatrix());
+		Color color = Colors::Orange.v;
+		if (m_showBoundingBox)
+			color = m_boundingBoxColor;
+
 		drawer.SetWorld(world);
 		drawer.Begin();
 		DrawGeometryOutline(geo, Colors::Orange);
@@ -116,6 +122,8 @@ VisualObject::VisualObject()
 	m_isVisable = true;
 	m_opticity = 1.0f;
 	m_isFocuesd = false;
+	m_boundingBoxColor = Colors::LimeGreen.v;
+	m_showBoundingBox = false;
 }
 
 Causality::VisualObject::~VisualObject()

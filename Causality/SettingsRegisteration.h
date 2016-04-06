@@ -64,6 +64,7 @@ SETTING_REGISTERATION(float, VelocityNormalizeThreshold, 0.01)
 
 SETTING_REGISTERATION(bool, ForceRemappingAlwaysOn, false)
 
+SETTING_REGISTERATION(bool, AutomaticLoopClosing, true)
 SETTING_REGISTERATION(float, RevampPendingTime, 3.0f)
 SETTING_REGISTERATION(float, RevampLikilyhoodThreshold, 0.05f)
 SETTING_REGISTERATION(float, RevampLikilyhoodTimeThreshold, 1.0f)

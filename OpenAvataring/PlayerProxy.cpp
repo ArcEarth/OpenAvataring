@@ -139,7 +139,7 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 		std::cout << "Start selection progress with Metric : " << endl
 			<< "Frequency = " << metric.Frequency << endl
 			<< "Periodic Support = " << metric.Support << endl
-			<< "Kinetic Energy = " << metric.Energy << endl
+			<< "Kinetic Energy = " << metric.Energy << " (" << metric.AnotherEnergy << ")" << endl
 			<< "Periodic Confidence = " << metric.PeriodicConfidence << endl
 			<< "Static Pose Confidence = " << metric.StaticConfidence << endl;
 		SelectCharacterAsync();
@@ -642,6 +642,7 @@ void PlayerProxy::SetActiveController(int idx)
 			}
 
 			ResetChracterGlow(c);
+			chara.ShowBoundingGeometry(false);
 
 			auto matvis = chara.FirstChildOfType<MatrixVisualizer>();
 			if (matvis)
@@ -680,6 +681,7 @@ void PlayerProxy::SetActiveController(int idx)
 			controller.IsSelected = selected;
 			controller.CharacterScore = temp;
 
+			chara.ShowBoundingGeometry(true);
 			chara.EnabeAutoDisplacement(g_UsePersudoPhysicsWalk);
 		}
 	}
@@ -1546,7 +1548,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		}
 	}
 
-	if (IsMapped() && g_DebugView && m_CurrentIdx != -1)
+	if (IsMapped() /*&& g_DebugView */&& m_CurrentIdx != -1)
 	{
 		//auto& controller = this->CurrentController().Character();
 
@@ -1561,6 +1563,22 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		{
 			colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
 		}
+
+		auto& frame = chara.GetCurrentFrame();
+		auto tran = chara.GetGlobalTransform();
+		auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
+		auto highest = std::max_element(frame.begin(), frame.end(), [](const Bone& b0, const Bone& b1)
+		{ return b0.GblTranslation.y < b1.GblTranslation.y; });
+
+		Vector3 center = frame[0].GblTranslation;
+		float scl = 0.2f / tran.Scale.y;
+
+		center.y = highest->GblTranslation.y + scl * 2.0;
+		Color color = DirectX::Colors::ForestGreen.v;
+		color.A(0.8f);
+
+		drawer.SetWorld(tran.TransformMatrix());
+		drawer.DrawCone(center, DirectX::g_XMIdentityR1.v, -scl * 1.5, scl * 0.5, color);
 
 		DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
 	}

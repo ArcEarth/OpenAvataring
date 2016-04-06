@@ -324,6 +324,7 @@ namespace Causality
 			float Frequency;
 			float Support;
 			float Energy;
+			float NoiseEnergy; // Energy in high frequency domin
 			int	  PeriodInFrame;
 		};
 
@@ -334,6 +335,7 @@ namespace Causality
 			void SetFrequencyResolveResult(const FrequencyResolveResult& fr);
 
 			RecentAcrtionBehavier Behavier;
+			float AnotherEnergy;
 			float PeriodicConfidence;
 			float StaticConfidence;
 			float BufferingProgress;
@@ -398,6 +400,7 @@ namespace Causality
 		int			m_cropMargin;
 		bool		m_isStaticPose;
 		bool		m_fillWindowWithFirstFrame;
+		bool		m_automaticCloseloop;
 
 		// min Frequency, in Frames unit
 		int			m_minFr, m_maxFr, m_FrWidth;
@@ -416,6 +419,7 @@ namespace Causality
 		float		m_cyclicDtcThr; // The threshold to classify as Cyclic motion
 		float		m_staticEnergyThr;
 		float		m_whiteNoiseEnergy;
+		float		m_highFreqNoiseEnergy;
 		int			m_pendingFrames;
 
 		// thread sychronization
@@ -431,6 +435,7 @@ namespace Causality
 		std::mutex			m_spMutex;
 		//! Column major spectrum, 1 column = 1 frame in time
 		Eigen::MatrixXcf	m_Spectrum;	// wSize x fSize
+		Eigen::MatrixXf		m_bufferDx;
 		Eigen::VectorXf		m_SpectrumEnergy;//In each frequency
 		Eigen::VectorXf		m_EnergyStatisticFilter; // An Low-Pass Gaussian Filter
 		Eigen::MatrixXf		m_SmoothedBuffer;

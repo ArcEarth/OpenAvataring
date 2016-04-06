@@ -9,6 +9,6 @@
 
     <run_test>0</run_test>
 
-	<window width="1360" height="768" left="0" top="0"  fullscreen="false"></window>
+	<window width="1360" height="768" left="-1360" top="0"  fullscreen="false"></window>
 	<console width="800" height="720" left="0" top="10" ></console>
 </application>

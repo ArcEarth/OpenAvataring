@@ -51,6 +51,8 @@ namespace Causality
 			return m_isFocuesd;
 		}
 
+		void										ShowBoundingGeometry(bool show = true);
+
 		float										Opticity() const { return m_opticity; }
 		void										SetOpticity(float value) { m_opticity = value; }
 
@@ -70,6 +72,8 @@ namespace Causality
 		float										m_opticity;
 		bool										m_isVisable;
 		bool										m_isFocuesd;
+		bool										m_showBoundingBox;
+		Color										m_boundingBoxColor;
 		IModelNode*									m_pRenderModel;
 
 		//std::shared_ptr<Bullet::CollisionShape>		m_CollisionShape;

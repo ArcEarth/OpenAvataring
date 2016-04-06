@@ -31,6 +31,7 @@ using namespace ArmaturePartFeatures;
 using namespace BoneFeatures;
 
 const static double g_Gravity = 9.8;
+const static double g_automicLoopCloseDistanceMax = 0.2;
 
 typedef
 Weighted<
@@ -56,6 +57,36 @@ EndEffector <
 
 typedef PVSFeature PartsFeatureType;
 
+template <class DerivedX>
+void CaculateTimeDirivtiive(MatrixXf& dX, const DenseBase<DerivedX>&X, float frametime, bool isClose = false , int step = 1)
+{
+	int N = X.rows();
+	dX.resizeLike(X);
+	if (N > 2)
+	{
+		dX.middleRows(step, dX.rows() - 2 * step) = (X.topRows(dX.rows() - 2 * step) - X.bottomRows(dX.rows() - 2 * step)) / (2 * (double)step * frametime);
+		if (!isClose) // Open Loop case
+		{
+			for (int d = 1; d < step; d++)
+			{
+				int i = d;
+				dX.row(i) = (X.row(i - d) - X.row(i + d)) / ((double)(2 * d) * frametime);
+				i = N - d - 1;
+				dX.row(i) = (X.row(i - d) - X.row(i + d)) / ((double)(2 * d) * frametime);
+			}
+			dX.row(0) = (X.row(0) - X.row(1)) / frametime;
+			dX.row(N - 1) = (X.row(N - 2) - X.row(N - 1)) / frametime;
+		}
+		else // Close Loop case
+		{
+			dX.topRows(step) = (X.bottomRows(step) - X.middleRows(step, step)) / (2 * (double)step * frametime);;
+			dX.bottomRows(step) = (X.middleRows(N - step * 2, step) - X.topRows(step)) / (2 * (double)step * frametime);;
+		}
+	}
+	else
+		dX.setZero();
+};
+
 void CyclicStreamClipinfo::EnableCyclicMotionDetection(bool is_enable, float cyclicSupportThrehold, float staticEnergyThreshold) {
 	m_enableCyclicDtc = is_enable;
 	m_staticEnergyThr = staticEnergyThreshold;
@@ -75,7 +106,8 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy);
 	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive | Ep_AbsGravity);
 	ClipFacade::SetGravityReference(parts.Armature().bind_frame());
-	ClipFacade::SetEnergyFilterFunction([&parts](Eigen::RowVectorXf& Eb) {
+	ClipFacade::SetEnergyFilterFunction([this](Eigen::RowVectorXf& Eb) {
+		auto& parts = *this->m_pParts;
 		for (int i = 0; i < parts.size(); i++)
 		{
 			if (parts[i]->parent() != nullptr)
@@ -172,6 +204,7 @@ CyclicStreamClipinfo::CyclicStreamClipinfo()
 	m_fillWindowWithFirstFrame = true;
 	m_minFr = m_maxFr = m_FrWidth = 0;
 	m_windowSize = 0;
+	m_automaticCloseloop = g_AutomaticLoopClosing;
 }
 
 void CyclicStreamClipinfo::Initialize(ShrinkedArmature& parts, time_seconds minT, time_seconds maxT, double sampleRateHz, size_t interval_frames)
@@ -221,7 +254,7 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_Spectrum.setZero(m_bufferWidth, m_windowSize);
 	m_SmoothedBuffer.setZero(m_windowSize, m_frameWidth);
 
-	m_cropMargin = m_sampleRate * 0.33; // 0.1s of frames as margin
+	m_cropMargin = m_sampleRate * 0.333; // 0.1s of frames as margin
 
 	m_cyclicDtcThr = g_RevampActiveSupportThreshold;
 	m_staticEnergyThr = g_RevampStaticEnergyThreshold;
@@ -338,8 +371,10 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 
 	RecentFrameResolveResult result;
 	auto fr = CaculatePeekFrequency(m_Spectrum);
-	//fr.Energy = CaulateKinectEnergy(head, std::min((int)windowSize / 2, m_pendingFrames));
 	result.SetFrequencyResolveResult(fr);
+	m_highFreqNoiseEnergy = fr.NoiseEnergy;
+
+	result.AnotherEnergy = CaulateKinectEnergy(head, std::min((int)windowSize / 2, m_pendingFrames));
 	float nenerg = (fr.Energy - m_whiteNoiseEnergy) / (m_staticEnergyThr);
 
 	// Prevent low energy high-frequency perodic motion
@@ -370,6 +405,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 				m_energyTerms &= ~(Ep_AbsGravity | Ep_SampleMeanLength);
 				m_energyTerms |= Ek_TimeDiveritive;
 
+				m_isClose = false;
 				CropResampleInput(X, head, fr.PeriodInFrame, CLIP_FRAME_COUNT, 0.8f);
 				ClipFacade::SetClipTime(Tseconds);
 			}
@@ -378,6 +414,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 				m_energyTerms &= ~(Ek_SampleVarience | Ek_TimeDiveritive);
 				m_energyTerms |= Ep_AbsGravity;
 
+				m_isClose = false;
 				ClipFacade::SetFeatureMatrix(GetLatestPoseFeatureFrame());
 				ClipFacade::SetClipTime(.0);
 			}
@@ -449,13 +486,39 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 		Xs = m_buffer.block(0, head + m_windowSize - inputLength, m_frameWidth, inputLength).transpose();
 	}
 
-	// Smooth the input 
+	if (m_automaticCloseloop && T > 5)
+	{
+		// assumes a linear noise from e0 to e1, moves e1 to e0 and distribute the changes with in the loop
+		int rmargin = min((int)m_cropMargin / 2, (int)T / 5);
+		auto e0 = Xs.middleRows(m_cropMargin - rmargin, rmargin * 2).colwise().mean();
+		auto e1 = Xs.middleRows(inputLength - m_cropMargin - rmargin, rmargin * 2).colwise().mean();
+		auto tune = (e0 - e1).eval();
+
+		float endDivergence = tune.norm();
+		if (endDivergence > g_automicLoopCloseDistanceMax * sqrt(ceilf((float)m_frameWidth / 3.0f)))
+		{
+			std::cout << "[Warning] Failed to cloose loop : Loop Divergence = " << endDivergence << endl;
+			//m_isClose = false;
+		}
+
+		Xs.middleRows(m_cropMargin, T) += VectorXf::LinSpaced(T, .0f, 1.0f).asDiagonal() * tune.replicate(T, 1);
+		Xs.bottomRows(m_cropMargin) = Xs.topRows(m_cropMargin);
+		m_isClose = true;
+	}
+	else
+	{
+		m_isClose = false;
+	}
+
+	// Smooth the input
+	// * Since we copied the margin, no need to hint 'CloseLoop' in the smooth
 	laplacianSmooth(Xs, smoothStrength, smoothIteration, Eigen::OpenLoop);
 
 	//! To-do , use better method to crop out the "example" single period
 
 	if (X.rows() != resampledPeriod)
 		X.resize(resampledPeriod, m_frameWidth);
+
 	// Resample input into X
 	cublicBezierResample(X,
 		m_SmoothedBuffer.middleRows(m_cropMargin, T),
@@ -476,7 +539,8 @@ CyclicStreamClipinfo::FrequencyResolveResult CyclicStreamClipinfo::CaculatePeekF
 
 	// Note Xf is (bufferWidth X windowSize)
 	// thus we crop it top frameWidth rows and intersted band in cols to caculate energy
-	auto Eall = Xf.block(0, 0, m_frameWidth, m_maxFr + 1).cwiseAbs2().colwise().maxCoeff().eval();
+	int extfrCut = min((int)(m_maxFr * 2), (int)Xf.cols());
+	auto Eall = Xf.block(0, 0, m_frameWidth, extfrCut).cwiseAbs2().colwise().maxCoeff().eval();
 	Eall /= (m_sampleRate * m_windowSize);
 
 	if (g_PeriodAnalyzeAggreateWithMax)
@@ -514,7 +578,7 @@ CyclicStreamClipinfo::FrequencyResolveResult CyclicStreamClipinfo::CaculatePeekF
 	fr.PeriodInFrame = T;
 	fr.Support = snr /** snr*/;
 	fr.Energy = Eall.segment(m_minFr, m_FrWidth).sum();
-
+	fr.NoiseEnergy = Eall.segment(m_minFr + m_FrWidth, Eall.cols() - (m_minFr + m_FrWidth)).sum();
 	return fr;
 }
 
@@ -524,9 +588,20 @@ float CyclicStreamClipinfo::CaulateKinectEnergy(size_t head, size_t windowSize, 
 	if (windowSize > 1)
 	{
 		auto raw = m_buffer.block(0, head, m_frameWidth, windowSize);
-		auto mean = raw.rowwise().mean();
-		Ek = (raw - mean.replicate(1, windowSize)).squaredNorm()
-			/(m_frameWidth * (windowSize - 1));
+		float frametime = 1 / m_sampleRate;
+
+		if (term & Ek_SampleVarience)
+		{
+			auto mean = raw.rowwise().mean();
+			Ek = (raw - mean.replicate(1, windowSize)).squaredNorm()
+				/(m_frameWidth * (windowSize - 1));
+		}
+		else if (term & Ek_TimeDiveritive)
+		{
+			CaculateTimeDirivtiive(m_bufferDx, raw, frametime, false, m_step);
+			laplacianSmooth(m_bufferDx, 0.8, 2, m_isClose ? CloseLoop : OpenLoop);
+			Ek = m_bufferDx.squaredNorm() / (m_frameWidth * windowSize);
+		}
 	}
 	return Ek;
 }
@@ -721,31 +796,36 @@ void ClipFacade::CaculatePartsMetric()
 
 	// Caculate Numberical difference of X 
 	double frametime = m_clipTime / (double)m_X.rows();
-	int N = m_X.rows();
-	m_dX.resizeLike(m_X);
-	if (N > 2)
-	{
-		m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - 2 * m_step) - m_X.bottomRows(m_dX.rows() - 2 * m_step)) / (2 * (double)m_step * frametime);
-		if (!m_isClose) // Open Loop case
-		{
-			for (int d = 1; d < m_step; d++)
-			{
-				int i = d;
-				m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
-				i = N - d - 1;
-				m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
-			}
-			m_dX.row(0) = (m_X.row(0) - m_X.row(1)) / frametime;
-			m_dX.row(N - 1) = (m_X.row(N - 2) - m_X.row(N - 1)) / frametime;
-		}
-		else // Close Loop case
-		{
-			m_dX.topRows(m_step) = (m_X.bottomRows(m_step) - m_X.middleRows(m_step, m_step)) / (2 * (double)m_step * frametime);;
-			m_dX.bottomRows(m_step) = (m_X.middleRows(N - m_step * 2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
-		}
-	}
-	else
-		m_dX.setZero();
+	CaculateTimeDirivtiive(m_dX, m_X, frametime, m_isClose, m_step);
+
+	if (m_dX.rows() > 2)
+		laplacianSmooth(m_dX, 0.8, 2, m_isClose ? CloseLoop : OpenLoop);
+
+	//int N = m_X.rows();
+	//m_dX.resizeLike(m_X);
+	//if (N > 2)
+	//{
+	//	m_dX.middleRows(m_step, m_dX.rows() - 2 * m_step) = (m_X.topRows(m_dX.rows() - 2 * m_step) - m_X.bottomRows(m_dX.rows() - 2 * m_step)) / (2 * (double)m_step * frametime);
+	//	if (!m_isClose) // Open Loop case
+	//	{
+	//		for (int d = 1; d < m_step; d++)
+	//		{
+	//			int i = d;
+	//			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+	//			i = N - d - 1;
+	//			m_dX.row(i) = (m_X.row(i - d) - m_X.row(i + d)) / ((double)(2 * d) * frametime);
+	//		}
+	//		m_dX.row(0) = (m_X.row(0) - m_X.row(1)) / frametime;
+	//		m_dX.row(N - 1) = (m_X.row(N - 2) - m_X.row(N - 1)) / frametime;
+	//	}
+	//	else // Close Loop case
+	//	{
+	//		m_dX.topRows(m_step) = (m_X.bottomRows(m_step) - m_X.middleRows(m_step, m_step)) / (2 * (double)m_step * frametime);;
+	//		m_dX.bottomRows(m_step) = (m_X.middleRows(N - m_step * 2, m_step) - m_X.topRows(m_step)) / (2 * (double)m_step * frametime);;
+	//	}
+	//}
+	//else
+	//	m_dX.setZero();
 
 	if (m_flag & ComputeNormalize)
 		for (int i = 0; i < parts.size(); i++)
@@ -760,13 +840,13 @@ void ClipFacade::CaculatePartsMetric()
 
 			if (m_energyTerms & Ek_SampleVarience)
 			{
-				m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose();
+				m_Edim[i] = m_cX.middleCols(m_partSt[i], m_partDim[i]).cwiseAbs2().colwise().sum().transpose() / m_X.rows();
 				m_Eb[i] = m_Edim[i].sum();
 			}
 			else if (m_energyTerms & Ek_TimeDiveritive)
 			{
-				auto cols = m_cX.middleCols(m_partSt[i], m_partDim[i]);
-				m_Edim[i] = cols.cwiseAbs2().colwise().sum().transpose();
+				auto cols = m_dX.middleCols(m_partSt[i], m_partDim[i]);
+				m_Edim[i] = cols.cwiseAbs2().colwise().sum().transpose() / m_X.rows();
 				m_Eb[i] = m_Edim[i].sum();
 			}
 
