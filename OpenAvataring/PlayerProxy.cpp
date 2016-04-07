@@ -132,18 +132,24 @@ void PlayerProxy::StreamPlayerFrame(const IArmatureStreamAnimation& body, const 
 	auto metric = m_CyclicInfo.StreamFrame(m_pushFrame);
 
 	if (!metric.BufferingReady || metric.ConfidenceReady)
-	m_recentMetric = metric;
+		m_recentMetric = metric;
 
 	if (metric.MetricReady/* && (m_mapTask.empty() || m_mapTask.is_done())*/)
 	{
-		std::cout << "Start selection progress with Metric : " << endl
-			<< "Frequency = " << metric.Frequency << endl
-			<< "Periodic Support = " << metric.Support << endl
-			<< "Kinetic Energy = " << metric.Energy << " (" << metric.AnotherEnergy << ")" << endl
-			<< "Periodic Confidence = " << metric.PeriodicConfidence << endl
-			<< "Static Pose Confidence = " << metric.StaticConfidence << endl;
 		SelectCharacterAsync();
 	}
+}
+
+void PlayerProxy::DisplayRecentMotionMetric(const CyclicStreamClipinfo::RecentFrameResolveResult &metric)
+{
+	std::cout << "Start selection progress with Metric : " << endl
+		<< "Frequency = " << metric.Frequency << endl
+		<< "Periodic Support = " << metric.Support << endl
+		<< "Kinetic Energy = " << metric.Energy << " (" << metric.AnotherEnergy << ")" << endl
+		<< "Periodic Confidence = " << metric.PeriodicConfidence << endl
+		<< "Static Pose Confidence = " << metric.StaticConfidence << endl
+		<< "Energies = " << m_CyclicInfo.AsFacade().GetAllPartsEnergy() << endl;
+
 }
 
 bool PlayerProxy::SelectCharacterAsync(RecentAcrtionBehavier source, bool recaculateMetric)
@@ -154,11 +160,15 @@ bool PlayerProxy::SelectCharacterAsync(RecentAcrtionBehavier source, bool recacu
 		m_mapTask = concurrency::create_task([this, source, recaculateMetric]() {
 			try
 			{
+				auto metric = this->m_recentMetric;
+
 				if (recaculateMetric)
 					//if (source == CharacteSelectionSource_RecentPeriodAction)
-					auto metric = this->m_CyclicInfo.AnaylzeRecentAction(source);
-					//else
-					//	this->m_CyclicInfo.AnaylzeRecentPose();
+					metric = this->m_CyclicInfo.AnaylzeRecentAction(source);
+				//else
+				//	this->m_CyclicInfo.AnaylzeRecentPose();
+
+				DisplayRecentMotionMetric(metric);
 
 				auto idx = SelectCharacter(source);
 			}
@@ -212,7 +222,7 @@ namespace Causality
 		auto & armature = parts.Armature();
 
 		boneColors.resize(armature.size());
-		std::vector<int> partColorIdx(parts.size(),-1);
+		std::vector<int> partColorIdx(parts.size(), -1);
 
 		int cdx = 0;
 		for (auto part : parts)
@@ -223,7 +233,7 @@ namespace Causality
 
 			if (partColorIdx[pid] == -1)
 				partColorIdx[pid] = cdx++;
-			
+
 			if (sp)
 				partColorIdx[spid] = partColorIdx[pid];
 
@@ -318,6 +328,7 @@ PlayerProxy::PlayerProxy()
 
 void PlayerProxy::InitializeShrinkedPlayerArmature()
 {
+	if (g_EnableDebugLogging >= 1)
 	{
 		cout << "Player Armature: " << endl;
 		int i = 0;
@@ -328,13 +339,15 @@ void PlayerProxy::InitializeShrinkedPlayerArmature()
 			if (j.MirrorJoint != nullptr)
 			{
 				cout << " <--> " << j.MirrorJoint->Name << endl;
-			} else
+			}
+			else
 				cout << endl;
 		}
 	}
 
 	m_pParts->SetArmature(*m_pPlayerArmature);
 
+	if (g_EnableDebugLogging >= 1)
 	{
 		cout << "Player Armature Parts" << endl;
 		int i = 0;
@@ -349,14 +362,14 @@ void PlayerProxy::InitializeShrinkedPlayerArmature()
 			}
 			cout << endl;
 		}
-	}
 
-	cout << "Armature Proportions : " << endl;
-	for (auto pPart : *m_pParts)
-	{
-		auto& part = *pPart;
-		cout << "Part " << part.Joints << " = ";
-		cout << part.ChainLength << '|' << part.LengthToRoot << endl;
+		cout << "Armature Proportions : " << endl;
+		for (auto pPart : *m_pParts)
+		{
+			auto& part = *pPart;
+			cout << "Part " << part.Joints << " = ";
+			cout << part.ChainLength << '|' << part.LengthToRoot << endl;
+		}
 	}
 
 	ColorCodeArmature(*m_pParts, m_boneColors);
@@ -479,7 +492,7 @@ void PlayerProxy::Parse(const ParamArchive * store)
 		if (trail_particle[0] == '{')
 			m_trailVisual = dynamic_cast<Texture2D*>(assets.GetTexture(trail_particle.substr(1, trail_particle.size() - 2)));
 		else
-			m_trailVisual = dynamic_cast<Texture2D*>(assets.LoadTexture("character_trail_visual",trail_particle));
+			m_trailVisual = dynamic_cast<Texture2D*>(assets.LoadTexture("character_trail_visual", trail_particle));
 	}
 
 
@@ -503,7 +516,7 @@ void PlayerProxy::Parse(const ParamArchive * store)
 		SetPlayerSelector(pSelector);
 }
 
-void SetGlowBoneColorPartPair(CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors,float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
+void SetGlowBoneColorPartPair(CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts);
 
 void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmature & sparts, const array_view<const Color> &colors, const CharacterController& controller, float transparency)
 {
@@ -551,7 +564,7 @@ void SetGlowBoneColor(CharacterGlowParts* glow, const Causality::ShrinkedArmatur
 
 }
 
-void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors,float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
+void SetGlowBoneColorPartPair(Causality::CharacterGlowParts * glow, int Jx, int Jy, const array_view<const Color> &colors, float transparency, const Causality::ShrinkedArmature & sparts, const Causality::ShrinkedArmature & cparts)
 {
 	using namespace Math;
 	XMVECTOR color;
@@ -597,7 +610,7 @@ auto at_scope_exit(Func func)
 		}
 	};
 
-	return scope_guard { func };
+	return scope_guard{ func };
 };
 
 void PlayerProxy::SetActiveController(int idx)
@@ -611,7 +624,7 @@ void PlayerProxy::SetActiveController(int idx)
 	if (idx == -1)
 		ResetPrimaryCameraPoseToDefault();
 
-	if (idx == m_CurrentIdx) 
+	if (idx == m_CurrentIdx)
 		return;
 
 	StopUpdateThread();
@@ -625,28 +638,7 @@ void PlayerProxy::SetActiveController(int idx)
 	{
 		if (c.ID != idx)
 		{
-			auto& chara = c.Character();
-
-			if (!g_DebugLocalMotion && !g_DebugLocalMotionAction[chara.Name].empty())
-			{
-				auto& action = g_DebugLocalMotionAction[chara.Name];
-				chara.StartAction(action);
-				g_DebugLocalMotionAction[chara.Name] = "";
-			}
-
-			if (c.ID == m_CurrentIdx && m_CurrentIdx != idx)
-			{
-				chara.SetPosition(c.CMapRefPos);
-				chara.SetOrientation(c.CMapRefRot);
-				chara.EnabeAutoDisplacement(false);
-			}
-
-			ResetChracterGlow(c);
-			chara.ShowBoundingGeometry(false);
-
-			auto matvis = chara.FirstChildOfType<MatrixVisualizer>();
-			if (matvis)
-				matvis->SetEnabled(false);
+			DeactivateController(c);
 		}
 	}
 
@@ -655,34 +647,7 @@ void PlayerProxy::SetActiveController(int idx)
 		m_CurrentIdx = idx;
 		if (m_CurrentIdx != -1)
 		{
-			auto& controller = GetController(m_CurrentIdx);
-			auto& chara = controller.Character();
-
-			if (!g_DebugLocalMotion && !chara.CurrentActionName().empty())
-			{
-				g_DebugLocalMotionAction[chara.Name] = chara.CurrentActionName();
-				chara.StopAction();
-			}
-
-			if (!(m_pSelector && m_pSelector->Get()))
-				return;
-
-			auto &player = *m_pSelector->Get();
-			auto& frame = player.PeekFrame();
-			auto pose = frame[m_pPlayerArmature->root()->ID];
-			controller.SetReferenceSourcePose(pose);
-
-			auto selected = controller.IsSelected;
-			controller.IsSelected = true;
-			auto temp = controller.CharacterScore;
-			controller.CharacterScore = 1.0f;
-
-			ResetChracterGlow(controller);
-			controller.IsSelected = selected;
-			controller.CharacterScore = temp;
-
-			chara.ShowBoundingGeometry(true);
-			chara.EnabeAutoDisplacement(g_UsePersudoPhysicsWalk);
+			return ActivateController(GetController(m_CurrentIdx));
 		}
 	}
 	else
@@ -702,10 +667,69 @@ void PlayerProxy::SetActiveController(int idx)
 		}
 	}
 
-	
+
 	//else
 	//	StopUpdateThread();
-	
+
+}
+
+void PlayerProxy::ActivateController(CharacterController & controller)
+{
+	//auto& controller = GetController(m_CurrentIdx);
+	auto& chara = controller.Character();
+
+	if (!g_DebugLocalMotion && !chara.CurrentActionName().empty())
+	{
+		g_DebugLocalMotionAction[chara.Name] = chara.CurrentActionName();
+		chara.StopAction();
+	}
+
+	if (!(m_pSelector && m_pSelector->Get()))
+		return;
+
+	auto &player = *m_pSelector->Get();
+	auto& frame = player.PeekFrame();
+	auto pose = frame[m_pPlayerArmature->root()->ID];
+	controller.SetReferenceSourcePose(pose);
+
+	auto selected = controller.IsSelected;
+	controller.IsSelected = true;
+	auto temp = controller.CharacterScore;
+	controller.CharacterScore = 1.0f;
+
+	ResetChracterGlow(controller);
+	controller.IsSelected = selected;
+	controller.CharacterScore = temp;
+
+	chara.ShowBoundingGeometry(true);
+	chara.EnabeAutoDisplacement(g_UsePersudoPhysicsWalk);
+}
+
+void PlayerProxy::DeactivateController(Causality::CharacterController & c)
+{
+	int idx = c.ID;
+	auto& chara = c.Character();
+
+	if (!g_DebugLocalMotion && !g_DebugLocalMotionAction[chara.Name].empty())
+	{
+		auto& action = g_DebugLocalMotionAction[chara.Name];
+		chara.StartAction(action);
+		g_DebugLocalMotionAction[chara.Name] = "";
+	}
+
+	if (c.ID == m_CurrentIdx && m_CurrentIdx != idx)
+	{
+		chara.SetPosition(c.CMapRefPos);
+		chara.SetOrientation(c.CMapRefRot);
+		chara.EnabeAutoDisplacement(false);
+	}
+
+	ResetChracterGlow(c);
+	chara.ShowBoundingGeometry(false);
+
+	auto matvis = chara.FirstChildOfType<MatrixVisualizer>();
+	if (matvis)
+		matvis->SetEnabled(false);
 }
 
 namespace std
@@ -724,8 +748,8 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 
 	auto& player = *m_pSelector->Get();
 
-	if (std::all_of(BEGIN_TO_END(m_Controllers), [](const auto& ctr)->bool 
-		{ return !ctr.IsReady; }))
+	if (std::all_of(BEGIN_TO_END(m_Controllers), [](const auto& ctr)->bool
+	{ return !ctr.IsReady; }))
 	{
 		return -1;
 	}
@@ -746,12 +770,12 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 		{
 			auto& chara = controller.Character();
 			;
-			if (!controller.IsReady || !controller.IsSelected ||!chara.CurrentAction() || !chara.CurrentAction()->IsCyclic)
+			if (!controller.IsReady || !controller.IsSelected || !chara.CurrentAction() || !chara.CurrentAction()->IsCyclic)
 			{
 				controller.CharacterScore = -10000.0f;
 				continue;
 			}
-	
+
 			activeControllers.push_back(controller);
 		}
 
@@ -766,7 +790,7 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 		}
 		else
 		{
-			concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](std::reference_wrapper<CharacterController> ctrref)
+			concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers), [this](std::reference_wrapper<CharacterController> ctrref)
 			{
 				auto& controller = ctrref.get();
 				controller.CreateControlBinding(m_CyclicInfo.AsFacade());
@@ -845,7 +869,17 @@ void PlayerProxy::ResetChracterGlow(CharacterController & ctr)
 
 
 
-bool PlayerProxy::IsMapped() const { return m_CurrentIdx >= 0; }
+bool PlayerProxy::IsMapped() const {
+
+	return m_CurrentIdx >= 0;
+	//return (m_selectionMode == SelectionMode_MostLikilily && m_CurrentIdx >= 0) ||
+	//	(m_selectionMode == SelectionMode_Filtering && 
+	//		std::any_of(m_Controllers.begin(), m_Controllers.end(),
+	//			[](const CharacterController& c) {
+	//				return c.IsSelected;
+	//			})
+	//	);
+}
 
 const CharacterController & PlayerProxy::CurrentController() const {
 	for (auto& c : m_Controllers)
@@ -881,6 +915,20 @@ CharacterController & PlayerProxy::GetController(int state)
 			return c;
 	}
 	throw;
+}
+
+std::vector<CharacterController*> PlayerProxy::GetAllSelectedControllers()
+{
+	std::vector<CharacterController*> ctrls;
+	if (m_selectionMode == SelectionMode_MostLikilily && m_CurrentIdx >= 0)
+		ctrls.push_back(&CurrentController());
+	else
+		for (auto& c : m_Controllers)
+		{
+			if (c.IsSelected)
+				ctrls.push_back(&c);
+		}
+	return ctrls;
 }
 
 void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
@@ -1115,18 +1163,28 @@ void PlayerProxy::UpdateThreadRuntime()
 		const auto& frame = m_currentFrame;
 		const auto& lastFrame = m_lastFrame;
 
-		g_RevampLikilyhoodThreshold = 0.5;
-		g_RevampLikilyhoodTimeThreshold = 1.0;
+		//g_RevampLikilyhoodThreshold = 0.5;
+		//g_RevampLikilyhoodTimeThreshold = 1.0;
 
 		if (g_ForceRemappingAlwaysOn)
 			m_CyclicInfo.EnableCyclicMotionDetection();
 
 		if (IsMapped() && m_controlMutex.try_lock())
 		{
-			std::lock_guard<std::mutex> guard(m_controlMutex,std::adopt_lock);
+			std::lock_guard<std::mutex> guard(m_controlMutex, std::adopt_lock);
 			//cout << "getting mutext" << endl;
-			auto& controller = CurrentController();
-			float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
+
+			auto controllers = GetAllSelectedControllers();
+
+			float lik = 1.0f;
+
+			int sz = controllers.size();
+			//#pragma omp parallel for
+			for (int i = 0; i < sz; ++i)
+			{
+				auto& controller = *controllers[i];
+				float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
+			}
 
 			// Check if we need to "Revamp" Control Binding
 			if (lik < g_RevampLikilyhoodThreshold)
@@ -1189,7 +1247,7 @@ void PlayerProxy::UpdateSelfMotionBinder(const Causality::time_seconds & time_de
 			continue;
 		auto& action = chara.Behavier()[actionName];
 		auto& target_frame = chara.MapCurrentFrameForUpdate();
-		ArmatureFrame frame (chara.Armature().bind_frame() );
+		ArmatureFrame frame(chara.Armature().bind_frame());
 
 		target_frame = frame;
 		last_frame = frame;
@@ -1394,7 +1452,7 @@ void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::
 	if (!pTrajectoryVisual) return;
 	auto& sprites = *g_PrimitiveDrawer.GetSpriteBatch();
 	sprites.Begin(DirectX::SpriteSortMode_Deferred, g_PrimitiveDrawer.GetStates()->NonPremultiplied());
-	world = XMMatrixMultiply(world,view);
+	world = XMMatrixMultiply(world, view);
 	float particleRadius = g_DebugArmatureThinkness * 5;
 
 	float transparencyDecay = 1.0f / 30.0f;
@@ -1423,7 +1481,7 @@ void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::
 	sprites.End();
 }
 
-void DrawProgressBar(Vector3 center, float width, float radius, float progress,Color foreground, Color background)
+void DrawProgressBar(Vector3 center, float width, float radius, float progress, Color foreground, Color background)
 {
 	Vector3 hext = Vector3(0.5f * width, 0, 0);
 	Vector3 left = center - hext;
@@ -1495,7 +1553,9 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 			Color pbbc = DirectX::Colors::Gray;
 
-			Color pbfc = buffering ? DirectX::Colors::Yellow : DirectX::Colors::Green;
+			Color pbfc = buffering ? 
+				DirectX::Colors::Yellow : 
+				DirectX::Colors::YellowGreen;
 
 
 			float maxalpha = 0.8f;
@@ -1513,7 +1573,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 			if (!buffering)
 			{
 				progress = m_pbValueFilter0.Apply(progress);
-				float alpha = maxalpha * sqrt(progress);
+				float alpha = 0.2f + maxalpha * sqrt(progress);
 				pbfc.A(alpha); pbbc.A(alpha);
 			}
 
@@ -1524,8 +1584,8 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				progress = std::clamp(metric.StaticConfidence, .0f, 1.0f);
 				progress = m_pbValueFilter1.Apply(progress);
 
-				pbfc = DirectX::Colors::Blue.v;
-				float alpha = maxalpha * sqrt(progress);
+				pbfc = DirectX::Colors::Cyan.v;
+				float alpha = 0.2f + maxalpha * sqrt(progress);
 				pbfc.A(alpha); pbbc.A(alpha);
 				center += Vector3(0, 0.3f, 0);
 				DrawProgressBar(center, width, radius, progress, pbfc, pbbc);
@@ -1548,7 +1608,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 		}
 	}
 
-	if (IsMapped() /*&& g_DebugView */&& m_CurrentIdx != -1)
+	if (IsMapped() /*&& g_DebugView */ && m_CurrentIdx != -1)
 	{
 		//auto& controller = this->CurrentController().Character();
 

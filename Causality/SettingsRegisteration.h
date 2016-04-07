@@ -60,6 +60,7 @@ SETTING_REGISTERATION(bool, UseStylizedIK, true)
 SETTING_REGISTERATION(bool, UseVelocity, false)
 SETTING_REGISTERATION(bool, NormalizeVelocity, false)
 SETTING_REGISTERATION(float, VelocityNormalizeThreshold, 0.01)
+SETTING_REGISTERATION(double, IKLimitMultiplier, 1.0)
 
 
 SETTING_REGISTERATION(bool, ForceRemappingAlwaysOn, false)
@@ -72,10 +73,14 @@ SETTING_REGISTERATION(float, RevampActiveSupportThreshold, 0.65f)
 SETTING_REGISTERATION(float, RevampStaticEnergyThreshold, .0f)
 SETTING_REGISTERATION(float, PlayerTrackingWhiteNoiseEnergy, .0f)
 SETTING_REGISTERATION(bool, PeriodAnalyzeAggreateWithMax, false)
+SETTING_REGISTERATION(float, InputSmoothStrength, 8.8f)
+SETTING_REGISTERATION(int, InputSmoothIteration, 4)
+
 
 SETTING_REGISTERATION(float, PartAssignmentQuadraticTermWeight, 0.5f)
 SETTING_REGISTERATION(float, StructrualSymtricBonus, 0.2f)
 SETTING_REGISTERATION(float, StructrualDisSymtricPenalty, -0.2f)
+SETTING_REGISTERATION(float, StructtualAntiAncestorPenalty, -0.5f)
 SETTING_REGISTERATION(float, MaxiumTimeDelta, 1.0 / 30.0)
 
 SETTING_REGISTERATION(float, DynamicTraderKeyEnergy, 0.2f)

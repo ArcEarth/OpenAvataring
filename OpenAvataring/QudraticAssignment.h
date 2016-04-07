@@ -93,6 +93,32 @@ namespace Eigen
 		return score;
 	}
 
+	template <class MatrixType, typename IndexType>
+	float assignment_cost(const MatrixType& A, const IndexType *ass, bool transposed)
+	{
+		using namespace std;
+
+		IndexType n = min(A.rows(), A.cols());
+		float score = .0f;
+
+		if (!transposed)
+		{
+			for (IndexType i = 0; i < n; i++)
+			{
+				score += A(i, ass[i]);
+			}
+		}
+		else
+		{
+			for (IndexType i = 0; i < n; i++)
+			{
+				score += A(ass[i], i);
+			}
+		}
+
+		return score;
+	}
+
 	// C(i,j,ass(i),ass(j)) must exist
 	// Brute-force solve QAP
 	template <class MatrixType, class QuadraticFuncType, typename IndexType>
@@ -129,13 +155,16 @@ namespace Eigen
 					optAss.assign(s.begin(), s.begin() + nx);
 					optScore = score;
 				}
-//#ifdef _DEBUG
-				//for (auto& i : s)
-				//{
-				//	cout << i << ' ';
-				//}
-				//cout << ':' << score << endl;
-//#endif
+#ifdef _DEBUG_QAP
+				cout << "Assignment ";
+				if (transposed)
+					cout << "(B->A) : ["; else cout << "(A->B) : [";
+
+				for (auto& i : std::make_range(s.begin(),s.begin() + nx))
+					cout << i << ',';
+				float asScore = assignment_cost(A, s.data(), transposed);
+				cout << "\b] = (" << asScore << " + " << score - asScore << ')' << endl;
+#endif
 			} while (std::next_permutation(s.begin(), s.begin() + nx));
 		} while (next_combination(s.begin(), s.begin() + nx, s.end()));
 

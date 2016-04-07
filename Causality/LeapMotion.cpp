@@ -312,6 +312,7 @@ void LeapListener::processHand(const Leap::Hand& leaphand, TrackedHand& hand, bo
 			basis = lbasis.toMatrix4x4<Matrix4x4>();
 			basis *= m_world;
 			basis.Decompose(s, bone.GblRotation, bone.GblTranslation);
+			bone.StoreConfidence(leaphand.confidence());
 		}
 	}
 

@@ -28,25 +28,25 @@ namespace Causality
 		// Typical value should always be (0,l,0), where l = length of the bone
 		// Should be constant among time!!!
 		XM_ALIGNATTR
-		Vector3	LclTranslation;
-		float				LclTw; // Padding, w-coff of local translation
+		Vector3		LclTranslation;
+		float		LclTw; // Padding, w-coff of local translation
 
 		XM_ALIGNATTR
-		Vector3	LclScaling; // Local Scaling , adjust this transform to adjust bone length
-		float				LclLength;  // offset should = 16 + 3x4 = 28, the Length before any Scaling
+		Vector3		LclScaling; // Local Scaling , adjust this transform to adjust bone length
+		float		LclLength;  // offset should = 16 + 3x4 = 28, the Length before any Scaling
 
 		// Global Data (dulplicate with Local)
 		// Global Rotation
 		XM_ALIGNATTR
-		Quaternion GblRotation;
+		Quaternion	GblRotation;
 		// Global Position for the ending joint of this bone
 		// Aka : End-Position
 		XM_ALIGNATTR
-		Vector3	GblTranslation;
-		float				GblTw; // Padding
+		Vector3		GblTranslation;
+		float		GblTw; // Padding
 		XM_ALIGNATTR
-		Vector3	GblScaling;
-		float				GblLength;		// Length of this bone, after scaling
+		Vector3		GblScaling;
+		float		GblLength;		// Length of this bone, after scaling
 
 
 		//XM_ALIGNATTR
@@ -56,6 +56,11 @@ namespace Causality
 		//bool DirtyFlag;
 
 		Bone();
+
+		// Standards store of tracking confidence
+		inline float GetConfidence() const { return GblTw; }
+		inline void StoreConfidence(float confidence) { GblTw = confidence; }
+		inline void RemoveConfidence() { GblTw = 1.0f; }
 
 		void GetBoundingBox(BoundingBox& out) const;
 		// Update from Hirachy or Global

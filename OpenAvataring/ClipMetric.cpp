@@ -108,12 +108,27 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	ClipFacade::SetGravityReference(parts.Armature().bind_frame());
 	ClipFacade::SetEnergyFilterFunction([this](Eigen::RowVectorXf& Eb) {
 		auto& parts = *this->m_pParts;
+		Eigen::RowVectorXf Reb(Eb);
 		for (int i = 0; i < parts.size(); i++)
 		{
-			if (parts[i]->parent() != nullptr)
-				Eb[i] *= parts[i]->ChainLength / parts[i]->LengthToRoot;
+			//if (parts[i]->parent() != nullptr)
+			//	Eb[i] *= parts[i]->ChainLength / parts[i]->LengthToRoot;
+			
+			if (parts[i]->parent())
+			{
+				int pid = parts[i]->parent()->Index;
+				Reb[i] = max(Eb[i] - Eb[pid],.0f);
+			}
 		}
+		Eb = Reb;
+
+		if (this->m_confidenceFilter)
+			Eb.array() *= this->m_partsConfidences.transpose().array();
+
+		Eb[0] = .0f; // Prevent root to map with an specific part
 	});
+	
+	this->m_partsConfidences.setOnes(parts.size());
 }
 
 CharacterClipinfo::CharacterClipinfo()
@@ -202,6 +217,7 @@ CyclicStreamClipinfo::CyclicStreamClipinfo()
 	m_pParts = nullptr;
 	m_fftplan = nullptr;
 	m_fillWindowWithFirstFrame = true;
+	m_confidenceFilter = true;
 	m_minFr = m_maxFr = m_FrWidth = 0;
 	m_windowSize = 0;
 	m_automaticCloseloop = g_AutomaticLoopClosing;
@@ -251,10 +267,11 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_bufferCapacity = m_windowSize * 4;
 
 	m_buffer.setZero(m_bufferWidth, m_bufferCapacity);
+	m_confidencBuffer.setZero(parts.size(), m_bufferCapacity);
 	m_Spectrum.setZero(m_bufferWidth, m_windowSize);
 	m_SmoothedBuffer.setZero(m_windowSize, m_frameWidth);
 
-	m_cropMargin = m_sampleRate * 0.333; // 0.1s of frames as margin
+	m_cropMargin = 5; // m_sampleRate * 0.333; // 0.1s of frames as margin
 
 	m_cyclicDtcThr = g_RevampActiveSupportThreshold;
 	m_staticEnergyThr = g_RevampStaticEnergyThreshold;
@@ -279,6 +296,23 @@ void CyclicStreamClipinfo::InitializeStreamView(ShrinkedArmature& parts, time_se
 	m_bufferHead = m_bufferSize = m_frameCounter = 0;
 	m_bufferInit = true;
 }
+
+float GetPartConfidence(const ArmaturePart& part, const CyclicStreamClipinfo::FrameType& frame)
+{
+	//float confi = 0.0f;
+	float confi = 1.0f;
+	for (auto j : part.Joints)
+	{
+		int eid = j->ID;
+
+		confi *= frame[eid].GetConfidence();
+	}
+	
+	//confi = powf(confi, 1.0f / part.Joints.size());
+	//confi /= part.Joints.size();
+	return confi;
+}
+
 
 CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame(const FrameType & frame)
 {
@@ -311,19 +345,27 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame
 			std::lock_guard<std::mutex> guard(m_bfMutex);
 			// move the buffer to leftmost
 			m_buffer.leftCols(m_bufferSize) = m_buffer.middleCols(m_bufferHead, m_bufferSize);
+			m_confidencBuffer.leftCols(m_bufferSize) = m_confidencBuffer.middleCols(m_bufferHead, m_bufferSize);
 			m_bufferHead = 0;
 		}
 	}
 
 	// the last column
-	auto fv = m_buffer.col(m_bufferHead + m_bufferSize - 1);
+	int fidx = m_bufferHead + m_bufferSize - 1;
+	auto fv = m_buffer.col(fidx);
 
 	auto& parts = *m_pParts;
 	int stIdx = 0;
+
+	
+	auto identilizedFrame = IdentilizeFrame(parts, frame);
+
 	for (int i = 0; i < parts.size(); i++)
 	{
 		auto& part = *parts[i];
-		auto bv = m_pFeature->Get(part, frame);
+
+		m_confidencBuffer(i, fidx) = GetPartConfidence(part, frame);
+		auto bv = m_pFeature->Get(part, identilizedFrame);
 		int dim = m_pFeature->GetDimension(*parts[i]);
 		fv.segment(stIdx, dim) = bv.transpose();
 		stIdx += dim;
@@ -332,6 +374,7 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame
 	if (fillWindow && m_bufferHead == 0 && m_bufferSize == 1 && m_frameCounter == 0)
 	{
 		m_buffer.middleCols(m_bufferHead + 1, m_windowSize - 1) = fv.replicate(1, m_windowSize - 1);
+		m_confidencBuffer.middleCols(m_bufferHead + 1, m_windowSize - 1) = m_confidencBuffer.col(fidx).replicate(1, m_windowSize - 1);
 		m_bufferSize = m_windowSize;
 	}
 
@@ -350,6 +393,19 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::StreamFrame
 	return false_result;
 }
 
+CyclicStreamClipinfo::FrameType CyclicStreamClipinfo::IdentilizeFrame(const ShrinkedArmature & parts, const ArmatureFrame & frame)
+{
+	FrameType result = frame;
+	auto& armature = parts.Armature();
+	auto& rotBone = frame[armature.root()->ID];
+	XMVECTOR rootTran = rotBone.GblRotation;
+	for (int i = 0; i < armature.size(); i++)
+	{
+		result[i].GblTranslation -= rootTran;
+	}
+	return result;
+}
+
 void CyclicStreamClipinfo::ResetStream()
 {
 	std::lock_guard<std::mutex> guard(m_bfMutex);
@@ -364,8 +420,12 @@ std::mutex & CyclicStreamClipinfo::AqucireFacadeMutex()
 CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRecentAction(RecentAcrtionBehavier forceBehavier)
 {
 	// Anaylze starting
-	size_t head = m_bufferHead;
-	size_t windowSize = m_windowSize;
+	int head = m_bufferHead + m_bufferSize - m_windowSize - 1;
+	int tail = m_bufferHead + m_bufferSize;
+
+	int windowSize = m_windowSize;
+	int swSize = std::min(windowSize / 2, m_pendingFrames);
+
 	m_isStaticPose = false;
 	CaculateSpecturum(head, windowSize);
 
@@ -374,7 +434,8 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 	result.SetFrequencyResolveResult(fr);
 	m_highFreqNoiseEnergy = fr.NoiseEnergy;
 
-	result.AnotherEnergy = CaulateKinectEnergy(head, std::min((int)windowSize / 2, m_pendingFrames));
+	// Using latest buffered data
+	result.AnotherEnergy = CaulateKinectEnergy(tail - swSize, swSize, Ek_MotionRange);
 	float nenerg = (fr.Energy - m_whiteNoiseEnergy) / (m_staticEnergyThr);
 
 	// Prevent low energy high-frequency perodic motion
@@ -406,7 +467,8 @@ CyclicStreamClipinfo::RecentFrameResolveResult CyclicStreamClipinfo::AnaylzeRece
 				m_energyTerms |= Ek_TimeDiveritive;
 
 				m_isClose = false;
-				CropResampleInput(X, head, fr.PeriodInFrame, CLIP_FRAME_COUNT, 0.8f);
+				int period = fr.PeriodInFrame;
+				CropResampleInput(X, tail - period, period, CLIP_FRAME_COUNT, g_InputSmoothStrength);
 				ClipFacade::SetClipTime(Tseconds);
 			}
 			else
@@ -472,26 +534,32 @@ void CyclicStreamClipinfo::CaculateSpecturum(size_t head, size_t windowSize)
 
 void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, size_t inputPeriod, size_t resampledPeriod, float smoothStrength)
 {
-	const int smoothIteration = 4;
+	const int smoothIteration = g_InputSmoothIteration;
 	auto T = inputPeriod;
 
-	int inputLength = T + m_cropMargin * 2;
-	assert(inputLength < m_bufferSize);
+	int margin = std::min((int)head, (int)m_cropMargin);
+	assert(margin > 0);
+
+	int marginedHead = head - margin;
+	int inputLength = T + margin;
+
+	//assert(inputLength < m_bufferSize);
 	// copy the buffer
 	auto Xs = m_SmoothedBuffer.topRows(inputLength);
+
 
 	{
 		// Critial section, copy data from buffer and transpose in Column Major
 		std::lock_guard<std::mutex> guard(m_bfMutex);
-		Xs = m_buffer.block(0, head + m_windowSize - inputLength, m_frameWidth, inputLength).transpose();
+		Xs = m_buffer.block(0, marginedHead, m_frameWidth, inputLength).transpose();
+		m_partsConfidences = m_confidencBuffer.middleCols(marginedHead, inputLength).rowwise().mean();
 	}
 
 	if (m_automaticCloseloop && T > 5)
 	{
 		// assumes a linear noise from e0 to e1, moves e1 to e0 and distribute the changes with in the loop
-		int rmargin = min((int)m_cropMargin / 2, (int)T / 5);
-		auto e0 = Xs.middleRows(m_cropMargin - rmargin, rmargin * 2).colwise().mean();
-		auto e1 = Xs.middleRows(inputLength - m_cropMargin - rmargin, rmargin * 2).colwise().mean();
+		auto e0 = Xs.topRows(margin).colwise().mean();
+		auto e1 = Xs.bottomRows(margin).colwise().mean();
 		auto tune = (e0 - e1).eval();
 
 		float endDivergence = tune.norm();
@@ -501,8 +569,8 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 			//m_isClose = false;
 		}
 
-		Xs.middleRows(m_cropMargin, T) += VectorXf::LinSpaced(T, .0f, 1.0f).asDiagonal() * tune.replicate(T, 1);
-		Xs.bottomRows(m_cropMargin) = Xs.topRows(m_cropMargin);
+		Xs.middleRows(margin, T) += VectorXf::LinSpaced(T, .0f, 1.0f).asDiagonal() * tune.replicate(T, 1);
+		//Xs.bottomRows(m_cropMargin) = Xs.topRows(m_cropMargin);
 		m_isClose = true;
 	}
 	else
@@ -521,7 +589,7 @@ void CyclicStreamClipinfo::CropResampleInput(_Out_ MatrixXf& X, size_t head, siz
 
 	// Resample input into X
 	cublicBezierResample(X,
-		m_SmoothedBuffer.middleRows(m_cropMargin, T),
+		m_SmoothedBuffer.middleRows(margin, T),
 		resampledPeriod,
 		Eigen::CloseLoop);
 }
@@ -587,6 +655,8 @@ float CyclicStreamClipinfo::CaulateKinectEnergy(size_t head, size_t windowSize, 
 	float Ek = .0f;
 	if (windowSize > 1)
 	{
+		std::lock_guard<std::mutex> guard(m_bfMutex);
+		m_partsConfidences = m_confidencBuffer.middleCols(head, windowSize).rowwise().mean();
 		auto raw = m_buffer.block(0, head, m_frameWidth, windowSize);
 		float frametime = 1 / m_sampleRate;
 
@@ -601,6 +671,11 @@ float CyclicStreamClipinfo::CaulateKinectEnergy(size_t head, size_t windowSize, 
 			CaculateTimeDirivtiive(m_bufferDx, raw, frametime, false, m_step);
 			laplacianSmooth(m_bufferDx, 0.8, 2, m_isClose ? CloseLoop : OpenLoop);
 			Ek = m_bufferDx.squaredNorm() / (m_frameWidth * windowSize);
+		}
+		else if (term & Ek_MotionRange)
+		{
+			VectorXf rang = (raw.rowwise().maxCoeff() - raw.rowwise().minCoeff());
+			Ek = reshape(rang, 3, -1).colwise().norm().dot(m_partsConfidences);
 		}
 	}
 	return Ek;
@@ -846,7 +921,7 @@ void ClipFacade::CaculatePartsMetric()
 			else if (m_energyTerms & Ek_TimeDiveritive)
 			{
 				auto cols = m_dX.middleCols(m_partSt[i], m_partDim[i]);
-				m_Edim[i] = cols.cwiseAbs2().colwise().sum().transpose() / m_X.rows();
+				m_Edim[i] = cols.cwiseAbs2().colwise().mean().transpose();
 				m_Eb[i] = m_Edim[i].sum();
 			}
 

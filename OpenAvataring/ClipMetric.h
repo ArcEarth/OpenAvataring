@@ -50,6 +50,7 @@ namespace Causality
 			Ep_SampleMeanLength = 2,
 			Ek_TimeDiveritive = 4, //This enery are direved from X(t)-X(t-1), time dependent
 			Ep_AbsGravity = 8, // This term compute the hight (Y) energy from the default pose
+			Ek_MotionRange = 16, // max(X) - min(X)
 		};
 
 		typedef std::function<void(Eigen::RowVectorXf&)> EnergyFilterFunctionType;
@@ -356,6 +357,8 @@ namespace Causality
 		// return true if a new metric of ClipFacade is avaiable
 		RecentFrameResolveResult StreamFrame(const FrameType& frame);
 
+		FrameType IdentilizeFrame(const Causality::ShrinkedArmature & parts, const Causality::ArmatureFrame & frame);
+
 		void ResetStream();
 
 		std::mutex& AqucireFacadeMutex();
@@ -401,6 +404,7 @@ namespace Causality
 		bool		m_isStaticPose;
 		bool		m_fillWindowWithFirstFrame;
 		bool		m_automaticCloseloop;
+		bool		m_confidenceFilter;
 
 		// min Frequency, in Frames unit
 		int			m_minFr, m_maxFr, m_FrWidth;
@@ -431,6 +435,9 @@ namespace Causality
 		// Feature buffer
 		//! Column majored feature matrix, 1 column = 1 frame in time
 		Eigen::MatrixXf		m_buffer;
+		//! Column majored confidence matrix, 1 column = 1 frame in time
+		//! sizeof(Parts) X sizeof(Frames)
+		Eigen::MatrixXf		m_confidencBuffer;
 
 		std::mutex			m_spMutex;
 		//! Column major spectrum, 1 column = 1 frame in time
@@ -439,6 +446,7 @@ namespace Causality
 		Eigen::VectorXf		m_SpectrumEnergy;//In each frequency
 		Eigen::VectorXf		m_EnergyStatisticFilter; // An Low-Pass Gaussian Filter
 		Eigen::MatrixXf		m_SmoothedBuffer;
+		Eigen::VectorXf		m_partsConfidences; // Average Tracking confidences of the corresponding part in current analyzed sequence
 
 		int					m_bufferHead;
 		int					m_bufferSize;

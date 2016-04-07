@@ -590,6 +590,12 @@ public:
 			//! We are tracking gestures here, keep the raw data is better!
 			frame[j].GblTranslation = ep; // filter.Apply(ep);
 
+			// Stores the TrackedState in GblTw Field
+			int ts = joints[j].TrackingState;
+			float confi = ts * ts * 0.25f;
+
+			frame[j].StoreConfidence(confi);
+				
 			//rot *= DirectX::g_XMNegateX;
 			//ep *= g_XMNegateXZ.v;
 

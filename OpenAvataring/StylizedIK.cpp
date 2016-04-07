@@ -89,8 +89,8 @@ void StylizedChainIK::setChain(const std::vector<const Joint*>& joints, Armature
 	m_iy = m_gplvm.uY;
 	m_ix.setZero(m_gplvm.latent_dimension());
 
-	m_minY = m_gplvm.Y.colwise().minCoeff()/* * 1.2*/ + m_gplvm.uY;
-	m_maxY = m_gplvm.Y.colwise().maxCoeff()/* * 1.2*/ + m_gplvm.uY;
+	m_minY = m_gplvm.Y.colwise().minCoeff() * g_IKLimitMultiplier + m_gplvm.uY;
+	m_maxY = m_gplvm.Y.colwise().maxCoeff() * g_IKLimitMultiplier + m_gplvm.uY;
 
 	if (!m_cValiad)
 		m_cy = m_iy;

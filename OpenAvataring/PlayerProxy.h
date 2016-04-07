@@ -35,6 +35,8 @@ namespace Causality
 		const CharacterController&		GetController(int state) const;
 		CharacterController&			GetController(int state) ;
 
+		std::vector<CharacterController*> GetAllSelectedControllers();
+
 		virtual void					OnKeyUp(const KeyboardEventArgs&e) override;
 		virtual void					OnKeyDown(const KeyboardEventArgs&e) override;
 
@@ -75,6 +77,8 @@ namespace Causality
 
 		void	ResetSelection(bool enableGlow);
 		void	SetActiveController(int idx);
+		void	ActivateController(CharacterController & c);
+		void	DeactivateController(CharacterController & c);
 		void	ResetChracterGlow(CharacterController & ctr);
 		int		SelectCharacter(RecentAcrtionBehavier source = RecentActionBehavier_Auto);
 		bool	SelectCharacterAsync(RecentAcrtionBehavier source = RecentActionBehavier_Auto, bool recaculateMetric = false);
@@ -82,6 +86,7 @@ namespace Causality
 		// plyaer streaming thread
 		friend	IPlayerSelector;
 		void	StreamPlayerFrame(const IArmatureStreamAnimation& body, const IArmatureStreamAnimation::FrameType& frame);
+		void	DisplayRecentMotionMetric(const CyclicStreamClipinfo::RecentFrameResolveResult &metric);
 		void	ResetPlayer(IArmatureStreamAnimation* pOld, IArmatureStreamAnimation* pNew);
 
 		void	ResetPlayerArmature(const IArmature* playerArmature);

@@ -227,6 +227,8 @@
     <ClCompile Include="..\OpenAvataring\PlayerProxy.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)eigen_pch.pch</PrecompiledHeaderOutputFile>
+      <EnableParallelCodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableParallelCodeGeneration>
     </ClCompile>
     <ClCompile Include="..\OpenAvataring\StylizedIK.cpp">
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>

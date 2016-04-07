@@ -3,6 +3,7 @@
 #include "ArmatureAssignment.h"
 #include "ArmatureTransforms.h"
 #include "ArmaturePartFeatures.h"
+//#define _DEBUG_QAP 1
 #include "QudraticAssignment.h"
 #include "StylizedIK.h"
 
@@ -374,7 +375,7 @@ namespace Causality
 	}
 
 	// helper functions
-	void CaculateQuadraticDistanceMatrix(array4_view &C, _In_ const MatrixXf& A, const ClipFacade& iclip, const ClipFacade& cclip)
+	void CaculateQuadraticDistanceMatrix(array4_view &C, _In_ const MatrixXf& A, const ClipFacade& iclip, const ClipFacade& cclip, const MatrixXi& iance, const MatrixXi& cance)
 	{
 		auto& Juk = iclip.ActiveParts();
 		auto& Jck = cclip.ActiveParts();
@@ -413,19 +414,56 @@ namespace Causality
 							val *= g_PartAssignmentQuadraticTermWeight;
 
 							float extra = .0f;
+
 							// structrual bounus
-							if (is_symetric(cparti, cpartj))
+							bool csym = is_symetric(cparti, cpartj);
+							bool ssym = false;
+							if (csym)
 							{
-								if (is_symetric(sparti, spartj))
-									extra += g_StructrualSymtricBonus * sqrt(A(i,si) * A(j,sj));
+								ssym = is_symetric(sparti, spartj);
+								if (ssym)
+								{
+									extra = g_StructrualSymtricBonus * sqrt(A(i, si) * A(j, sj));
+									assert(extra >= .0f);
+								}
 								else
-									extra -= g_StructrualDisSymtricPenalty;
+								{
+									extra = g_StructrualDisSymtricPenalty;
+									assert(extra <= .0f);
+								}
 							}
 
-							C(i, j, si, sj) = val + extra;
-							C(j, i, sj, si) = val + extra;
-							C(i, j, sj, si) = -val + extra;
-							C(j, i, si, sj) = -val + extra;
+							float dir_extra = .0f;
+							float anti_extra = .0f;
+
+							int canc = cance(si, sj);
+							int sanc = iance(i, j);
+							if (cance(si, sj) != 0)
+							{
+								int anceType = iance(i, j) * cance(si, sj);
+
+								// Prevent unrelated parts mapps to an related structure
+								if (anceType == 0)
+									extra += g_StructtualAntiAncestorPenalty;
+								else if (anceType == -1)
+									dir_extra = g_StructtualAntiAncestorPenalty;
+								else
+									anti_extra = g_StructtualAntiAncestorPenalty;
+							}
+
+
+							if (g_EnableDebugLogging >= 2)
+							{
+								std::cout << "C(" << i << ',' << j << ',' << si << ',' << sj << ")= "
+									<< val << " ; extra=" << extra << " dir=" << dir_extra << " anti=" << anti_extra <<
+									" ; c-sym=" << csym << " s-sym=" << ssym <<
+									" ; c-anc=" << canc << " s-anc=" << sanc << endl;
+							}
+
+							C(i, j, si, sj) = val + extra + dir_extra;
+							C(j, i, sj, si) = val + extra + dir_extra;
+							C(i, j, sj, si) = -val + extra + anti_extra;
+							C(j, i, si, sj) = -val + extra + anti_extra;
 
 
 						} // one of them is zero
@@ -480,6 +518,41 @@ VectorXi CaculateConditionalSymetricVector(const ShrinkedArmature& parts, const 
 	return symType;
 }
 
+namespace stdx
+{
+	template <class T, bool ownership>
+	bool is_ancester(const tree_node<T, ownership>* node, const tree_node<T, ownership> *ancester)
+	{
+		if (!ancester->has_child()) return false;
+
+		do 
+			node = node->parent();
+		while (node != nullptr && node != ancester);
+
+		return node == ancester;
+	}
+}
+
+MatrixXi CaculateAncesterMatrix(const ShrinkedArmature& parts, const std::vector<int> &activeParts)
+{
+	int m = activeParts.size();
+	MatrixXi ancMap(m, m);
+	ancMap.setZero();
+
+	for (int i = 0; i < activeParts.size(); i++)
+	{
+		auto& part = *parts[activeParts[i]];
+		for (int j = i + 1; j <  activeParts.size(); j++)
+		{
+			int ance = stdx::is_ancester(parts[activeParts[j]], parts[activeParts[i]]);
+			ancMap(i, j) = ance;
+			if (ance)
+				ancMap(j, i) = -1;
+		}
+	}
+	return ancMap;
+}
+
 CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
 {
 	assert(controller.IsReady && iclip.IsReady());
@@ -531,6 +604,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	RowVectorXf xpvrow = Xpvseq.colwise().sum();
 
 	VectorXi XsymType = CaculateConditionalSymetricVector(userParts, Juk);
+	MatrixXi XAncType = CaculateAncesterMatrix(userParts, Juk);
 
 	//selectCols(reshape(iclip.GetAllPartsMean(), pvDim, -1), Juk, &Xpvnm);
 	for (int i = 0; i < Juk.size(); i++)
@@ -569,7 +643,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		const auto &Jck = cpv.ActiveParts();
 
 		VectorXi CsymType = CaculateConditionalSymetricVector(charaParts, Jck);
-
+		MatrixXi CAncType = CaculateAncesterMatrix(charaParts, Jck);
 
 		//const auto &Jck = controller.ActiveParts();
 
@@ -685,7 +759,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		array4_view C(Cdata.data(), array4_view::bounds_type({ cu, cu, cc, cc }));
 
 		//_ASSERTE(_CrtCheckMemory());
-		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv);
+		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv, XAncType, CAncType);
 
 		for (int i = 0; i < Juk.size(); i++)
 		{

@@ -60,25 +60,29 @@
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
     <RevampLikilyhoodTimeThreshold>1.0</RevampLikilyhoodTimeThreshold>
     <ForceRemappingAlwaysOn>false</ForceRemappingAlwaysOn>
-    <RevampActiveSupportThreshold>0.65</RevampActiveSupportThreshold>
+    <RevampActiveSupportThreshold>0.60</RevampActiveSupportThreshold>
     <RevampPendingTime>3.0</RevampPendingTime>
-    <PlayerTrackingWhiteNoiseEnergy>0.0022</PlayerTrackingWhiteNoiseEnergy>
+    <PlayerTrackingWhiteNoiseEnergy>0.0026</PlayerTrackingWhiteNoiseEnergy>
     <RevampStaticEnergyThreshold>0.04</RevampStaticEnergyThreshold>
     <PeriodAnalyzeAggreateWithMax>1</PeriodAnalyzeAggreateWithMax>
+    <InputSmoothIteration>4</InputSmoothIteration>
+    <InputSmoothStrength>0.8</InputSmoothStrength>
 
     <!--Part assignment-->
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
 
     <CharacterSelectionLikilihoodThreshold>0.65</CharacterSelectionLikilihoodThreshold>
-    <PlayerGesturePeriodMin>0.3</PlayerGesturePeriodMin>
+    <PlayerGesturePeriodMin>0.4</PlayerGesturePeriodMin>
     <PlayerGesturePeriodMax>1.5</PlayerGesturePeriodMax>
     <HandleTransformAnisometricMin>0.4</HandleTransformAnisometricMin>
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
+    <IKLimitMultiplier>1.5</IKLimitMultiplier>
     
-    <PartAssignmentQuadraticTermWeight>0.5</PartAssignmentQuadraticTermWeight>
-    <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
-    <StructrualDisSymtricPenalty>-0.25</StructrualDisSymtricPenalty>
+    <PartAssignmentQuadraticTermWeight>0.25</PartAssignmentQuadraticTermWeight>
+    <StructrualSymtricBonus>0.75</StructrualSymtricBonus>
+    <StructrualDisSymtricPenalty>-0.45</StructrualDisSymtricPenalty>
+    <StructtualAntiAncestorPenalty>-1.0</StructtualAntiAncestorPenalty>
 
     <!--Animation Tracker-->
     <TrackerGpuAcceleration>0</TrackerGpuAcceleration>
@@ -283,14 +287,12 @@
       </creature> 
         
          
-        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
+        <!--<creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
         </creature> 
 
-        <!--<action name="idle" src="Horse_Idle.fbx"/>-->
-            <!--subordinates-->
         <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
@@ -317,7 +319,7 @@
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>
+        </creature>-->
         <!--<action name="run" src="kitten_Run.fbx"/>
        <action name="jump" src="kitten_Jump.fbx"/>-->
 
