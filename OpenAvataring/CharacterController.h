@@ -41,6 +41,9 @@ namespace Causality
 
 		const ArmatureTransform& Binding() const;
 		ArmatureTransform& Binding();
+
+		bool IsBindingReady() const { return m_pBinding != nullptr; }
+
 		std::mutex& GetBindingMutex();
 		void SetBinding(std::unique_ptr<ArmatureTransform> &&upBinding);
 
@@ -68,7 +71,7 @@ namespace Causality
 
 		void SychronizeRootDisplacement(const Causality::Bone & bone) const;
 
-		float CreateControlBinding(const ClipFacade& inputClip);
+		float CreateControlBinding(const ClipFacade& inputClip, const string& actionName = "");
 
 		array_view<std::pair<Vector3, Vector3>> PvHandles() const;
 		std::vector<std::pair<Vector3, Vector3>>& PvHandles();

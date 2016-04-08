@@ -33,7 +33,9 @@
 //					When this flag set to true, a CCA will be use to find the general linear transform between Player 'Limb' and Character 'Limb'
 
 //float				g_NoiseInterpolation = 1.0f;
-
+bool g_AutomaticTurnOffDependencyControl = true;
+bool g_ManualRevampControl = false;
+int  g_MaxTrackerCount = 2;
 
 using namespace Causality;
 using namespace Eigen;
@@ -174,12 +176,14 @@ bool PlayerProxy::SelectCharacterAsync(RecentAcrtionBehavier source, bool recacu
 			}
 			catch (const std::exception& excp)
 			{
-				std::cout << "Exception in Selecting Characters : " << excp.what() << endl;
+				std::cout << "[Error] Exception in Selecting Characters : " << excp.what() << endl;
 			}
 			m_mapTaskOnGoing = false;
 		});
 		return true;
 	}
+
+	std::cout << "[Error] Mapping Tasks on going" << endl;
 	return false;
 }
 
@@ -592,8 +596,10 @@ void PlayerProxy::ResetSelection(bool enableGlow)
 		for (auto& ctrl : m_Controllers)
 		{
 			ctrl.IsSelected = true;
+			ctrl.SetBinding(nullptr);
 			ctrl.CharacterScore = enableGlow ? 1.0f : .0f;
 			ResetChracterGlow(ctrl);
+			DeactivateController(ctrl);
 		}
 	}
 	SetActiveController(-1);
@@ -717,7 +723,7 @@ void PlayerProxy::DeactivateController(Causality::CharacterController & c)
 		g_DebugLocalMotionAction[chara.Name] = "";
 	}
 
-	if (c.ID == m_CurrentIdx && m_CurrentIdx != idx)
+	if (c.IsSelected && c.IsBindingReady())
 	{
 		chara.SetPosition(c.CMapRefPos);
 		chara.SetOrientation(c.CMapRefRot);
@@ -741,23 +747,49 @@ namespace std
 	}
 }
 
+const ArmatureFrameAnimation* GetCharacterSelectiveAction(const CharacterObject& chara)
+{
+	if (chara.CurrentAction() != nullptr)
+		return chara.CurrentAction();
+	else
+	{
+		auto name = g_DebugLocalMotionAction[chara.Name];
+		auto& behavier = chara.Behavier();
+		if (behavier.Contains(name))
+		{
+			return &behavier[name];
+		}
+		else
+		{
+			name = DefaultAnimationSet;
+			if (behavier.Contains(name))
+			{
+				return &behavier[name];
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+	}
+}
+
 int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 {
-	if (!m_pSelector || !m_pSelector->Get())
+
+	if (!m_pSelector || !m_pSelector->Get() || 
+			std::all_of(BEGIN_TO_END(m_Controllers), [](const auto& ctr)->bool
+			{ return !ctr.IsReady; }))
 		return -1;
 
 	auto& player = *m_pSelector->Get();
-
-	if (std::all_of(BEGIN_TO_END(m_Controllers), [](const auto& ctr)->bool
-	{ return !ctr.IsReady; }))
-	{
-		return -1;
-	}
-
 	CharacterController* pControl = nullptr;
 	{
+		if (g_EnableDebugLogging > 1)
+			std::cout << "Aquiring Facade Lock" << endl;
 		std::lock_guard<std::mutex> guard(m_CyclicInfo.AqucireFacadeMutex());
-		std::cout << "FacadeLock Aquired" << endl;
+		if (g_EnableDebugLogging > 1)
+			std::cout << "FacadeLock Aquired" << endl;
 
 		//std::this_thread::sleep_for(std::chrono::seconds(1));
 		std::vector<float> scores(m_Controllers.size());
@@ -769,8 +801,11 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 														//concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](CharacterController& controller)
 		{
 			auto& chara = controller.Character();
-			;
-			if (!controller.IsReady || !controller.IsSelected || !chara.CurrentAction() || !chara.CurrentAction()->IsCyclic)
+			auto action = GetCharacterSelectiveAction(chara);
+
+			if (!controller.IsReady || !controller.IsSelected 
+				|| !action
+				|| !action->IsCyclic)
 			{
 				controller.CharacterScore = -10000.0f;
 				continue;
@@ -785,7 +820,9 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 			//concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers),[this](CharacterController& controller)
 			{
 				auto& controller = ctrref.get();
-				controller.CreateControlBinding(m_CyclicInfo.AsFacade());
+				auto action = GetCharacterSelectiveAction(controller.Character());
+
+				controller.CreateControlBinding(m_CyclicInfo.AsFacade(), action->Name);
 			}
 		}
 		else
@@ -793,46 +830,61 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 			concurrency::parallel_for_each(BEGIN_TO_END(m_Controllers), [this](std::reference_wrapper<CharacterController> ctrref)
 			{
 				auto& controller = ctrref.get();
-				controller.CreateControlBinding(m_CyclicInfo.AsFacade());
+				auto action = GetCharacterSelectiveAction(controller.Character());
+
+				controller.CreateControlBinding(m_CyclicInfo.AsFacade(), action->Name);
 			});
 		}
 		//);
 
-		auto ctritr = std::max_element(BEGIN_TO_END(m_Controllers), [](const auto& c0, const auto& c1)
+		if (g_EnableDebugLogging > 1)
+			std::cout << "FacadeLock Releasing" << endl;
+	}
+
+
+	auto ctritr = std::max_element(BEGIN_TO_END(m_Controllers), [](const auto& c0, const auto& c1)
+	{
+		return c0.CharacterScore < c1.CharacterScore;
+	});
+
+	auto maxScore = ctritr->CharacterScore;
+	if (ctritr->IsReady && ctritr->CharacterScore > .0f)
+	{
+		int selectionCount = 0;
+		for (auto& ctr : m_Controllers)
 		{
-			return c0.CharacterScore < c1.CharacterScore;
-		});
+			auto& chara = ctr.Character();
+			auto score = ctr.CharacterScore / maxScore;
+			score = std::clamp(score, 0.0f, 1.0f);
+			ctr.CharacterScore = score;
+			ctr.IsSelected = score > g_CharacterSelectionLikilihoodThreshold;
 
-		std::cout << "FacadeLock Releasing" << endl;
+			selectionCount += ctr.IsSelected;
 
-		auto maxScore = ctritr->CharacterScore;
-		if (ctritr->IsReady && ctritr->CharacterScore > .0f)
+			ResetChracterGlow(ctr);
+
+			if (m_selectionMode == SelectionMode_Filtering)
+			{
+				if (ctr.IsSelected)
+					ActivateController(ctr);
+				else
+					DeactivateController(ctr);
+			}
+		}
+
+		if (selectionCount == 0 && !IsMapped())
+			ResetSelection(false);
+
+		if (selectionCount == 1 || m_selectionMode == SelectionMode_MostLikilily)
 		{
-			int selectionCount = 0;
-			for (auto& ctr : m_Controllers)
-			{
-				auto& chara = ctr.Character();
-				auto score = ctr.CharacterScore / maxScore;
-				score = std::clamp(score, 0.0f, 1.0f);
-				ctr.CharacterScore = score;
-				ctritr->IsSelected = score > g_CharacterSelectionLikilihoodThreshold;
+			pControl = &(*ctritr);
 
-				selectionCount += ctritr->IsSelected;
-
-				ResetChracterGlow(ctr);
-			}
-
-			if (selectionCount == 1 || m_selectionMode == SelectionMode_MostLikilily)
-			{
-				pControl = &(*ctritr);
-
-				// Disable re-matching when the controller has not request
-				m_CyclicInfo.EnableCyclicMotionDetection(false);
-			}
-			else
-			{
-				m_CyclicInfo.ResetStream();
-			}
+			// Disable re-matching when the controller has not request
+			//m_CyclicInfo.EnableCyclicMotionDetection(false);
+		}
+		else
+		{
+			m_CyclicInfo.ResetStream();
 		}
 	}
 
@@ -871,14 +923,14 @@ void PlayerProxy::ResetChracterGlow(CharacterController & ctr)
 
 bool PlayerProxy::IsMapped() const {
 
-	return m_CurrentIdx >= 0;
-	//return (m_selectionMode == SelectionMode_MostLikilily && m_CurrentIdx >= 0) ||
-	//	(m_selectionMode == SelectionMode_Filtering && 
-	//		std::any_of(m_Controllers.begin(), m_Controllers.end(),
-	//			[](const CharacterController& c) {
-	//				return c.IsSelected;
-	//			})
-	//	);
+	//return m_CurrentIdx >= 0;
+	return (m_selectionMode == SelectionMode_MostLikilily && m_CurrentIdx >= 0) ||
+		(m_selectionMode == SelectionMode_Filtering && 
+			std::any_of(m_Controllers.begin(), m_Controllers.end(),
+				[](const CharacterController& c) {
+					return c.IsSelected && c.IsBindingReady();
+				})
+		);
 }
 
 const CharacterController & PlayerProxy::CurrentController() const {
@@ -925,7 +977,7 @@ std::vector<CharacterController*> PlayerProxy::GetAllSelectedControllers()
 	else
 		for (auto& c : m_Controllers)
 		{
-			if (c.IsSelected)
+			if (c.IsSelected && c.IsBindingReady())
 				ctrls.push_back(&c);
 		}
 	return ctrls;
@@ -996,19 +1048,19 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	else if (e.Key == 'O')
 	{
 		g_EnableDependentControl = !g_EnableDependentControl;
-		cout << "Enable Dependency Control = " << g_EnableDependentControl << endl;
+		cout << "[Key] Enable Dependency Control = " << g_EnableDependentControl << endl;
 	}
 	else if (e.Key == 'C')
 	{
 		m_EnableOverShoulderCam = !m_EnableOverShoulderCam;
 		//g_UsePersudoPhysicsWalk = m_EnableOverShoulderCam;
-		cout << "Over Shoulder Camera Mode = " << m_EnableOverShoulderCam << endl;
+		cout << "[Key] Over Shoulder Camera Mode = " << m_EnableOverShoulderCam << endl;
 		//cout << "Persudo-Physics Walk = " << g_UsePersudoPhysicsWalk << endl;
 	}
 	else if (e.Key == 'V')
 	{
 		g_UsePersudoPhysicsWalk = !g_UsePersudoPhysicsWalk;
-		cout << "Persudo-Physics Walk = " << g_UsePersudoPhysicsWalk << endl;
+		cout << "[Key] Persudo-Physics Walk = " << g_UsePersudoPhysicsWalk << endl;
 		for (auto& controller : m_Controllers)
 		{
 			controller.Character().EnabeAutoDisplacement(g_UsePersudoPhysicsWalk && controller.ID == m_CurrentIdx);
@@ -1016,15 +1068,25 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	}
 	else if (e.Key == 'Z')
 	{
+		static const char* modeName[] = {
+			"Selection Mode : NONE",
+			"Multiple Selection",
+			"Unique Selection",
+		};
 		m_selectionMode = m_selectionMode == SelectionMode_Filtering ? SelectionMode_MostLikilily : SelectionMode_Filtering;
+		cout << "[Key] Selection Mode Changed ==> [" << modeName[m_selectionMode] << ']' << endl;
 	}
 	else if (e.Key == 'E')
 	{
+		cout << "[Key] Implicit Action Selection ==> ENABLED" << endl;
 		m_CyclicInfo.EnableCyclicMotionDetection();
+		g_ManualRevampControl = true;
 	}
 	else if (e.Key == 'R')
 	{
+		cout << "[Key] Implicit Action Selection ==> DISABLED" << endl;
 		m_CyclicInfo.EnableCyclicMotionDetection(false);
+		g_ManualRevampControl = true;
 	}
 	//else if (e.Key == 'M')
 	//{
@@ -1084,13 +1146,22 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	}
 	else if (e.Key == 'P')
 	{
+		cout << "[Key] Reset Camera Pose" << endl;
 		ResetPrimaryCameraPoseToDefault();
 	}
 	else if (e.Key == VK_RETURN || e.Key == VK_TAB)
 	{
+		static const char* sourName[] =
+		{
+			"Auto",
+			"FreezedPose",
+			"PeriodMotion",
+		};
 		auto source = e.Modifier & KeyModifiers::Mod_Control || e.Key == VK_TAB ?
 			RecentActionBehavier_FreezedPose :
 			RecentActionBehavier_PeriodMotion;
+
+		cout << "[Key] Manual Triggerd Selection : " << sourName[source] << endl;
 
 		if (!SelectCharacterAsync(source, true))
 		{
@@ -1099,6 +1170,7 @@ void PlayerProxy::OnKeyUp(const KeyboardEventArgs & e)
 	}
 	else if (e.Key == VK_BACK)
 	{
+		cout << "[Key] Reset Selection & Control Mapping" << endl;
 		m_DefaultCameraFlag = true;
 		ResetSelection(false);
 		m_CyclicInfo.ResetStream();
@@ -1179,26 +1251,47 @@ void PlayerProxy::UpdateThreadRuntime()
 			float lik = 1.0f;
 
 			int sz = controllers.size();
-			//#pragma omp parallel for
-			for (int i = 0; i < sz; ++i)
+
+			if (g_AutomaticTurnOffDependencyControl)
 			{
-				auto& controller = *controllers[i];
-				float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
+				g_EnableDependentControl = sz <= g_MaxTrackerCount;
+			}
+
+			if (sz > 1)
+			{
+
+				#pragma omp parallel for
+				for (int i = 0; i < sz; ++i)
+				{
+					auto& controller = *controllers[i];
+					float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
+				}
+			} else
+			{ 
+				for (int i = 0; i < sz; ++i)
+				{
+					auto& controller = *controllers[i];
+					float lik = controller.UpdateTargetCharacter(frame, lastFrame, dt);
+				}
 			}
 
 			// Check if we need to "Revamp" Control Binding
-			if (lik < g_RevampLikilyhoodThreshold)
+			if (!g_ManualRevampControl)
+			if (sz == 1)
 			{
-				m_LowLikilyTime += dt;
-				if (m_LowLikilyTime > g_RevampLikilyhoodTimeThreshold)
+				if (lik < g_RevampLikilyhoodThreshold)
 				{
-					m_CyclicInfo.EnableCyclicMotionDetection();
+					m_LowLikilyTime += dt;
+					m_CyclicInfo.EnableCyclicMotionDetection(m_LowLikilyTime > g_RevampLikilyhoodTimeThreshold);
 				}
-			}
-			else
+				else
+				{
+					m_CyclicInfo.EnableCyclicMotionDetection(false);
+					m_LowLikilyTime = 0;
+				}
+			} else if (sz > 1)
 			{
-				m_CyclicInfo.EnableCyclicMotionDetection(false);
-				m_LowLikilyTime = 0;
+				m_CyclicInfo.EnableCyclicMotionDetection(g_AllowsRevampInMultipleSelection);
 			}
 		}
 		else
@@ -1277,6 +1370,10 @@ void PlayerProxy::UpdatePrimaryCameraForTrack()
 {
 	auto& camera = *this->Scene->PrimaryCamera();
 	auto& cameraPos = dynamic_cast<SceneObject&>(camera);
+
+	if (m_CurrentIdx == -1)
+		return;
+
 	auto& contrl = this->CurrentController();
 	auto& chara = contrl.Character();
 	using namespace DirectX;
@@ -1492,7 +1589,7 @@ void DrawProgressBar(Vector3 center, float width, float radius, float progress, 
 	if (progress > 0.01f)
 		drawer.DrawCylinder(left, val, radius, foreground);
 	if (progress < 0.99f)
-		drawer.DrawCylinder(val, right, radius, background);
+		drawer.DrawCylinder(val + hext * 0.01f, right, radius, background);
 }
 
 void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
@@ -1553,8 +1650,8 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 			Color pbbc = DirectX::Colors::Gray;
 
-			Color pbfc = buffering ? 
-				DirectX::Colors::Yellow : 
+			Color pbfc = buffering ?
+				DirectX::Colors::Yellow :
 				DirectX::Colors::YellowGreen;
 
 
@@ -1594,53 +1691,46 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 
 	}
 
-	// IsMapped() && 
-	if (IsMapped())
-	{
-		for (auto& controller : m_Controllers)
-		{
-			if (!controller.IsReady)
-				continue;
-			auto& chara = controller.Character();
-			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
-
-
-		}
-	}
-
-	if (IsMapped() /*&& g_DebugView */ && m_CurrentIdx != -1)
+	if (IsMapped() /*&& g_DebugView */ /*&& m_CurrentIdx != -1*/)
 	{
 		//auto& controller = this->CurrentController().Character();
 
-		auto & controller = CurrentController();
+		auto selectes = GetAllSelectedControllers();
 
-		auto& chara = controller.Character();
-		auto glow = chara.FirstChildOfType<CharacterGlowParts>();
-
-		std::vector<Color> colors(controller.ArmatureParts().size());
-
-		for (auto& part : controller.ArmatureParts())
+		//auto & controller = CurrentController();
+		for (auto pController : selectes)
 		{
-			colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
+			auto& controller = *pController;
+
+			auto& chara = controller.Character();
+			auto glow = chara.FirstChildOfType<CharacterGlowParts>();
+
+			std::vector<Color> colors(controller.ArmatureParts().size());
+
+			for (auto& part : controller.ArmatureParts())
+			{
+				colors[part->Index] = glow->GetBoneColor(part->Joints.front()->ID);
+			}
+
+			auto& frame = chara.GetCurrentFrame();
+			auto tran = chara.GetGlobalTransform();
+			auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
+			auto highest = std::max_element(frame.begin(), frame.end(), [](const Bone& b0, const Bone& b1)
+			{ return b0.GblTranslation.y < b1.GblTranslation.y; });
+
+			Vector3 center = frame[0].GblTranslation;
+			float scl = 0.2f / tran.Scale.y;
+
+			center.y = highest->GblTranslation.y + scl * 2.0;
+			Color color = DirectX::Colors::ForestGreen.v;
+			color.A(0.8f);
+
+			drawer.SetWorld(tran.TransformMatrix());
+			drawer.DrawCone(center, DirectX::g_XMIdentityR1.v, -scl * 1.5, scl * 0.5, color);
+
+			DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
+
 		}
-
-		auto& frame = chara.GetCurrentFrame();
-		auto tran = chara.GetGlobalTransform();
-		auto& drawer = DirectX::Visualizers::g_PrimitiveDrawer;
-		auto highest = std::max_element(frame.begin(), frame.end(), [](const Bone& b0, const Bone& b1)
-		{ return b0.GblTranslation.y < b1.GblTranslation.y; });
-
-		Vector3 center = frame[0].GblTranslation;
-		float scl = 0.2f / tran.Scale.y;
-
-		center.y = highest->GblTranslation.y + scl * 2.0;
-		Color color = DirectX::Colors::ForestGreen.v;
-		color.A(0.8f);
-
-		drawer.SetWorld(tran.TransformMatrix());
-		drawer.DrawCone(center, DirectX::g_XMIdentityR1.v, -scl * 1.5, scl * 0.5, color);
-
-		DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
 	}
 
 }

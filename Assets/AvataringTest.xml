@@ -36,7 +36,7 @@
     <CharacterSubactiveEnergy>0.03</CharacterSubactiveEnergy>
 
     <PlayerPcaCutoff>0.04</PlayerPcaCutoff>
-    <PlayerActiveEnergy>0.5</PlayerActiveEnergy>
+    <PlayerActiveEnergy>0.4</PlayerActiveEnergy>
     <PlayerSubactiveEnergy>0.03</PlayerSubactiveEnergy>
 
 
@@ -57,6 +57,9 @@
     <AutomaticLoopClosing>1</AutomaticLoopClosing>
 
     <!--On-flight Re-mapping, Cyclic Detection-->
+    <RedirectRootYawRotation>1</RedirectRootYawRotation>
+    <AllowsRevampInMultipleSelection>1</AllowsRevampInMultipleSelection>
+    <AllowsRevampInUniqueSelection>0</AllowsRevampInUniqueSelection>
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
     <RevampLikilyhoodTimeThreshold>1.0</RevampLikilyhoodTimeThreshold>
     <ForceRemappingAlwaysOn>false</ForceRemappingAlwaysOn>
@@ -79,9 +82,9 @@
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
     <IKLimitMultiplier>1.5</IKLimitMultiplier>
     
-    <PartAssignmentQuadraticTermWeight>0.25</PartAssignmentQuadraticTermWeight>
-    <StructrualSymtricBonus>0.75</StructrualSymtricBonus>
-    <StructrualDisSymtricPenalty>-0.45</StructrualDisSymtricPenalty>
+    <PartAssignmentQuadraticTermWeight>0.5</PartAssignmentQuadraticTermWeight>
+    <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
+    <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
     <StructtualAntiAncestorPenalty>-1.0</StructtualAntiAncestorPenalty>
 
     <!--Animation Tracker-->
@@ -287,7 +290,7 @@
       </creature> 
         
          
-        <!--<creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
+        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
@@ -316,12 +319,12 @@
             <behavier name="cat_beyhavier" armature="Characters\kitten.fbx">
               <behavier.actions>
                 <action name="walk" src="kitten_Walk.fbx"/>
+                <action name="run" src="kitten_Run.fbx"/>
+                <action name="jump" src="kitten_Jump.fbx"/>
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>-->
-        <!--<action name="run" src="kitten_Run.fbx"/>
-       <action name="jump" src="kitten_Jump.fbx"/>-->
+        </creature>
 
 
       </player_controller>

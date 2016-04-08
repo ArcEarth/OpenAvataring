@@ -535,14 +535,15 @@ void CharacterController::SychronizeRootDisplacement(const Bone & bone) const
 
 
 	m_pCharacter->SetPosition(pos);
-	//m_pCharacter->SetOrientation(rot);
+	if (g_RedirectRootYawRotation)
+		m_pCharacter->SetOrientation(rot);
 }
 
 //float CreateControlTransform(CharacterController & controller, const ClipFacade& iclip);
 
-float CharacterController::CreateControlBinding(const ClipFacade& inputClip)
+float CharacterController::CreateControlBinding(const ClipFacade& inputClip, const string& actionName)
 {
-	auto info = CreateControlTransform(*this, inputClip);
+	auto info = CreateControlTransform(*this, inputClip, actionName);
 	if (info.transform != nullptr)
 	{
 		cout << "Trying to set binding..." << endl;
@@ -663,6 +664,9 @@ void CharacterController::SetTargetCharacter(CharacterObject & chara) {
 
 	//auto sprite = new SpriteObject();
 	//m_pCharacter->AddChild(sprite);
+	CMapRefPos = chara.GetPosition();
+	CMapRefRot = chara.GetOrientation();
+
 
 	if (m_pBinding)
 		m_pBinding->SetTargetArmature(chara.Armature());

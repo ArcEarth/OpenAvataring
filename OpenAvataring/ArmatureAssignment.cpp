@@ -553,7 +553,7 @@ MatrixXi CaculateAncesterMatrix(const ShrinkedArmature& parts, const std::vector
 	return ancMap;
 }
 
-CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip)
+CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip, const string& character_actionName)
 {
 	assert(controller.IsReady && iclip.IsReady());
 
@@ -575,11 +575,12 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	//if (character.CurrentAction() == nullptr)
 	//	return 0.0f;
 
-	auto panim = character.CurrentAction();
-	if (panim == nullptr)
-		panim = &character.Behavier()["walk"];
+	//auto panim = character.CurrentAction();
+	//if (panim == nullptr)
+	//	panim = &character.Behavier()[character_actionName];
+	//auto& anim = *panim;
 
-	auto& anim = *panim;
+	auto& anim = character.Behavier()[character_actionName];
 
 	int T = iclip.ClipFrames(); //? /2 Maybe?
 	const std::vector<int> &Juk = iclip.ActiveParts();
