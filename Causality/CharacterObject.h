@@ -54,6 +54,7 @@ namespace Causality
 	protected:
 		// Automatic displacement by analyze joints contact ground
 		void							DisplaceByVelocityFrame();
+		void							GroundCharacter(float height);
 		void							ComputeVelocityFrame(time_seconds time_delta);
 
 	private:
@@ -75,6 +76,7 @@ namespace Causality
 		int										m_FrameMapState;
 		frame_type						        m_CurrentFrame;
 		frame_type								m_LastFrame;
+		Matrix4x4								m_LastWorld;
 		velocity_frame_type						m_VelocityFrame;
 
 		std::mutex								m_ActionMutex;

@@ -5,5 +5,8 @@
         <LeftArm alpha="0.026250938388042978" beta="0.001" gamma="0.52955054336269924" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftArm.csv"/>
         <LeftUpLeg alpha="0.017932854567755497" beta="0.001" gamma="0.70151576637459556" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
         <RightUpLeg alpha="0.023206934779340067" beta="0.001" gamma="1.7969283500854845" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="RightUpLeg.csv"/>
+        <Neck2 alpha="0.001" beta="0.001" gamma="0.65294504382498897" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Neck2.csv"/>
+        <L_Ear alpha="0.0046225221538633843" beta="0.001" gamma="4.9309060778350373" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="L_Ear.csv"/>
+        <R_Ear alpha="0.0044262208609267334" beta="0.001" gamma="4.990557324241272" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="R_Ear.csv"/>
     </cr_75_vel0_wj0_walk_run>
 </param_store>

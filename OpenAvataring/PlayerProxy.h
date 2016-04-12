@@ -28,14 +28,14 @@ namespace Causality
 		};
 
 		// Character Map State
-		bool							IsMapped() const;
+		bool							HasActiveController() const;
 
 		const CharacterController&		CurrentController() const;
 		CharacterController&			CurrentController();
 		const CharacterController&		GetController(int state) const;
 		CharacterController&			GetController(int state) ;
 
-		std::vector<CharacterController*> GetAllSelectedControllers();
+		std::vector<CharacterController*> GetAllActiveControllers();
 
 		virtual void					OnKeyUp(const KeyboardEventArgs&e) override;
 		virtual void					OnKeyDown(const KeyboardEventArgs&e) override;

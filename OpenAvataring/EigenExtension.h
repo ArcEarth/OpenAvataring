@@ -23,7 +23,7 @@ namespace Eigen {
 	template <class DerivedIn, class ArrayView, class DerivedOut>
 	void selectCols(_In_ const DenseBase<DerivedIn>& In, _In_ const ArrayView& indices, _Out_ DenseBase<DerivedOut>* Out)
 	{
-		Out->resize(In.rows(), indices.size());
+		assert(Out->cols() == indices.size() && Out->rows() == In.rows());
 		for (size_t i = 0; i < indices.size(); i++)
 		{
 			Out->col(i) = In.col(indices[i]);
@@ -34,7 +34,7 @@ namespace Eigen {
 	//	typename Dummy = std::enable_if_t<std::is_integral<decltype(std::declval<ArrayView>()[0])>::value >
 	void selectRows(_In_ const DenseBase<DerivedIn>& In, _In_ const ArrayView& indices, _Out_ DenseBase<DerivedOut>* Out)
 	{
-		Out->resize(indices.size(), In.cols());
+		assert(Out->rows() == indices.size() && Out->cols() == In.cols());
 		for (size_t i = 0; i < indices.size(); i++)
 		{
 			Out->row(i) = In.row(indices[i]);

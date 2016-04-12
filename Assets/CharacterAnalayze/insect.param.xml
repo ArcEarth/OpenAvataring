@@ -19,5 +19,7 @@
         <shin_L_005 alpha="0.0056979182121041361" beta="0.001" gamma="0.71600521330049982" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="shin_L_005.csv"/>
         <spine alpha="0.0018858437787016545" beta="0.001" gamma="0.51659207238827731" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="spine.csv"/>
         <shin_L_004 alpha="0.0059102963440370842" beta="0.001" gamma="0.58864265949399952" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="shin_L_004.csv"/>
+        <hips alpha="0.001" beta="0.001" gamma="0.001" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="hips.csv"/>
+        <shin_L_003 alpha="0.001" beta="0.001" gamma="1.5418775417586912" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="shin_L_003.csv"/>
     </cr_75_vel0_wj0_Attack_Right_GetHit_Walk_Walk_Attack_Walk_Attack2_Walk_GetHit>
 </param_store>

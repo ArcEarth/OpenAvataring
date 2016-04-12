@@ -78,6 +78,7 @@ namespace Causality
 
 
 		std::atomic_bool			IsReady;
+		std::atomic_bool			IsActive;
 		int							ID;
 		ArmatureFrame				PotientialFrame;
 

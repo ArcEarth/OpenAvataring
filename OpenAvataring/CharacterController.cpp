@@ -507,11 +507,14 @@ void CharacterController::SetReferenceSourcePose(const Bone & sourcePose)
 	auto& chara = *m_pCharacter;
 	MapRefPos = sourcePose.GblTranslation;
 	LastPos = MapRefPos;
-	CMapRefPos = chara.GetPosition();
 
 	MapRefRot = sourcePose.GblRotation;
-	CMapRefRot = chara.GetOrientation();
 
+	if (!IsActive)
+	{
+		CMapRefPos = chara.GetPosition();
+		CMapRefRot = chara.GetOrientation();
+	}
 }
 
 void CharacterController::SychronizeRootDisplacement(const Bone & bone) const
@@ -527,15 +530,27 @@ void CharacterController::SychronizeRootDisplacement(const Bone & bone) const
 
 	// extract Yaw rotation only, it's a bad hack here
 	// code here : Project the rotation to Y-axis, not exactly the Yaw rotation
-	rot = XMQuaternionLn(rot);
-	rot = XMVectorMultiply(rot, g_XMIdentityR1.v);
-	rot = XMQuaternionExp(rot);
+	{
+		rot = XMQuaternionLn(rot);
+
+		XMVECTOR mask = g_XMNegOneMask.v;
+		if (g_RedirectRootRotationYawOnly)
+		{
+			mask = g_XMMaskY.v;
+		} else 	if (g_RedirectRootRotationRemovesRoll)
+			mask = g_XMMaskXY.v;
+
+
+		rot = XMVectorAndInt(rot, mask);
+		rot = XMQuaternionExp(rot);
+
+	}
 
 	rot = XMQuaternionMultiply(XMLoad(CMapRefRot), rot);
 
 
 	m_pCharacter->SetPosition(pos);
-	if (g_RedirectRootYawRotation)
+	if (g_RedirectRootRotation)
 		m_pCharacter->SetOrientation(rot);
 }
 
@@ -547,6 +562,7 @@ float CharacterController::CreateControlBinding(const ClipFacade& inputClip, con
 	if (info.transform != nullptr)
 	{
 		cout << "Trying to set binding..." << endl;
+		IsActive = false;
 		SetBinding(move(info.transform));
 		CharacterScore = info.likilihood;
 		cout << "Finished set binding" << endl;

@@ -12,4 +12,5 @@ namespace Causality
 
 	CtrlTransformInfo
 		CreateControlTransform(CharacterController & controller, const ClipFacade& iclip, const string& character_actionName);
+	void NormalizeEnergyVector(Eigen::VectorXf &Eub);
 }

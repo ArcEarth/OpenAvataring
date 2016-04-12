@@ -13,5 +13,6 @@
         <Neck alpha="0.01885588456837101" beta="0.0017381930637716634" gamma="2.8518912602776658" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Neck.csv"/>
         <LeftShoulder alpha="0.035197428539790486" beta="0.001" gamma="4.3785608140458931" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftShoulder.csv"/>
         <LeftUpLeg alpha="0.014811082114363518" beta="0.001" gamma="1.3477399298249908" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="LeftUpLeg.csv"/>
+        <Spine1 alpha="0.0028979532651229314" beta="0.001" gamma="1.2992197576473727" lvm_alpha="1" lvm_beta="1" lvm_gamma="1" lvm_X_src="Spine1.csv"/>
     </cr_75_vel0_wj0_walk_run_jump>
 </param_store>

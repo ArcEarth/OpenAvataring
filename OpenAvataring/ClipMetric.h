@@ -211,7 +211,7 @@ namespace Causality
 		// return the row vector of E(X(pi)-X(pj))
 		auto							GetPartsDifferenceMean(int pi, int pj) const
 		{
-			return m_difMean.block(pi*m_dimP, pj, m_dimP, 1).transpose();
+			return m_difMean.block<-1,1>(pi*m_dimP, pj, m_dimP, 1).transpose();
 		}
 		auto							GetPartsDifferenceCovarience(int pi, int pj) const
 		{

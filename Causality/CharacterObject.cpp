@@ -23,68 +23,99 @@ void CharacterObject::DisplaceByVelocityFrame()
 	static const float threshold = 0.05f;
 	float frectionFactor = 1 / 0.05f;
 	auto &frame = m_CurrentFrame;
+	auto &lframe = m_LastFrame;
 	auto &vframe = m_VelocityFrame;
 	auto &armature = *m_pArmature;
 
 	if (vframe.size() == 0)
 		return;
 
-	auto world = this->GlobalTransformMatrix();
+	XMMATRIX world = this->GlobalTransformMatrix();
+	XMMATRIX lworld = m_LastWorld;
 
 	XMVECTOR vsum = XMVectorZero();
 	int count = 0;
 
-	float lowest = std::numeric_limits<float>::max();
+	std::vector<Vector3> anchors;
+
+	float lowest = 10000.0f, llowest = 10000.f;
 	for (int jid = 0; jid < armature.size(); jid++)
 	{
 		XMVECTOR pos = XMVector3Transform(XMLoadA(frame[jid].GblTranslation), world);
 		float y = XMVectorGetY(pos);
-		if (XMVectorGetY(pos) < threshold)
+		if (y < lowest) lowest = y;
+
+		XMVECTOR lpos = XMVector3Transform(XMLoadA(lframe[jid].GblTranslation), lworld);
+		float ly = XMVectorGetY(lpos);
+		if (ly < llowest) llowest = ly;
+	}
+
+
+	for (int jid = 0; jid < armature.size(); jid++)
+	{
+		XMVECTOR pos = XMVector3Transform(XMLoadA(frame[jid].GblTranslation), world);
+		float y = XMVectorGetY(pos) - lowest;
+
+		XMVECTOR lpos = XMVector3Transform(XMLoadA(lframe[jid].GblTranslation), lworld);
+		float ly = XMVectorGetY(lpos) - llowest;
+
+		if (y < threshold && ly < threshold)
 		{
-			XMVECTOR vec = XMLoadA(vframe[jid].LinearVelocity);
-			vec = XMVectorSetW(vec, 0.f);
-			vec = XMVector4Transform(vec, world);
+			anchors.emplace_back(pos - lpos);
 
-			float presure = sqrt((threshold - y) * frectionFactor);
-			presure = std::min(presure, 2.0f);
+			vsum += (pos - lpos);
+			//XMVECTOR vec = XMLoadA(vframe[jid].LinearVelocity);
+			//vec = XMVectorSetW(vec, 0.f);
+			//vec = XMVector4Transform(vec, world);
 
-			if (y < lowest)
-				lowest = y;
+			//float presure = sqrt((threshold - y) * frectionFactor);
+			//presure = std::min(presure, 2.0f);
 
-			vsum += (vec * presure);
+			//if (y < lowest)
+			//	lowest = y;
+
+			//vsum += (vec * presure);
 			count++;
 		}
 	}
 
 	if (count != 0)
 		vsum /= count;
-
-	vsum = XMVectorAndInt(vsum, g_XMSelect1010);
-
-	vsum *= -0.1f;
-	float speed = XMVectorGetX(XMVector3Length(vsum));
-
-	if (speed > 1e-5f)
-	{
-		vsum /= speed;
-
-		speed = m_SpeedFilter.Apply(speed);
-
-		if (speed > g_MaxCharacterSpeed)
-			speed = g_MaxCharacterSpeed;
-
-		vsum *= speed;
-	}
 	else
-	{
-		m_SpeedFilter.Apply(speed);
-	}
+		vsum = XMVectorZero();
+
+	if (fabs(lowest) > threshold)
+		vsum += XMVectorSet(.0f,-lowest,.0f,.0f);
+
+	//vsum *= -0.1f;
+	//float speed = XMVectorGetX(XMVector3Length(vsum));
+
+	//if (speed > 1e-5f)
+	//{
+	//	vsum /= speed;
+
+	//	speed = m_SpeedFilter.Apply(speed);
+
+	//	if (speed > g_MaxCharacterSpeed)
+	//		speed = g_MaxCharacterSpeed;
+
+	//	vsum *= speed;
+	//}
+	//else
+	//{
+	//	m_SpeedFilter.Apply(speed);
+	//}
 
 
-	// make sure model is "Grounded"
-	vsum -= lowest * g_XMIdentityR1;
+	//// make sure model is "Grounded"
+	//vsum -= lowest * g_XMIdentityR1;
 
 	this->SetPosition((XMVECTOR)GetPosition() + vsum);
+}
+
+void CharacterObject::GroundCharacter(float height)
+{
+
 }
 
 void CharacterObject::ComputeVelocityFrame(time_seconds time_delta)
@@ -117,6 +148,7 @@ CharacterObject::frame_type & CharacterObject::MapCurrentFrameForUpdate()
 	m_UpdateLock = true;
 	m_FrameDirty = true;
 	m_LastFrame = m_CurrentFrame;
+	m_LastWorld = this->GlobalTransformMatrix();
 	return m_CurrentFrame;
 }
 

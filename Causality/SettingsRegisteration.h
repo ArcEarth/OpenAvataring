@@ -77,11 +77,14 @@ SETTING_REGISTERATION(float, PlayerTrackingWhiteNoiseEnergy, .0f)
 SETTING_REGISTERATION(bool,  PeriodAnalyzeAggreateWithMax, false)
 SETTING_REGISTERATION(float, InputSmoothStrength, 8.8f)
 SETTING_REGISTERATION(int,	 InputSmoothIteration, 4)
-SETTING_REGISTERATION(bool,  RedirectRootYawRotation, true)
+SETTING_REGISTERATION(bool,  RedirectRootRotationYawOnly, true)
+SETTING_REGISTERATION(bool,  RedirectRootRotationRemovesRoll, false)
+SETTING_REGISTERATION(bool,  RedirectRootRotation, true)
 
 
 
 SETTING_REGISTERATION(float, PartAssignmentQuadraticTermWeight, 0.5f)
+SETTING_REGISTERATION(float, DynamicTermWeight, 0.5f)
 SETTING_REGISTERATION(float, StructrualSymtricBonus, 0.2f)
 SETTING_REGISTERATION(float, StructrualDisSymtricPenalty, -0.2f)
 SETTING_REGISTERATION(float, StructtualAntiAncestorPenalty, -0.5f)

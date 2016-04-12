@@ -101,9 +101,9 @@ namespace Causality
 
 	extern Matrix3f FindIsometricTransformXY(const Eigen::MatrixXf& X, const Eigen::MatrixXf& Y, float* pError = nullptr);
 
-	Eigen::PermutationMatrix<Dynamic> upRotatePermutation(int rows, int rotation)
+	Eigen::PermutationMatrix<Eigen::Dynamic> upRotatePermutation(int rows, int rotation)
 	{
-		Eigen::PermutationMatrix<Dynamic> perm(rows);
+		Eigen::PermutationMatrix<Eigen::Dynamic> perm(rows);
 
 		for (int i = 0; i < rotation; i++)
 		{
@@ -375,7 +375,7 @@ namespace Causality
 	}
 
 	// helper functions
-	void CaculateQuadraticDistanceMatrix(array4_view &C, _In_ const MatrixXf& A, const ClipFacade& iclip, const ClipFacade& cclip, const MatrixXi& iance, const MatrixXi& cance)
+	void CaculateQuadraticDistanceMatrix(array4_view &C, _In_ const MatrixXf& A, const ClipFacade& iclip, const ClipFacade& cclip, const MatrixXi& iance, const MatrixXi& cance, const VectorXf& Eub, const VectorXf& Ecb)
 	{
 		auto& Juk = iclip.ActiveParts();
 		auto& Jck = cclip.ActiveParts();
@@ -408,10 +408,13 @@ namespace Causality
 						{
 
 							//auto edim = (-cu.diagonal() - cc.diagonal()).array().exp().eval();
-							RowVector3f _x = xu.array() * xc.array();
-							_x /= xu.norm() * xc.norm();
-							val = (_x.array() /** edim.transpose()*/).sum();
-							val *= g_PartAssignmentQuadraticTermWeight;
+							//RowVector3f _x = xu.array() * xc.array();
+							//_x /= xu.norm() * xc.norm();
+							val = xu.dot(xc) / (xu.norm() * xc.norm());
+							assert(fabsf(val) <= 1.01f);
+							//val = (_x.array() /** edim.transpose()*/).sum();
+							//val *=  /** sqrt(sqrt(Eub[i]*Eub[j]*Ecb[si]*Ecb[sj]))*/;
+							val *= g_PartAssignmentQuadraticTermWeight * sqrt(A(i, si) * A(j, sj));
 
 							float extra = .0f;
 
@@ -553,6 +556,11 @@ MatrixXi CaculateAncesterMatrix(const ShrinkedArmature& parts, const std::vector
 	return ancMap;
 }
 
+inline static float sqr(float v)
+{
+	return v*v;
+}
+
 CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip, const string& character_actionName)
 {
 	assert(controller.IsReady && iclip.IsReady());
@@ -593,12 +601,12 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	int Ts = T / Ti + 1;
 
 
-	RowVectorXf Eub(Juk.size());
-	selectCols(iclip.GetAllPartsEnergy(), Juk, &Eub);
-
+	VectorXf Eub(Juk.size());
+	selectRows(iclip.GetAllPartsEnergy().transpose(), Juk, &Eub);
+	NormalizeEnergyVector(Eub);
 	// Player Perceptive vector mean normalized
 	MatrixXf Xpvnm(pvDim, Juk.size());
-	std::vector<Matrix3f> Xpvcov(pvDim);
+	std::vector<Matrix3f> Xpvcov(Juk.size());
 
 	MatrixXf Xpvseq(iclip.ClipFrames(), Juk.size() * pvDim);
 	selectCols(iclip.GetAllPartsSequence(), Juk3, &Xpvseq);
@@ -615,7 +623,14 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		auto norm = Xpvnm.col(i).norm();
 		Xpvnm.col(i) /= norm;
 
-		//Xpvcov[i] = iclip.GetPartsDifferenceCovarience(Juk[i], pid);
+		Xpvcov[i] = iclip.GetPartsDifferenceCovarience(Juk[i], pid);
+		auto sn = Xpvcov[i].diagonal().sum();
+
+		if (abs(sn) < 0.01f)
+			Xpvcov[i].setZero();
+		else
+			Xpvcov[i] /= Xpvcov[i].diagonal().sum();
+		//Xpvcov[i] = Xpvcov[i].cwiseSqrt();
 		//ConvertCovToPca(Xpvcov[i],norm);
 
 	}
@@ -655,11 +670,13 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 
 		// Ecb, Energy of Character Active Parts
-		RowVectorXf Ecb(Jck.size());
+		VectorXf Ecb(Jck.size());
 		// Ecb3, Directional Energy of Character Active Parts
 		MatrixXf Ecb3(pvDim, Jck.size());
 
-		selectCols(cpv.GetAllPartsEnergy(), Jck, &Ecb);
+		selectRows(cpv.GetAllPartsEnergy().transpose(), Jck, &Ecb);
+		Ecb = 1.0f + Ecb.array() / Ecb.maxCoeff();
+
 		//selectCols(cclip.Eb3, Jck, &Ecb3);
 		for (size_t i = 0; i < Jck.size(); i++)
 			Ecb3.col(i) = cpv.GetPartDimEnergy(Jck[i]);
@@ -682,7 +699,13 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 			auto norm = Cpvnm.col(i).norm();
 			Cpvnm.col(i) /= norm;
 
-			//Cpvcov[i] = cpv.GetPartsDifferenceCovarience(Jck[i], pid);
+			Cpvcov[i] = cpv.GetPartsDifferenceCovarience(Jck[i], pid);
+			auto sn = Cpvcov[i].diagonal().sum();
+			if (abs(sn) < 0.01f)
+				Cpvcov[i].setZero();
+			else
+				Cpvcov[i] /= Cpvcov[i].diagonal().sum();
+			//Cpvcov[i] = Cpvcov[i].cwiseSqrt();
 			//ConvertCovToPca(Xpvcov[i], norm);
 
 			//Cpvdim[i] = svals[0] / svals.norm() > 0.95f ? 1 : // 1-D Trajectory
@@ -737,12 +760,16 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		{
 			for (int j = 0; j < Jck.size(); j++)
 			{
-				A(i, j) = sqrtf(((Xpvnm.col(i) - Cpvnm.col(j)).array() * Ecb3.col(j).array()).cwiseAbs2().sum());
+				float vgeom = ((Xpvnm.col(i) - Cpvnm.col(j)).array() * Ecb3.col(j).array()).matrix().norm();
+				float vdync = (Xpvcov[i].diagonal().cwiseSqrt() - Cpvcov[i].diagonal().cwiseSqrt()).norm();
+				A(i, j) = sqrt(sqr(vgeom) + sqr(g_DynamicTermWeight * vdync));
 			}
 		}
 
 		// Anisometric Gaussian kernal here
 		A.array() = (-(A.array() / (DirectX::XM_PI / 6)).cwiseAbs2()).exp();
+
+		A = Eub.cwiseSqrt().asDiagonal() * A * Ecb.cwiseSqrt().asDiagonal();
 
 		if (g_EnableDebugLogging >= 1)
 		{
@@ -760,7 +787,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		array4_view C(Cdata.data(), array4_view::bounds_type({ cu, cu, cc, cc }));
 
 		//_ASSERTE(_CrtCheckMemory());
-		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv, XAncType, CAncType);
+		CaculateQuadraticDistanceMatrix(C, A, iclip, cpv, XAncType, CAncType,Eub,Ecb);
 
 		for (int i = 0; i < Juk.size(); i++)
 		{
@@ -967,4 +994,9 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	//	}
 	//}
 
+}
+
+void Causality::NormalizeEnergyVector(Eigen::VectorXf &Eub)
+{
+	Eub = .5f + 0.5 * Eub.array() / Eub.maxCoeff();
 }

@@ -4,7 +4,7 @@
     <ClipRasterizeFrame>75</ClipRasterizeFrame>
 
     <DebugArmatureThinkness>0.01</DebugArmatureThinkness>
-    <EnableDebugLogging>1</EnableDebugLogging>
+    <EnableDebugLogging>0</EnableDebugLogging>
     <EnableRecordLogging>0</EnableRecordLogging>
     <RecordLogRootDir>Log</RecordLogRootDir>
 
@@ -32,8 +32,8 @@
     <FrameTimeScaleFactor>5</FrameTimeScaleFactor>
 
     <CharacterPcaCutoff>0.00001</CharacterPcaCutoff>
-    <CharacterActiveEnergy>0.06</CharacterActiveEnergy>
-    <CharacterSubactiveEnergy>0.03</CharacterSubactiveEnergy>
+    <CharacterActiveEnergy>0.04</CharacterActiveEnergy>
+    <CharacterSubactiveEnergy>0.01</CharacterSubactiveEnergy>
 
     <PlayerPcaCutoff>0.04</PlayerPcaCutoff>
     <PlayerActiveEnergy>0.4</PlayerActiveEnergy>
@@ -57,7 +57,9 @@
     <AutomaticLoopClosing>1</AutomaticLoopClosing>
 
     <!--On-flight Re-mapping, Cyclic Detection-->
-    <RedirectRootYawRotation>1</RedirectRootYawRotation>
+    <RedirectRootRotationYawOnly>0</RedirectRootRotationYawOnly>
+    <RedirectRootRotationRemovesRoll>1</RedirectRootRotationRemovesRoll>
+    <RedirectRootRotation>1</RedirectRootRotation>
     <AllowsRevampInMultipleSelection>1</AllowsRevampInMultipleSelection>
     <AllowsRevampInUniqueSelection>0</AllowsRevampInUniqueSelection>
     <RevampLikilyhoodThreshold>0.01</RevampLikilyhoodThreshold>
@@ -82,6 +84,7 @@
     <HandleTransformAnisometricMax>1.2</HandleTransformAnisometricMax>
     <IKLimitMultiplier>1.5</IKLimitMultiplier>
     
+    <DynamicTermWeight>0.0</DynamicTermWeight>
     <PartAssignmentQuadraticTermWeight>0.5</PartAssignmentQuadraticTermWeight>
     <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
     <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
@@ -115,7 +118,7 @@
 
     <!--Blender-->
     <MaxiumTimeDelta>100</MaxiumTimeDelta>
-    <DynamicTraderKeyEnergy>10.0</DynamicTraderKeyEnergy>
+    <DynamicTraderKeyEnergy>50.0</DynamicTraderKeyEnergy>
     <DynamicTraderCurvePower>1.0</DynamicTraderCurvePower>
     <DynamicTraderSpeedFilterCutoffFrequency>2.0</DynamicTraderSpeedFilterCutoffFrequency>
     <CharacterJointFilterCutoffFrequency>2.0</CharacterJointFilterCutoffFrequency>
@@ -276,7 +279,7 @@
           <!--<leap_source mode="16"/>-->
         </player_controller.selector>
         
-      <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="walk" mesh="{allosaurus_mesh}">
+      <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="attack" mesh="{allosaurus_mesh}">
         <creature.behavier>
           <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
             <behavier.actions>
@@ -290,7 +293,7 @@
       </creature> 
         
          
-        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Walk" mesh="{insect_mesh}">
+        <creature name="insect" position="3.0,0.0,1.5" scale="0.3" action="Attack_Right" mesh="{insect_mesh}">
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
@@ -307,7 +310,7 @@
             </creature.behavier>
         </creature>
 
-        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="walk" mesh="{spider_mesh}">
+        <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="jump" mesh="{spider_mesh}">
           <creature.behavier>
             <behavier name="spider_behavier" src="Characters\spider.fbx"></behavier>
           </creature.behavier>
