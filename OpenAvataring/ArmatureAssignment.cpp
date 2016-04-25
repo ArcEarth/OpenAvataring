@@ -18,6 +18,7 @@
 
 //#include "Causality\FloatHud.h"
 
+bool g_UsePhaseWareMetric = true;
 
 using namespace std;
 using namespace Eigen;
@@ -260,28 +261,28 @@ namespace Causality
 		//std::cout << isSinglePose << endl;
 
 
-		MatrixXf rawX;
-
+		int dim = iclip.GetPartDimension(ju);
+		assert(dim == 3 && "this rutine is specialized for 3-Dimensional data");
 		int nx = iclip.ClipFrames();
 		int ny = cclip.ClipFrames();
 
+		MatrixXf rawX(nx,iclip.GetPartDimension(ju));
+		MatrixXf rawY = cclip.GetPartsDifferenceSequence(jc, jcp);
+
 		auto rotX = upRotatePermutation(nx, phi);
-
-
-		auto rawY = (cclip.GetPartSequence(jc) - cclip.GetPartSequence(jcp)).eval();
 
 		if (isSinglePose)
 		{
 			assert(isSinglePose);
 			if (g_EnableDebugLogging > 1)
 				std::cout <<"signle frame binding : " << isSinglePose << endl;
-			rawX = (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup)).replicate(rawY.rows(), 1);
+			rawX = (iclip.GetPartsDifferenceSequence(ju,jup)).replicate(rawY.rows(), 1);
 		}
 		else {
 			assert(!isSinglePose);
 			if (g_EnableDebugLogging > 1)
 				std::cout << "periodic motion binding : " << isSinglePose << endl;
-			rawX = (rotX * (iclip.GetPartSequence(ju) - iclip.GetPartSequence(jup))).eval();
+			rawX = (rotX * (iclip.GetPartsDifferenceSequence(ju, jup))).eval();
 		}
 
 		//assert(rawX.rows() == rawY.rows() && rawY.rows() == T);
@@ -561,6 +562,24 @@ inline static float sqr(float v)
 	return v*v;
 }
 
+template <class DerivedX, class DerivedY>
+inline float xcorr(const ArrayBase<DerivedX>& X, const ArrayBase<DerivedY>& Y, int phase)
+{
+	int n = X.rows();
+	assert((Y.rows() == X.rows()) && "X and Y must be same dimension");
+
+	double xcor = .0f; // always use double to handle the internal precision
+	if (phase == 0)
+		xcor = (X * Y).sum();
+	else
+		xcor = (X.topRows(n - phase) * Y.bottomRows(n - phase)).sum()
+		+ (X.bottomRows(phase) * Y.topRows(phase)).sum();
+
+	xcor /= X.rows() * X.cols();
+
+	return (float)xcor;
+}
+
 CtrlTransformInfo Causality::CreateControlTransform(CharacterController & controller, const ClipFacade& iclip, const string& character_actionName)
 {
 	assert(controller.IsReady && iclip.IsReady());
@@ -624,12 +643,13 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		Xpvnm.col(i) /= norm;
 
 		Xpvcov[i] = iclip.GetPartsDifferenceCovarience(Juk[i], pid);
-		auto sn = Xpvcov[i].diagonal().sum();
+		Xpvcov[i] /= norm;
+		//auto sn = Xpvcov[i].diagonal().sum();
 
-		if (abs(sn) < 0.01f)
-			Xpvcov[i].setZero();
-		else
-			Xpvcov[i] /= Xpvcov[i].diagonal().sum();
+		//if (abs(sn) < 0.01f)
+		//	Xpvcov[i].setZero();
+		//else
+		//	Xpvcov[i] /= Xpvcov[i].diagonal().sum();
 		//Xpvcov[i] = Xpvcov[i].cwiseSqrt();
 		//ConvertCovToPca(Xpvcov[i],norm);
 
@@ -675,7 +695,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		MatrixXf Ecb3(pvDim, Jck.size());
 
 		selectRows(cpv.GetAllPartsEnergy().transpose(), Jck, &Ecb);
-		Ecb = 1.0f + Ecb.array() / Ecb.maxCoeff();
+		Ecb = (1.0f + 2.0f * Ecb.array() / Ecb.maxCoeff()) / 3.0f;
 
 		//selectCols(cclip.Eb3, Jck, &Ecb3);
 		for (size_t i = 0; i < Jck.size(); i++)
@@ -700,11 +720,12 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 			Cpvnm.col(i) /= norm;
 
 			Cpvcov[i] = cpv.GetPartsDifferenceCovarience(Jck[i], pid);
-			auto sn = Cpvcov[i].diagonal().sum();
-			if (abs(sn) < 0.01f)
-				Cpvcov[i].setZero();
-			else
-				Cpvcov[i] /= Cpvcov[i].diagonal().sum();
+			Cpvcov[i] /= norm;
+			//auto sn = Cpvcov[i].diagonal().sum();
+			//if (abs(sn) < 0.01f)
+			//	Cpvcov[i].setZero();
+			//else
+			//	Cpvcov[i] /= Cpvcov[i].diagonal().sum();
 			//Cpvcov[i] = Cpvcov[i].cwiseSqrt();
 			//ConvertCovToPca(Xpvcov[i], norm);
 
@@ -753,28 +774,45 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		auto CoRSize = Juk.size() + Jck.size();
 
 		MatrixXf A(Juk.size(), Jck.size());
+		MatrixXf Ageo(Juk.size(), Jck.size());
+		MatrixXf Adyn(Juk.size(), Jck.size());
 
 		// Caculate Bipetral Matching Distance Matrix A
-		// Eb3 is ensitially varience matrix here
+		//x Eb3 is ensitially varience matrix here
+		// Eb3 is identity
 		for (int i = 0; i < Juk.size(); i++)
 		{
 			for (int j = 0; j < Jck.size(); j++)
 			{
-				float vgeom = ((Xpvnm.col(i) - Cpvnm.col(j)).array() * Ecb3.col(j).array()).matrix().norm();
-				float vdync = (Xpvcov[i].diagonal().cwiseSqrt() - Cpvcov[i].diagonal().cwiseSqrt()).norm();
+				// Geometric feature term
+				//float vgeom = (Xpvnm.col(i) - Cpvnm.col(j)/* * Ecb3.col(j).array()*/).norm();
+				float vgeom = 0.5f + 0.5f * Xpvnm.col(i).dot(Cpvnm.col(j));
+				// Motion trajectory feature term
+				float vdync = (Xpvcov[i] - Cpvcov[j]).norm();
+
+				// Combine two terms with sqaure average
 				A(i, j) = sqrt(sqr(vgeom) + sqr(g_DynamicTermWeight * vdync));
+
+				// For debug usage
+				Ageo(i, j) = vgeom;
+				Adyn(i, j) = vdync;
 			}
+		}
+		if (g_EnableDebugLogging >= 1)
+		{
+			cout << " A = " << endl << A << endl;
 		}
 
 		// Anisometric Gaussian kernal here
-		A.array() = (-(A.array() / (DirectX::XM_PI / 6)).cwiseAbs2()).exp();
+		//A.array() = (-(A.array() / (DirectX::XM_PI / 6)).cwiseAbs2()).exp();
 
 		A = Eub.cwiseSqrt().asDiagonal() * A * Ecb.cwiseSqrt().asDiagonal();
 
 		if (g_EnableDebugLogging >= 1)
 		{
-			cout << " A = " << endl;
-			cout << A << endl;
+			cout << " A = " << endl << A << endl;
+
+			cout << " A_Dynamic = " << endl << Adyn << endl;
 		}
 
 		//A.noalias() = Xsp.transpose() * Csp;
@@ -822,34 +860,19 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 		//matching.clear();
 		//matching.shrink_to_fit();
 
-
-#pragma region Display Debug Armature Parts Info
-		if (g_EnableDebugLogging >= 1)
-		{
-			cout << "__________ Parts Assignment __________" << endl;
-			cout << "Scores : " << maxScore << endl;
-			for (int i = 0; i < matching.size(); i++)
-			{
-				if (matching[i] < 0) continue;
-				int ju = Juk[i], jc = Jck[matching[i]];
-				if (ju >= 0 && jc >= 0)
-				{
-					cout << userParts[ju]->Joints << " ==> " << charaParts[jc]->Joints << endl;
-				}
-			}
-			cout << "__________ Fin __________" << endl;
-		}
-#pragma endregion
-
+		VectorXf maxCor(matching.size());
 		VectorXi maxPhi(matching.size());
-		maxPhi.setZero();
+		maxPhi.setZero(); maxCor.setZero();
 
 		//_ASSERTE( _CrtCheckMemory( ) );
-		if (!isSingleFrame)
+
+		if (!isSingleFrame) // Then caculate the phase awared score
 		{
-			MatrixXf corrlations(Ts, matching.size());
+			int misAlign = Ts / 8; // partwise phase mismatch tolerence
+			// cross correlations of the matching
+			MatrixXf corrlations(Ts + misAlign - 1, matching.size());
 			corrlations.setZero();
-			Cca<float> cca;
+			//Cca<float> cca;
 
 			for (int i = 0; i < matching.size(); i++)
 			{
@@ -859,8 +882,15 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 				{
 					if (ju >= 0 && jc >= 0)
 					{
-						cca.computeFromQr(iclip.GetPartPcadQrView(ju), cpv.GetPartPcadQrView(jc), false, phi);
-						corrlations(phi / Ti, i) = cca.correlaltions().minCoeff();
+						iclip.GetPartSequence(ju);
+						cpv.GetPartSequence(jc);
+						corrlations(phi / Ti, i) = xcorr(
+							iclip.GetPartSequence(ju).array(),
+							cpv.GetPartSequence(jc).array(),
+							phi);
+
+						//cca.computeFromQr(iclip.GetPartPcadQrView(ju), cpv.GetPartPcadQrView(jc), false, phi);
+						//corrlations(phi / Ti, i) = cca.correlaltions().minCoeff();
 					}
 					else
 						corrlations(phi / Ti, i) = 0;
@@ -869,11 +899,23 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 			//float sumCor = corrlations.rowwise().sum().maxCoeff(&maxPhi);
 
-			int misAlign = Ts / 5;
 			//? maybe other reduce function like min?
 			//! We should allowed a window of range for phi matching among different parts
-			corrlations.conservativeResize(Ts + misAlign, corrlations.cols());
-			corrlations.bottomRows(misAlign) = corrlations.topRows(misAlign);
+			//corrlations.conservativeResize(Ts + misAlign, corrlations.cols());
+			corrlations.bottomRows(misAlign - 1) = corrlations.topRows(misAlign - 1);
+
+			// Normalize the correlations for each column
+			corrlations.array().rowwise() -= corrlations.array().colwise().minCoeff();
+			auto range = corrlations.array().colwise().maxCoeff().eval();
+			for (int i = 0; i < range.size(); i++)
+			{
+				constexpr float epsilon = std::numeric_limits<float>::epsilon();
+				if (fabsf(range[i]) <= epsilon)
+					range[i] = 1.0f;
+			}
+
+			corrlations.array().rowwise() /= range;
+
 			{
 				int mPhis = 0;
 				float scorePhase = numeric_limits<float>::min();;
@@ -889,10 +931,22 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 				for (int i = 0; i < corrlations.cols(); i++)
 				{
-					corrlations.middleRows(mPhis, misAlign).col(i).maxCoeff(&maxPhi[i]);
+					float maxCorr = corrlations.middleRows(mPhis, misAlign).col(i).maxCoeff(&maxPhi[i]);
+					maxCor[i] = maxCorr;
+
+					//! Important Step
+					A.row(i) *= fabsf(maxCorr);
+
 					maxPhi[i] += mPhis;
 					if (maxPhi[i] >= Ts) maxPhi[i] -= Ts;
 					maxPhi[i] *= Ti;
+				}
+
+				if (g_UsePhaseWareMetric)
+				{
+					CaculateQuadraticDistanceMatrix(C, A, iclip, cpv, XAncType, CAncType, Eub, Ecb);
+
+					maxScore = quadratic_assignment_cost(A, array4_const_view(C), matching.data(), false);
 				}
 
 				// Combine the score from qudratic assignment with phase matching
@@ -902,6 +956,25 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 
 			}
 		}
+
+
+#pragma region Display Debug Armature Parts Info
+			if (g_EnableDebugLogging >= 1)
+			{
+				cout << "__________ Parts Assignment, Matching Score = " << maxScore << " __________" << endl;
+				for (int i = 0; i < matching.size(); i++)
+				{
+					if (matching[i] < 0) continue;
+					int ju = Juk[i], jc = Jck[matching[i]];
+					if (ju >= 0 && jc >= 0)
+					{
+						cout << userParts[ju]->Joints << " ==> " << charaParts[jc]->Joints << " (corr=" << maxCor[i] << ", phase=" << maxPhi[i] << ')' << endl;
+					}
+				}
+				cout << "____________________" << endl;
+			}
+#pragma endregion
+
 
 
 		// Transform pair for active parts
@@ -960,9 +1033,9 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	} // Animation clip scope
 
 	DenseIndex maxClipIdx = -1;
-	float maxScore = clipTransformScores.segment(0, clipTransforms.size()).maxCoeff(&maxClipIdx);
+	float maxClipScore = clipTransformScores.segment(0, clipTransforms.size()).maxCoeff(&maxClipIdx);
 
-	cout << maxScore << endl;
+	//cout << maxClipScore << endl;
 
 	CtrlTransformInfo candy;
 	candy.likilihood = 0;
@@ -970,7 +1043,7 @@ CtrlTransformInfo Causality::CreateControlTransform(CharacterController & contro
 	if (maxClipIdx >= 0 
 		/*&& (&controller.Binding() == nullptr || maxScore > controller.CharacterScore * 1.2)*/)
 	{
-		candy.likilihood = maxScore;
+		candy.likilihood = maxClipScore;
 		candy.transform = move(clipTransforms[maxClipIdx]);
 		//cout << "Trying to set binding..." << endl;
 		//controller.SetBinding(move(clipTransforms[maxClipIdx]));

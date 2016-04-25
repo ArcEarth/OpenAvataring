@@ -103,7 +103,7 @@ void CyclicStreamClipinfo::InitializePvFacade(ShrinkedArmature& parts)
 	std::lock_guard<std::mutex> guard(m_facadeMutex);
 	ClipFacade::SetFeature(m_pFeature);
 	ClipFacade::SetActiveEnergy(g_PlayerActiveEnergy, g_PlayerSubactiveEnergy);
-	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy);
+	ClipFacade::Prepare(parts, CLIP_FRAME_COUNT * 2, ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy | LocalizePcaQr);
 	ClipFacade::SetEnergyTerms(Ek_TimeDiveritive | Ep_AbsGravity);
 	ClipFacade::SetGravityReference(parts.Armature().bind_frame());
 	ClipFacade::SetEnergyFilterFunction([this](Eigen::RowVectorXf& Eb) {
@@ -163,7 +163,7 @@ void CharacterClipinfo::Initialize(const ShrinkedArmature& parts)
 
 	ClipFacade::EnergyFilterFunctionType binded = std::bind(&CharacterClipinfo::FilterLocalRotationEnergy, *this, std::placeholders::_1);
 	RcFacade.SetEnergyFilterFunction(std::move(binded));
-	PvFacade.Prepare(parts, -1, ClipFacade::ComputePcaQr | ClipFacade::ComputeNormalize | ClipFacade::ComputePairDif);
+	PvFacade.Prepare(parts, -1, ClipFacade::ComputePcaQr | ClipFacade::ComputeNormalize | ClipFacade::ComputePairDif | ClipFacade::LocalizePcaQr);
 }
 
 void CharacterClipinfo::AnalyzeSequence(array_view<ArmatureFrame> frames, double sequenceTime, bool cyclic)
@@ -961,26 +961,29 @@ void ClipFacade::CaculatePartsMetric()
 		// Prevent root part become an active part
 		if (i > 0)
 		{
-			if (m_Eb[i] > m_ActiveEnergyThreshold * maxEnergy)
+			if (m_Eb[i] >= m_ActiveEnergyThreshold * maxEnergy)
 			{
 				m_ActiveParts.push_back(i);
 			}
-			else if (m_Eb[i] > m_SubactiveEnergyThreshold * maxEnergy)
+			else if (m_Eb[i] >= m_SubactiveEnergyThreshold * maxEnergy)
 			{
 				m_SubactiveParts.push_back(i);
 			}
-		}
-
-		// Compute Pca for all active and sub-active parts
-		// inactive parts
-		if ((m_flag & ComputePca) && (m_Eb[i] > m_SubactiveEnergyThreshold * maxEnergy))
-		{
-			CaculatePartPcaQr(i);
 		}
 	}
 
 	if (m_flag & ComputePairDif)
 		CaculatePartsPairMetric();
+
+	// Compute Pca for all active and sub-active parts
+	//x inactive parts
+	for (int i = 0; i < parts.size(); i++)
+	{
+		if ((m_flag & ComputePca) && (m_Eb[i] >= m_SubactiveEnergyThreshold * maxEnergy))
+		{
+			CaculatePartPcaQr(i);
+		}
+	}
 
 	m_inited = true;
 }
@@ -989,8 +992,17 @@ void ClipFacade::CaculatePartPcaQr(int i)
 {
 	auto& pca = m_Pcas[i];
 
-	pca.computeCentered(m_cX.middleCols(m_partSt[i], m_partDim[i]), true);
-	pca.setMean(m_uX.segment(m_partSt[i], m_partDim[i]));
+	auto& parts = *m_pParts;
+	if (!(LocalizePcaQr & m_flag) || !parts[i]->parent())
+	{
+		pca.computeCentered(m_cX.middleCols(m_partSt[i], m_partDim[i]), true);
+		pca.setMean(m_uX.segment(m_partSt[i], m_partDim[i]));
+	}
+	else // Force the pca caculated is based on the relative sequence
+	{
+		pca.compute(GetPartsDifferenceSequence(i, parts[i]->parent()->Index));
+	}
+
 	auto d = pca.reducedRank(m_pcaCutoff);
 	m_PcaDims[i] = d;
 

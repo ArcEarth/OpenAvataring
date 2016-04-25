@@ -471,7 +471,7 @@ void PercentCloserShadowCamera::CreateDeviceResources(IRenderDevice * pDevice, R
 	// pass 0 : render binary shadow to screen space (from light-view-proj space)
 	auto pEffectRender = std::make_shared<EffectRenderControl>();
 	pEffectRender->SetRenderTarget(RenderTarget(pDevice, resolution.x, resolution.y));
-	pEffectRender->SetBackground(Colors::Gray.v);
+	pEffectRender->SetBackground(Colors::White.v);
 
 	auto& shadowBuffer = pEffectRender->GetRenderTarget().ColorBuffer();
 	auto pShadowEffect = std::make_shared<ShadowMapEffect>(pDevice);

@@ -39,7 +39,7 @@ void MatrixVisualizer::Render(IRenderContext * pContext, IEffect * pEffect)
 {
 	if (m_dirty)
 		UpdateTexture(pContext);
-	SpriteObject::Render(pContext, pEffect);
+	//SpriteObject::Render(pContext, pEffect);
 }
 
 void MatrixVisualizer::CreateDeviceResources(IRenderDevice * pDevice, size_t rows, size_t cols)

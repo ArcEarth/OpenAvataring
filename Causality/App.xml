@@ -1,6 +1,6 @@
 <application>
 	<kinect enable="true"></kinect>
-	<leap enable="true" asynchronize="true" fixed="true" scale="-0.01,0.01,-0.01"></leap>
+	<leap enable="true" asynchronize="true" fixed="true" scale="-0.01,0.01,0.01"></leap>
 	<vicon sever_ip="172.21.12.17" enable="false" verbose="false" scale="0.001"></vicon>
 
 	<assets path="..\Assets\"></assets>
@@ -9,7 +9,8 @@
 
     <run_test>0</run_test>
 
-	<window width="1360" height="768" left="-1360" top="0"  fullscreen="false"></window>
+	<!--<window width="1360" height="768" left="-1360" top="0"  fullscreen="false"></window>-->
 	<!--<window width="1360" height="768" left="500" top="200"  fullscreen="false"></window>-->
+	<window width="1920" height="1080" left="0" top="0"  fullscreen="false"></window>
 	<console width="800" height="720" left="0" top="10" ></console>
 </application>

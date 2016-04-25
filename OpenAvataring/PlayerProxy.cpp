@@ -150,9 +150,14 @@ void PlayerProxy::DisplayRecentMotionMetric(const CyclicStreamClipinfo::RecentFr
 		<< "Periodic Support = " << metric.Support << endl
 		<< "Kinetic Energy = " << metric.Energy << " (" << metric.AnotherEnergy << ")" << endl
 		<< "Periodic Confidence = " << metric.PeriodicConfidence << endl
-		<< "Static Pose Confidence = " << metric.StaticConfidence << endl
-		<< "Energies = " << m_CyclicInfo.AsFacade().GetAllPartsEnergy() << endl;
-
+		<< "Static Pose Confidence = " << metric.StaticConfidence << endl;
+	cout << "Energies = ";
+	auto& parts = *m_pParts;
+	for (int i = 0; i < parts.size(); i++)
+	{
+		cout << parts[i]->Joints[0]->Name << '=' << m_CyclicInfo.AsFacade().GetPartEnergy(i)<<',';
+	}
+	cout << '\b' << endl;
 }
 
 bool PlayerProxy::SelectCharacterAsync(RecentAcrtionBehavier source, bool recaculateMetric)
@@ -713,7 +718,7 @@ void PlayerProxy::ActivateController(CharacterController & controller)
 	controller.CharacterScore = temp;
 	controller.IsActive = controller.IsBindingReady();
 
-	chara.ShowBoundingGeometry(true);
+	//chara.ShowBoundingGeometry(true);
 	chara.EnabeAutoDisplacement(g_UsePersudoPhysicsWalk);
 }
 
@@ -834,10 +839,6 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 				controller.CreateControlBinding(m_CyclicInfo.AsFacade(), action->Name);
 			}
 
-			for (auto ctrref : activeControllers)
-			{
-				std::cout << ctrref.get().Character().Name << " ==> " << ctrref.get().CharacterScore << endl;
-			}
 		}
 		else
 		{
@@ -850,6 +851,11 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 			});
 		}
 		//);
+
+		for (auto ctrref : activeControllers)
+		{
+			std::cout << ctrref.get().Character().Name << " ==> " << ctrref.get().CharacterScore << endl;
+		}
 
 		if (g_EnableDebugLogging > 1)
 			std::cout << "FacadeLock Releasing" << endl;
@@ -895,6 +901,7 @@ int PlayerProxy::SelectCharacter(RecentAcrtionBehavier source)
 
 			// Disable re-matching when the controller has not request
 			//m_CyclicInfo.EnableCyclicMotionDetection(false);
+			m_CyclicInfo.ResetStream();
 		}
 		else
 		{
@@ -1518,7 +1525,7 @@ void XM_CALLCONV DrawControllerHandle(CharacterController& controller, DirectX::
 	using DirectX::Visualizers::g_PrimitiveDrawer;
 	using namespace Math;
 
-	XMVECTOR color = Colors::Pink;
+	XMVECTOR color = Colors::LimeGreen.v;
 	XMVECTOR vel_color = Colors::Navy;
 
 
@@ -1633,7 +1640,7 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 				m_charaFrame.resize(chara.Armature().size());
 			action.GetFrameAt(m_charaFrame, current_time);
 			auto world = chara.GlobalTransformMatrix();
-			DrawArmature(chara.Armature(), m_charaFrame, DirectX::Colors::LimeGreen.v, world, g_DebugArmatureThinkness / chara.GetGlobalTransform().Scale.x);
+			//DrawArmature(chara.Armature(), m_charaFrame, DirectX::Colors::LimeGreen.v, world, g_DebugArmatureThinkness / chara.GetGlobalTransform().Scale.x);
 			DrawControllerHandle(controller, nullptr, view, proj, viewport, *m_trailVisual);
 		}
 	}
@@ -1747,7 +1754,8 @@ void PlayerProxy::Render(IRenderContext * context, DirectX::IEffect* pEffect)
 			drawer.SetWorld(tran.TransformMatrix());
 			drawer.DrawCone(center, DirectX::g_XMIdentityR1.v, -scl * 1.5, scl * 0.5, color);
 
-			DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
+			if (g_DebugView)
+				DrawControllerHandle(controller, colors.data(), view, proj, viewport, *m_trailVisual);
 
 		}
 	}

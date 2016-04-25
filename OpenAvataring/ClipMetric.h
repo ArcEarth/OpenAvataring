@@ -33,6 +33,7 @@ namespace Causality
 			ComputePairDif = 0x10,
 			ComputeVelocity = 0x20,
 			ComputeEnergy = 0x40,
+			LocalizePcaQr = 0x80,
 			ComputeAll = ComputePcaQr | ComputeNormalize | ComputePairDif | ComputeEnergy,
 		};
 
@@ -207,6 +208,14 @@ namespace Causality
 			//assert(m_partDim[pi] == m_partDim[pj]);
 			return GetPartSequence(pi) - GetPartSequence(pj);
 		}
+
+		auto							GetPartsRelativeSequence(int pi) const
+		{
+			auto parent = (*m_pParts)[pi]->parent();
+			int pj = parent->Index;
+			return GetPartSequence(pi) - GetPartSequence(pj);
+		}
+
 
 		// return the row vector of E(X(pi)-X(pj))
 		auto							GetPartsDifferenceMean(int pi, int pj) const

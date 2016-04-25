@@ -77,7 +77,7 @@
     <PhaseMatchingInterval>2</PhaseMatchingInterval>
     <PartAssignmentTransform>4</PartAssignmentTransform>
 
-    <CharacterSelectionLikilihoodThreshold>0.65</CharacterSelectionLikilihoodThreshold>
+    <CharacterSelectionLikilihoodThreshold>0.95</CharacterSelectionLikilihoodThreshold>
     <PlayerGesturePeriodMin>0.4</PlayerGesturePeriodMin>
     <PlayerGesturePeriodMax>1.5</PlayerGesturePeriodMax>
     <HandleTransformAnisometricMin>0.4</HandleTransformAnisometricMin>
@@ -87,7 +87,7 @@
     <DynamicTermWeight>0.0</DynamicTermWeight>
     <PartAssignmentQuadraticTermWeight>0.5</PartAssignmentQuadraticTermWeight>
     <StructrualSymtricBonus>0.5</StructrualSymtricBonus>
-    <StructrualDisSymtricPenalty>-0.5</StructrualDisSymtricPenalty>
+    <StructrualDisSymtricPenalty>-1.0</StructrualDisSymtricPenalty>
     <StructtualAntiAncestorPenalty>-1.0</StructtualAntiAncestorPenalty>
 
     <!--Animation Tracker-->
@@ -231,11 +231,11 @@
         --><!--<tracked_object name="camera_tracker" index="0"  translation="( 0.007, 0.036,-0.060)" rotation="{-0.705, 0.091, 0.092,-0.697}"/>--><!--
       </hmd_camera>-->
       
-      <skydome name="sky" background="Sunny_01B.dds"/>
-
-      <coordinate_axis max="8" zx="true"/>
-
+      <!--<skydome name="sky" background="Sunny_01B.dds"/>
       <object name="island" position="0,-4.1,-5.0" scale="0.03,0.03,0.03" mesh="{island_mesh}"/>
+
+      <coordinate_axis max="8" zx="true"/>-->
+
       <!--<object name="ground" position="0,-5.01,0" scale="5.0,5.0,5.0" mesh="{cube_mesh}"/>-->
 
       <!--<object name="bush_001" position="2.5,0,2" scale="0.015" mesh="{Bush_01_a}" />
@@ -275,11 +275,11 @@
       
       <player_controller name="player" position="0,0.0,0" trail_particle="trail_particle_2.dds">
         <player_controller.selector>
-          <kinect_source mode="3"/>
-          <!--<leap_source mode="16"/>-->
+          <!--<kinect_source mode="3"/>-->
+          <leap_source mode="16"/>
         </player_controller.selector>
         
-      <creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="attack" mesh="{allosaurus_mesh}">
+      <!--<creature name="allosaurus" position="2.5,0.0,-1.0" scale="0.01" action="attack" mesh="{allosaurus_mesh}">
         <creature.behavier>
           <behavier name="allosaurus_behavier" armature="Characters\allosaurus.fbx" file_axis_system="DirectX">
             <behavier.actions>
@@ -297,9 +297,9 @@
             <creature.behavier>
             <behavier name="insect_behavier" src="Characters\Insect.fbx"></behavier>
             </creature.behavier>
-        </creature> 
+        </creature> -->
 
-        <creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
+        <!--<creature name="horse" position="-2.0,0,0" scale ="0.015" action="walk" mesh="{horse_mesh}">
             <creature.behavier>
                 <behavier name="horse_behavier" armature="Horse_Idle.fbx">
                 <behavier.actions>
@@ -308,7 +308,7 @@
                 </behavier.actions>
                 </behavier>
             </creature.behavier>
-        </creature>
+        </creature>-->
 
         <creature name="spider" position="3.5,0.0,0" scale="0.0018" action="jump" mesh="{spider_mesh}">
           <creature.behavier>
@@ -317,7 +317,7 @@
         </creature>
 
 
-        <creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
+        <!--<creature name="cat" position="-1.55,0,1.3" scale ="0.02" action="walk" mesh="{cat_mesh}">
           <creature.behavier>
             <behavier name="cat_beyhavier" armature="Characters\kitten.fbx">
               <behavier.actions>
@@ -327,7 +327,7 @@
               </behavier.actions>
             </behavier>
           </creature.behavier>
-        </creature>
+        </creature>-->
 
 
       </player_controller>

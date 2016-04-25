@@ -36,79 +36,60 @@ void CharacterObject::DisplaceByVelocityFrame()
 	XMVECTOR vsum = XMVectorZero();
 	int count = 0;
 
-	std::vector<Vector3> anchors;
-
-	float lowest = 10000.0f, llowest = 10000.f;
+	float lowest = std::numeric_limits<float>::max();
 	for (int jid = 0; jid < armature.size(); jid++)
 	{
 		XMVECTOR pos = XMVector3Transform(XMLoadA(frame[jid].GblTranslation), world);
 		float y = XMVectorGetY(pos);
-		if (y < lowest) lowest = y;
-
-		XMVECTOR lpos = XMVector3Transform(XMLoadA(lframe[jid].GblTranslation), lworld);
-		float ly = XMVectorGetY(lpos);
-		if (ly < llowest) llowest = ly;
-	}
-
-
-	for (int jid = 0; jid < armature.size(); jid++)
-	{
-		XMVECTOR pos = XMVector3Transform(XMLoadA(frame[jid].GblTranslation), world);
-		float y = XMVectorGetY(pos) - lowest;
-
-		XMVECTOR lpos = XMVector3Transform(XMLoadA(lframe[jid].GblTranslation), lworld);
-		float ly = XMVectorGetY(lpos) - llowest;
-
-		if (y < threshold && ly < threshold)
+		if (XMVectorGetY(pos) < threshold)
 		{
-			anchors.emplace_back(pos - lpos);
+			XMVECTOR vec = XMLoadA(vframe[jid].LinearVelocity);
+			vec = XMVectorSetW(vec, 0.f);
+			vec = XMVector4Transform(vec, world);
 
-			vsum += (pos - lpos);
-			//XMVECTOR vec = XMLoadA(vframe[jid].LinearVelocity);
-			//vec = XMVectorSetW(vec, 0.f);
-			//vec = XMVector4Transform(vec, world);
+			float presure = sqrt((threshold - y) * frectionFactor);
+			presure = std::min(presure, 2.0f);
 
-			//float presure = sqrt((threshold - y) * frectionFactor);
-			//presure = std::min(presure, 2.0f);
+			if (y < lowest)
+				lowest = y;
 
-			//if (y < lowest)
-			//	lowest = y;
-
-			//vsum += (vec * presure);
+			vsum += (vec * presure);
 			count++;
 		}
 	}
 
 	if (count != 0)
+	{
 		vsum /= count;
+	}
+
+	vsum = XMVectorAndInt(vsum, g_XMSelect1010);
+
+	vsum *= -0.1f;
+	float speed = XMVectorGetX(XMVector3Length(vsum));
+
+	if (speed > 1e-5f)
+	{
+		vsum /= speed;
+
+		speed = m_SpeedFilter.Apply(speed);
+
+		if (speed > g_MaxCharacterSpeed)
+			speed = g_MaxCharacterSpeed;
+
+		vsum *= speed;
+	}
 	else
-		vsum = XMVectorZero();
-
-	if (fabs(lowest) > threshold)
-		vsum += XMVectorSet(.0f,-lowest,.0f,.0f);
-
-	//vsum *= -0.1f;
-	//float speed = XMVectorGetX(XMVector3Length(vsum));
-
-	//if (speed > 1e-5f)
-	//{
-	//	vsum /= speed;
-
-	//	speed = m_SpeedFilter.Apply(speed);
-
-	//	if (speed > g_MaxCharacterSpeed)
-	//		speed = g_MaxCharacterSpeed;
-
-	//	vsum *= speed;
-	//}
-	//else
-	//{
-	//	m_SpeedFilter.Apply(speed);
-	//}
+	{
+		m_SpeedFilter.Apply(speed);
+	}
 
 
-	//// make sure model is "Grounded"
-	//vsum -= lowest * g_XMIdentityR1;
+	// make sure model is "Grounded"
+	if (count != 0)
+	{
+		vsum -= lowest * g_XMIdentityR1;
+	}
 
 	this->SetPosition((XMVECTOR)GetPosition() + vsum);
 }

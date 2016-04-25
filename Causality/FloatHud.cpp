@@ -73,8 +73,8 @@ void SpriteObject::Render(IRenderContext * pContext, IEffect * pEffect)
 
 	auto sprites = g_PrimitiveDrawer.GetSpriteBatch();
 	sprites->Begin(SpriteSortMode_Immediate, nullptr, g_PrimitiveDrawer.GetStates()->PointClamp());
-	sprites->Draw(srv,Vector2(fp.x,fp.y));
-	//sprites->Draw(srv, rect, nullptr, color, 0, Vector2::Zero, DirectX::SpriteEffects::SpriteEffects_None, depth);
+	//sprites->Draw(srv,Vector2(fp.x,fp.y));
+	sprites->Draw(srv, rect, nullptr, color, 0, Vector2::Zero, DirectX::SpriteEffects::SpriteEffects_None, depth);
 	sprites->End();
 }
 
